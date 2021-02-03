@@ -45,6 +45,21 @@ class ImodDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         # #widgets-and-dialogs-with-auto-connect
         self.setupUi(self)
 
+        #Viewer
+        self.LayerSelect.clicked.connect(self.layer_select)
+        self.DrawExtent.clicked.connect(self.draw_extent)
+        #self.ExtentBox <- What to do with this?
+        self.StartViewer.clicked.connect(self.start_viewer)
+
+    def layer_select(self):
+        pass
+    
+    def draw_extent(self):
+        pass
+
+    def start_viewer(self):
+        pass
+
     def closeEvent(self, event):
         self.closingPlugin.emit()
         event.accept()
