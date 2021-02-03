@@ -6,9 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>453</width>
-    <height>547</height>
+    <width>1081</width>
+    <height>292</height>
    </rect>
+  </property>
+  <property name="allowedAreas">
+   <set>Qt::BottomDockWidgetArea|Qt::TopDockWidgetArea</set>
   </property>
   <property name="windowTitle">
    <string>iMOD plugin</string>
@@ -18,7 +21,7 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabViewer">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
@@ -27,8 +30,8 @@
        <widget class="QgsExtentGroupBox" name="mExtentGroupBox">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>220</y>
+          <x>190</x>
+          <y>10</y>
           <width>391</width>
           <height>118</height>
          </rect>
@@ -37,8 +40,8 @@
        <widget class="QPushButton" name="pushButton">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>412</y>
+          <x>600</x>
+          <y>10</y>
           <width>161</width>
           <height>41</height>
          </rect>
@@ -51,7 +54,7 @@
         <property name="geometry">
          <rect>
           <x>20</x>
-          <y>172</y>
+          <y>50</y>
           <width>161</width>
           <height>41</height>
          </rect>
@@ -60,7 +63,7 @@
          <string>Draw Extent</string>
         </property>
        </widget>
-       <widget class="QgsMapLayerComboBox" name="mMapLayerComboBox">
+       <widget class="QgsMapLayerComboBox" name="LayerSelect">
         <property name="geometry">
          <rect>
           <x>20</x>
@@ -70,6 +73,16 @@
          </rect>
         </property>
        </widget>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>Time series</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="tab_3">
+       <attribute name="title">
+        <string>Cross section</string>
+       </attribute>
       </widget>
      </widget>
     </item>
