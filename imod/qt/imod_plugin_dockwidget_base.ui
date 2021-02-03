@@ -21,13 +21,13 @@
     <item row="0" column="0">
      <widget class="QTabWidget" name="tabViewer">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tab">
        <attribute name="title">
         <string>Viewer</string>
        </attribute>
-       <widget class="QgsExtentGroupBox" name="mExtentGroupBox">
+       <widget class="QgsExtentGroupBox" name="ExtentBox">
         <property name="geometry">
          <rect>
           <x>190</x>
@@ -37,7 +37,7 @@
          </rect>
         </property>
        </widget>
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="StartViewer">
         <property name="geometry">
          <rect>
           <x>600</x>
@@ -54,7 +54,7 @@
         <property name="geometry">
          <rect>
           <x>20</x>
-          <y>50</y>
+          <y>90</y>
           <width>161</width>
           <height>41</height>
          </rect>
