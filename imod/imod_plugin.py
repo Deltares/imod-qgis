@@ -27,6 +27,8 @@ from qgis.PyQt.QtWidgets import QAction
 # Initialize Qt resources from file resources.py
 from .resources import *
 
+from qgis.core import QgsProject
+
 # Import the code for the DockWidget
 from .imod_plugin_dockwidget import ImodDockWidget
 import os.path
@@ -49,18 +51,6 @@ class Imod:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
 
-        # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'Imod_{}.qm'.format(locale))
-
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
-            QCoreApplication.installTranslator(self.translator)
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&iMOD plugin')
@@ -70,9 +60,14 @@ class Imod:
 
         #print "** INITIALIZING Imod"
 
+        self.project = QgsProject.instance()
+        self.project.layersAdded.connect(self.set_active_mesh)
+
         self.pluginIsActive = False
         self.dockwidget = None
 
+    def set_active_mesh(self):
+        pass
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -228,5 +223,5 @@ class Imod:
 
             # show the dockwidget
             # TODO: fix to allow choice of dock location
-            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.dockwidget)
+            self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.dockwidget)
             self.dockwidget.show()
