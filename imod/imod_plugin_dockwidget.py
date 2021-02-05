@@ -27,6 +27,8 @@ import os
 from qgis.PyQt import QtGui, QtWidgets, uic
 from qgis.PyQt.QtCore import pyqtSignal
 
+from .maptools import RectangleMapTool
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'qt', 'imod_plugin_dockwidget_base.ui'))
 
@@ -35,7 +37,7 @@ class ImodDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
 
     closingPlugin = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, canvas, parent=None):
         """Constructor."""
         super(ImodDockWidget, self).__init__(parent)
         # Set up the user interface from Designer.
@@ -46,16 +48,26 @@ class ImodDockWidget(QtWidgets.QDockWidget, FORM_CLASS):
         self.setupUi(self)
 
         #Viewer
-        self.LayerSelect.clicked.connect(self.layer_select)
+        #self.LayerSelect.clicked.connect(self.layer_select)
         self.DrawExtent.clicked.connect(self.draw_extent)
         #self.ExtentBox <- What to do with this?
         self.StartViewer.clicked.connect(self.start_viewer)
+        self.canvas = canvas
+
+        self.bbox = None #TODO: Get viewextent, use qgis-tim as example
+        self.rectangleTool = RectangleMapTool(self.canvas)
+        self.rectangleTool.rectangleCreated.connect(self.get_bbox)
 
     def layer_select(self):
         pass
-    
+
+    def get_bbox(self):
+        self.bbox = self.rectangleTool.bbox
+        print(self.bbox)
+
     def draw_extent(self):
-        pass
+        print("Please draw extent")
+        self.canvas.setMapTool(self.rectangleTool)
 
     def start_viewer(self):
         pass
