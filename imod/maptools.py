@@ -35,8 +35,6 @@ class RectangleMapTool(QgsMapToolEmitPoint):
     def canvasReleaseEvent(self, e):
         self.isEmittingPoint = False
         if self.rectangle() is not None:
-            self.bbox = (self.rectangle().xMinimum(), self.rectangle().yMinimum(), 
-                        self.rectangle().xMaximum(), self.rectangle().yMaximum())
             self.rectangleCreated.emit()
 
     def canvasMoveEvent(self, e):
