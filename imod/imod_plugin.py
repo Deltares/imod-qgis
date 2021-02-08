@@ -20,6 +20,7 @@ class ImodPlugin:
         self.action_timeseries = None
         self.action_viewer = None
         self.action_cross_section = None
+        self.netcdf_manager = None
         self.plugin_dir = Path(__file__).parent
         self.pluginIsActive = False
         self.menu = u"iMOD"
@@ -39,6 +40,7 @@ class ImodPlugin:
         self.action_viewer = self.add_action(icon_name, "3D Viewer", self.toggle_viewer, True)
         self.action_timeseries = self.add_action(icon_name, "Time Series", self.toggle_timeseries, True)
         self.action_cross_section = self.add_action(icon_name, "Cross section", self.toggle_cross_section, True)
+        self.action_netcdf_manager = self.add_action(icon_name, "NetCDF Manager", self.toggle_netcdf_manager, True)
 
     def toggle_viewer(self):
         if self.viewer_widget is None:
@@ -68,11 +70,22 @@ class ImodPlugin:
             self.cross_section_widget = QgsDockWidget("iMOD Cross Section Plot")
             self.cross_section_widget.setObjectName("ImodCrossSectionDock")
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.cross_section_widget)
-            widget = ImodCrossSectionWidget(self.cross_section_widget)
+            widget = ImodCrossSectionWidget(self.cross_section_widget, self.iface)
             self.cross_section_widget.setWidget(widget)
             self.cross_section_widget.hide()
         self.cross_section_widget.setVisible(not self.cross_section_widget.isVisible())
     
+    def toggle_netcdf_manager(self):
+        if self.netcdf_manager is None:
+            from .netcdf_manager import ImodNetcdfManagerWidget
+            self.netcdf_manager = QgsDockWidget("iMOD NetCDF Manager")
+            self.netcdf_manager.setObjectName("ImodNetcdfDock")
+            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.netcdf_manager)
+            widget = ImodNetcdfManagerWidget(self.netcdf_manager)
+            self.netcdf_manager.setWidget(widget)
+            self.netcdf_manager.hide()
+        self.netcdf_manager.setVisible(not self.netcdf_manager.isVisible())
+
     def unload(self):
         for action in self.actions:
             self.iface.removePluginMenu('iMOD', action) 
