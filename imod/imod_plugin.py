@@ -42,11 +42,12 @@ class ImodPlugin:
 
     def toggle_viewer(self):
         if self.viewer_widget is None:
+            canvas = self.iface.mapCanvas()
             from .viewer import ImodViewerWidget
             self.viewer_widget = QgsDockWidget("iMOD 3D Viewer")
             self.viewer_widget.setObjectName("ImodViewerDock")
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.viewer_widget)
-            widget = ImodViewerWidget(self.viewer_widget)
+            widget = ImodViewerWidget(canvas, parent=self.viewer_widget)
             self.viewer_widget.setWidget(widget)
             self.viewer_widget.hide()
         self.viewer_widget.setVisible(not self.viewer_widget.isVisible())
