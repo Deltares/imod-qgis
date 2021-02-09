@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
 )
 
 from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
-from qgis.core import QgsMapLayerProxyModel
+from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
 from .maptools import RectangleMapTool
 
@@ -84,11 +84,35 @@ class ImodViewerWidget(QWidget):
         #c:\Users\engelen\projects_wdir\iMOD6\test_data\3d_dommel.imod
         pass
 
+    def rgb_components_to_float(self, components):
+        return [comp/256 for comp in components]
+
+    def rgb_string(self, c):
+        rgb = c.color.red(), c.color.green(), c.color.blue()
+        return "{} {} {} {}".format(c.value, *self.rgb_components_to_float(rgb))
+
+    def create_rgb_array(self, colorramp):
+        return ' '.join(self.rgb_string(c) for c in colorramp)
+
     def start_viewer(self):
         current_layer = self.layer_selection.currentLayer()
         path = current_layer.dataProvider().dataSourceUri()
 
-        #TODO: Get layer style/colormap
+        idx = current_layer.datasetGroupsIndexes()
+        group_names = [current_layer.datasetGroupMetadata(QgsMeshDatasetIndex(group=i)).name() for i in idx]
+
+        style_group_index = idx[0]  #Same style used for all groups in QGIS 3.16
+                                    #FUTURE: Check if this remains
+
+        colorramp = current_layer.rendererSettings(
+            ).scalarSettings(style_group_index
+            ).colorRampShader(
+            ).colorRampItemList()
+
+        #For debugging
+        self.rgb_array = self.create_rgb_array(colorramp)
+        self.idx = idx
+        self.group_names = group_names
 
         self.write_xml(path)
 
