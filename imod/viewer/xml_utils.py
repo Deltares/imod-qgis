@@ -54,7 +54,7 @@ class Viewer(Aggregate):
 
 @dataclass
 class IMOD6(Aggregate):
-    version: Union[Attribute, str] = "7.0"
+    version: Union[Attribute, str] = "7"
     viewer: List[Viewer] = None
 
 #%%Mappings
