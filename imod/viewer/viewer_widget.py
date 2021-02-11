@@ -120,10 +120,3 @@ class ImodViewerWidget(QWidget):
         self.settings_to_xml(xml_path)
 
         self.server_handler.start_server()
-
-        #TODO:
-        # JSON dump Env var config in Appdata (during install) https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/setup.py
-        # Get config dir    https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/plugin/qgistim/server_handler.py#L35'
-        # Start activate.py https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/plugin/qgistim/server_handler.py#L51
-        # Activate.py       https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/activate.py
-        
