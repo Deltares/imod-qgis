@@ -13,6 +13,7 @@ from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
 from .maptools import RectangleMapTool
 from .xml_tree import write_xml
+from .server_handler import ServerHandler
 
 import os
 import subprocess
@@ -27,6 +28,7 @@ class ImodViewerWidget(QWidget):
 
         self.canvas = canvas
         self.crs = self.canvas.mapSettings().destinationCrs()
+        self.server_handler = ServerHandler()
 
         #Layer selection
         self.layer_selection = QgsMapLayerComboBox()
@@ -82,25 +84,10 @@ class ImodViewerWidget(QWidget):
         print("Please draw extent")
         self.canvas.setMapTool(self.rectangle_tool)
 
-    def write_xml(self, data_path, xml_path, group_names, rgb_point_data):
-        write_xml(data_path, xml_path, group_names, rgb_point_data)
-
-    def rgb_components_to_float(self, components):
-        return [comp/256 for comp in components]
-
-    def rgb_string(self, c):
-        rgb = c.color.red(), c.color.green(), c.color.blue()
-        return "{} {} {} {}".format(c.value, *self.rgb_components_to_float(rgb))
-
-    def create_rgb_array(self, colorramp):
-        return ' '.join(self.rgb_string(c) for c in colorramp)
-
-    def start_viewer(self):
+    def settings_to_xml(self, xml_path):
         current_layer = self.layer_selection.currentLayer()
-        path = current_layer.dataProvider().dataSourceUri()
-        #TODO: Get appropriate location for this file, probably in AppData
-        xml_path = os.path.splitext(path)[0]+'.imod'
-
+        data_path = current_layer.dataProvider().dataSourceUri()
+    
         idx = current_layer.datasetGroupsIndexes()
         group_names = [current_layer.datasetGroupMetadata(QgsMeshDatasetIndex(group=i)).name() for i in idx]
 
@@ -113,14 +100,30 @@ class ImodViewerWidget(QWidget):
             ).colorRampItemList()
 
         rgb_array = self.create_rgb_array(colorramp)
-        
-        self.write_xml(path, xml_path, group_names, rgb_array)
 
-        exe_path = r"c:\Users\engelen\projects_wdir\iMOD6\viewer\install\IMOD6.exe"
+        write_xml(data_path, xml_path, group_names, rgb_array)
+
+    def rgb_components_to_float(self, components):
+        return [comp/256 for comp in components]
+
+    def rgb_string(self, c):
+        rgb = c.color.red(), c.color.green(), c.color.blue()
+        return "{} {} {} {}".format(c.value, *self.rgb_components_to_float(rgb))
+
+    def create_rgb_array(self, colorramp):
+        return ' '.join(self.rgb_string(c) for c in colorramp)
+
+    def start_viewer(self):
+        configdir = self.server_handler.get_configdir()
+        xml_path = configdir / 'qgis_viewer.imod'
+
+        self.settings_to_xml(xml_path)
+
+        self.server_handler.start_server()
 
         #TODO:
         # JSON dump Env var config in Appdata (during install) https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/setup.py
         # Get config dir    https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/plugin/qgistim/server_handler.py#L35'
         # Start activate.py https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/plugin/qgistim/server_handler.py#L51
         # Activate.py       https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/activate.py
-        subprocess.run([exe_path, xml_path])
+        
