@@ -16,6 +16,11 @@ env_vars = {key: value for key, value in os.environ.items()}
 with open(configdir / "environmental-variables.json", "w") as f:
     f.write(json.dumps(env_vars))
 
+viewer_exe = r"c:\Users\engelen\projects_wdir\iMOD6\viewer\install\IMOD6.exe"
+
+with open(configdir / "viewer_exe.txt", "w") as f:
+    f.write(viewer_exe)
+
 with open("activate.py", "r") as src:
     content = src.read()
 with open(configdir / "activate.py", "w") as dst:
