@@ -5,14 +5,11 @@ from typing import Union, List, Optional
 
 import declxml as xml
 
-
 class Aggregate(abc.ABC):
     pass
 
-
 class Attribute(abc.ABC):
     pass
-
 
 #%%Mapcanvas
 @dataclass
@@ -26,11 +23,11 @@ class Legend(Aggregate):
 @dataclass
 class DataSet(Aggregate):
     Name: str
+    legend: Optional[Union[Legend]] = None
     Time: int = 0
     TargetType: str = "Cell"
     DataType: str = "ScalarDouble"
     Origin: str = "fromFile"
-    legend: Union[Legend, str] = ""
 
 @dataclass
 class DataSetList(Aggregate):
@@ -53,7 +50,7 @@ class ExplorerModelList(Aggregate):
 @dataclass
 class Viewer(Aggregate):
     type: Union[Attribute, str] = "2D"
-    explorermodellist: Union[ExplorerModelList, str] = ""
+    explorermodellist: Optional[ExplorerModelList] = None
 
 @dataclass
 class IMOD6(Aggregate):
@@ -135,13 +132,6 @@ def is_attribute(vartype):
 def is_list(vartype):
     return hasattr(vartype, "__origin__") and (vartype.__origin__ is list)
 
-
-def qgis_xml_name(datacls):
-    # the qgis xml entries have dashes rather than underscores but dashes aren't
-    # valid Python syntax.
-    return name_mapping.get(datacls, datacls.__name__.lower().replace("_", "-"))
-
-
 def process_primitive(name, vartype, datacls, required):
     field_kwargs = {
         "element_name": ".",
@@ -189,10 +179,9 @@ def make_processor(datacls: type, element_required: bool = True):
             children.append(child)
 
     return xml.user_object(
-        element_name=qgis_xml_name(datacls),
+        element_name=datacls.__name__,
         cls=datacls,
         child_processors=children,
         alias=datacls.__name__.lower(),
         required=element_required,
     )
-
