@@ -16,6 +16,4 @@ for key in os.environ:
 for key, value in env_vars.items():
     os.environ[key] = value
 
-xml_path = r"c:/Users/engelen/AppData/Roaming/imod-qgis/qgis_viewer.imod"
-
 subprocess.run([viewer_exe, xml_path])
