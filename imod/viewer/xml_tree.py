@@ -16,7 +16,7 @@ def groupby_layer(group_names):
     Returns
     -------
     gb : dict
-        A dictionary with "_layer_{\d+}" as key and 
+        A dictionary with "layer_{\d+}" as key and 
         a list with all full dataset names
         as value 
     """
