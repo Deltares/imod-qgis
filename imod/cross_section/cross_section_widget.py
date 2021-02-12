@@ -24,10 +24,12 @@ from qgis.core import (
     QgsGeometry,
     QgsWkbTypes,
     QgsPointXY,
+    QgsMeshDatasetIndex
 )
 
 import pyqtgraph as pg
 
+from ..utils.layers import groupby_variable
 
 class PickGeometryTool(QgsMapTool):
     picked = pyqtSignal(
@@ -161,8 +163,18 @@ class ImodCrossSectionWidget(QWidget):
     def clear_legend(self):
         pass
 
+    def get_group_names(self):
+        current_layer = self.layer_selection.currentLayer()
+        idx = current_layer.datasetGroupsIndexes()
+        idx = [QgsMeshDatasetIndex(group=i) for i in idx]
+        group_names = [current_layer.datasetGroupMetadata(i).name() for i in idx]
+
+        return idx, group_names
+
     def draw_plot(self):
-        pass
+        idx, group_names = self.get_group_names()
+        self.gb_var = groupby_variable(group_names, idx)
+
         # Might be smart to draw ConvexPolygons instead of pColorMeshItem,
         # (see code in pColorMeshItem)
         # https://github.com/pyqtgraph/pyqtgraph/blob/5eb671217c295178de255b1fece56379cdef8235/pyqtgraph/graphicsItems/PColorMeshItem.py#L140
