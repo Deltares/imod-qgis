@@ -1,55 +1,9 @@
 import os
-import re
 
 import declxml as xml
 from . import xml_utils as xmu
 
-def groupby_layer(group_names):
-    """Groupby layer
-    
-    Parameters
-    ----------
-    group_names : list of str
-        list with dataset group names
-    
-
-    Returns
-    -------
-    gb : dict
-        A dictionary with "layer_{\d+}" as key and 
-        a list with all full dataset names
-        as value 
-    """
-    prog = re.compile("(.+)_(layer_\d+)")
-    groups = [prog.match(group_name) for group_name in group_names]
-    #Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
-    groups = list(filter(None.__ne__, groups))
-    #Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
-    #the .group confusingly is a regex method here.
-    groups = [(g.group(2), g.group(0)) for g in groups] 
-
-    gb = {}
-    for key, group in groups:
-        if key not in gb.keys():
-            gb[key] = [group]
-        else:
-            gb[key].append(group)
-    return gb
-
-def get_layer_idx(layer_key):
-    """Extract layer number from a key such as 'layer_1'
-
-    Parameters
-    ----------
-    key : str
-        layer key like 'layer_1'
-
-    Returns
-    -------
-    int
-    """
-
-    return int(re.match("layer_(\d+)", layer_key).group(1))
+from ..utils.layers import groupby_layer, get_layer_idx
 
 def create_legend(rgb_point_data):
     legend = xmu.Legend(Discrete = False,
