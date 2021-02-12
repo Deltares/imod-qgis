@@ -22,7 +22,7 @@ def groupby_layer(group_names):
     """
     prog = re.compile("(.+)_(layer_\d+)")
     groups = [prog.match(group_name) for group_name in group_names]
-    #Filter None from list, so variables without "layer" in name, e.g. 'faces_x'
+    #Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
     groups = list(filter(None.__ne__, groups))
     #Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
     #the .group confusingly is a regex method here.
