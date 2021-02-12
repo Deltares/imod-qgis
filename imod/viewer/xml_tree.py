@@ -10,7 +10,7 @@ def groupby_layer(group_names):
     Parameters
     ----------
     group_names : list of str
-        list with group names
+        list with dataset group names
     
 
     Returns
@@ -20,11 +20,11 @@ def groupby_layer(group_names):
         a list with all full dataset names
         as value 
     """
-    prog = re.compile("(.+)(_layer_\d+)")
+    prog = re.compile("(.+)_(layer_\d+)")
     groups = [prog.match(group_name) for group_name in group_names]
-    #Filter None from list
+    #Filter None from list, so variables without "layer" in name, e.g. 'faces_x'
     groups = list(filter(None.__ne__, groups))
-    #Convert to list of tuples: [('_layer_1', 'bottom_layer_1'), ...]
+    #Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
     #the .group confusingly is a regex method here.
     groups = [(g.group(2), g.group(0)) for g in groups] 
 
@@ -37,19 +37,19 @@ def groupby_layer(group_names):
     return gb
 
 def get_layer_idx(layer_key):
-    """Extract layer number from a key such as '_layer_1'
+    """Extract layer number from a key such as 'layer_1'
 
     Parameters
     ----------
     key : str
-        layer key like '_layer_1'
+        layer key like 'layer_1'
 
     Returns
     -------
     int
     """
 
-    return int(re.match("_layer_(\d+)", layer_key).group(1))
+    return int(re.match("layer_(\d+)", layer_key).group(1))
 
 def create_legend(rgb_point_data):
     legend = xmu.Legend(Discrete = False,
