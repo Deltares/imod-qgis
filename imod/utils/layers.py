@@ -5,7 +5,23 @@ in datasets as individual variables ("group_names").
 When MDAL supports layers for UGRID, these utilities become unnecessary
 """
 
+from collections import defaultdict
 import re
+
+def groupby_variable(group_names, dataset_indexes):
+    """Groupby variable
+    """
+
+    gb = defaultdict(list)
+
+    for group_name, dataset_idx in zip(group_names, dataset_indexes):
+
+        if "_layer_" in group_name:
+            parts = group_name.split("_layer_")
+            name, lay_nr = parts
+            gb[name].append((int(lay_nr), dataset_idx))
+        
+    return gb
 
 def groupby_layer(group_names):
     """Groupby layer, provided by a list variable names ("group names", in MDAL terms).
@@ -25,19 +41,19 @@ def groupby_layer(group_names):
     """
     prog = re.compile("(.+)_(layer_\d+)")
     groups = [prog.match(group_name) for group_name in group_names]
+
     #Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
     groups = list(filter(None.__ne__, groups))
     #Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
     #the .group confusingly is a regex method here.
     groups = [(g.group(2), g.group(0)) for g in groups] 
 
-    gb = {}
+    gb = defaultdict(list)
     for key, group in groups:
-        if key not in gb.keys():
-            gb[key] = [group]
-        else:
-            gb[key].append(group)
+        gb[key].append(group)
     return gb
+
+
 
 def get_layer_idx(layer_key):
     """Extract layer number from a key such as 'layer_1'
