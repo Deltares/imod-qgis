@@ -1,5 +1,9 @@
+#Modified from https://github.com/lutraconsulting/qgis-crayfish-plugin/blob/54fa4691eab5adbe0ba419d907544760000fc9a5/crayfish/plot.py#L101
+
 import math
 from qgis.core import QgsMeshDatasetIndex
+
+import numpy as np
 
 from PyQt5.Qt import PYQT_VERSION_STR
 
@@ -15,32 +19,38 @@ def check_if_PyQt_version_is_before(M,m,r):
 # see https://github.com/pyqtgraph/pyqtgraph/issues/1057
 pyqtGraphAcceptNaN = check_if_PyQt_version_is_before(5, 13, 1)
 
-def cross_section_plot_data(layer, ds_group_index, ds_index, geometry, resolution=1.):
-    """ return array with tuples defining X,Y points for plot """
-    x,y = [], []
+def cross_section_x_data(layer, geometry, resolution=1.):
+    """ return list defining X points for plot """
+    x = []
     if not layer:
-        return x, y
+        return x
 
-    dataset = QgsMeshDatasetIndex(ds_group_index, ds_index)
     offset = 0
     length = geometry.length()
+
     while offset < length:
-        pt = geometry.interpolate(offset).asPoint()
-        value = layer.datasetValue(dataset, pt).scalar()
-        if not pyqtGraphAcceptNaN and math.isnan(value):
-            value = 0
         x.append(offset)
-        y.append(value)
         offset += resolution
 
     # let's make sure we include also the last point
-    last_pt = geometry.asPolyline()[-1]
-    last_value = layer.datasetValue(dataset, last_pt).scalar()
-
-    if not pyqtGraphAcceptNaN and math.isnan(last_value):
-        last_value = 0
-
     x.append(length)
-    y.append(last_value)
+    
+    return np.array(x)
 
-    return x,y
+def cross_section_y_data(layer, geometry, dataset, x):
+    """ return array defining Y points for plot """
+    y = np.zeros(x.shape)
+    if not layer:
+        return y
+
+    #TODO: This seems quite brute force. Is there a faster way to do this? Some raytracing algorithm?
+    for i, x_value in enumerate(x):
+        pt = geometry.interpolate(x_value).asPoint()
+        y[i] = layer.datasetValue(dataset, pt).scalar()
+        if not pyqtGraphAcceptNaN and math.isnan(y[i]):
+            continue
+
+    return y
+
+def cross_section_hue_data(layer, geometry, dataset, x):
+    return cross_section_y_data(layer, geometry, dataset, x)
