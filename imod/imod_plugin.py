@@ -37,10 +37,17 @@ class ImodPlugin:
 
     def initGui(self):
         icon_name = "icon.png"
+        self.action_ipf_dialog = self.add_action(icon_name, "Open IPF", self.ipf_dialog, True)
         self.action_viewer = self.add_action(icon_name, "3D Viewer", self.toggle_viewer, True)
         self.action_timeseries = self.add_action(icon_name, "Time Series", self.toggle_timeseries, True)
         self.action_cross_section = self.add_action(icon_name, "Cross section", self.toggle_cross_section, True)
         self.action_netcdf_manager = self.add_action(icon_name, "NetCDF Manager", self.toggle_netcdf_manager, True)
+    
+    def ipf_dialog(self):
+        from .ipf import ImodIpfDialog
+        dialog = ImodIpfDialog()
+        dialog.show()
+        dialog.exec_()
 
     def toggle_viewer(self):
         if self.viewer_widget is None:
