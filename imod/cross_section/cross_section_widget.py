@@ -24,7 +24,8 @@ from qgis.core import (
     QgsGeometry,
     QgsWkbTypes,
     QgsPointXY,
-    QgsMeshDatasetIndex
+    QgsMeshDatasetIndex,
+    QgsMapLayerProxyModel
 )
 
 import numpy as np
@@ -122,13 +123,15 @@ class LineGeometryPickerWidget(QWidget):
 class ImodCrossSectionWidget(QWidget):
     #TODO: Use QGIS colormaps instead of pyqt ones
     #TODO: Fix bug, so that "holes" in data by line are not connected in crosssection
-    #TODO: Filter Raster data
     #TODO: Include select variable box to be plotted
     #TODO: Include resolution setting in box
     def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
         self.iface = iface
+
         self.layer_selection = QgsMapLayerComboBox()
+        self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
+        
         # TODO: Filter for mesh and raster layers
         self.line_picker = LineGeometryPickerWidget(iface)
         self.line_picker.geometries_changed.connect(
