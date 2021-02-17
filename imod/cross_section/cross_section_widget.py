@@ -132,7 +132,6 @@ class ImodCrossSectionWidget(QWidget):
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
         
-        # TODO: Filter for mesh and raster layers
         self.line_picker = LineGeometryPickerWidget(iface)
         self.line_picker.geometries_changed.connect(
             self.on_geometries_changed
