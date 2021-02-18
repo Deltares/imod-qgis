@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 class DatasetVariableMenu(QMenu):
 
-    dataset_variables_changed = pyqtSignal(list)  # emits empty list when "current" is selected
+    dataset_variable_changed = pyqtSignal(list)  # emits empty list when "current" is selected
 
     def __init__(self, parent=None, datasetType=None):
         QMenu.__init__(self, parent)
@@ -31,7 +31,8 @@ class DatasetVariableMenu(QMenu):
         if self.layer is None or self.layer.dataProvider() is None:
             return
 
-        self.action_current = self.addAction("[current]")
+        self.action_current = self.addAction("layer number")
+        self.action_current.variable_name = "layer number"
         self.action_current.setCheckable(True)
         self.action_current.setChecked(True)
         self.action_current.triggered.connect(self.triggered_action_current)
@@ -46,16 +47,16 @@ class DatasetVariableMenu(QMenu):
     def triggered_action(self):
         for a in self.actions():
           a.setChecked(a == self.sender())
-        self.dataset_variables_changed.emit([self.sender().variable_name])
+        self.dataset_variable_changed.emit([self.sender().variable_name])
 
     def triggered_action_current(self):
         for a in self.actions():
             a.setChecked(a == self.action_current)
-        self.dataset_variables_changed.emit([])
+        self.dataset_variable_changed.emit([])
 
     def on_current_dataset_changed(self, index):
         if self.action_current.isChecked():
-            self.dataset_variables_changed.emit([])  # re-emit changed signal
+            self.dataset_variable_changed.emit([])  # re-emit changed signal
 
     def set_layer(self, layer, variables):
 
@@ -77,7 +78,7 @@ class DatasetVariableMenu(QMenu):
 
 class VariablesWidget(QToolButton):
 
-    dataset_variables_changed = pyqtSignal(list)
+    dataset_variable_changed = pyqtSignal(list)
 
     def __init__(self, parent=None, datasetType=None):
         QToolButton.__init__(self, parent)
@@ -89,21 +90,21 @@ class VariablesWidget(QToolButton):
 
         self.setPopupMode(QToolButton.InstantPopup)
         self.setMenu(self.menu_datasets)
-        self.menu_datasets.dataset_variable_changed.connect(self.on_dataset_variables_changed)
+        self.menu_datasets.dataset_variable_changed.connect(self.on_dataset_variable_changed)
 
-        self.set_dataset_variables([])
+        self.set_dataset_variable(["layer number"])
 
-    def on_dataset_variables_changed(self, lst):
-        self.dataset_variables = lst
+    def on_dataset_variable_changed(self, lst):
+        self.dataset_variable = lst
         if len(lst) == 0:
             self.setText("Variable: [current]")
         elif len(lst) == 1:
             self.setText("Variable: " + lst[0])
-        self.dataset_variables_changed.emit(lst)
+        self.dataset_variable_changed.emit(lst)
 
-    def set_dataset_variables(self, lst):
-        self.on_dataset_variables_changed(lst)
+    def set_dataset_variable(self, lst):
+        self.on_dataset_variable_changed(lst)
 
     def set_layer(self, layer, variables):
         self.menu_datasets.set_layer(layer, variables)
-        self.set_dataset_variables([])
+        self.set_dataset_variable(["layer number"])
