@@ -250,7 +250,7 @@ class ImodCrossSectionWidget(QWidget):
         ## We cannot guarantee that bottom or top group is not selected by default at the moment.
         if len(self.dataset_variable) == 0: 
             raise ValueError("No variable set")
-        elif self.dataset_variable == ["layer number"]: 
+        elif self.dataset_variable == "layer number": 
             z = self.color_by_layer(n_lay, n_x, layer_nrs)
         else:
             z = self.color_by_variable(n_lay, n_x, geometry, x_line)
@@ -272,7 +272,7 @@ class ImodCrossSectionWidget(QWidget):
         z = np.empty((n_lay * 2 - 1, n_x - 1))
         z[:] = np.nan
         for k in range(n_lay):
-            var_name = self.dataset_variable[0]
+            var_name = self.dataset_variable
 
             layer_nr, dataset = self.gb_var[var_name][k]
             i = (layer_nr-1) * 2
@@ -301,8 +301,7 @@ class ImodCrossSectionWidget(QWidget):
 
     def set_variable_names(self):
         current_layer = self.layer_selection.currentLayer()
-        variable_names = ["layer number"]
-        variable_names.extend(list(self.gb_var.keys()))
+        variable_names = list(self.gb_var.keys())
         variable_names = [x for x in variable_names if x not in ["bottom", "top"]]
 
         self.variable_selection.set_layer(current_layer, variable_names)
