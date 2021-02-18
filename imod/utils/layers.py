@@ -5,8 +5,18 @@ in datasets as individual variables ("group_names").
 When MDAL supports layers for UGRID, these utilities become unnecessary
 """
 
+from 
+
 from collections import defaultdict
 import re
+
+def get_group_names(layer):
+    idx = layer.datasetGroupsIndexes()
+    #TODO: Include time index as dataset argument during QgsMeshDatasetIndex construction
+    idx = [QgsMeshDatasetIndex(group=i, dataset=0) for i in idx]
+    group_names = [layer.datasetGroupMetadata(i).name() for i in idx]
+
+    return idx, group_names
 
 def groupby_variable(group_names, dataset_indexes):
     """Groupby variable

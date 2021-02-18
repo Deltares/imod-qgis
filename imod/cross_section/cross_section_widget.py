@@ -33,7 +33,8 @@ import pyqtgraph as pg
 
 from .pcolormesh import PColorMeshItem
 from .plot_util import cross_section_x_data, cross_section_y_data
-from ..utils.layers import groupby_variable
+from .dataset_variable_widget import VariablesWidget
+from ..utils.layers import groupby_variable, get_group_names
 
 class PickGeometryTool(QgsMapTool):
     picked = pyqtSignal(
@@ -125,13 +126,17 @@ class ImodCrossSectionWidget(QWidget):
     #TODO: Fix bug, so that "holes" in data by line are not connected in crosssection
     #TODO: Include select variable box to be plotted
     #TODO: Include resolution setting in box
+    #TODO: Calculate proper default resolution
+    #TODO: Include time selection box
     def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
         self.iface = iface
 
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
-        
+        self.layer_selection.layerChanged.connect(self.on_layer_changed)
+        self.on_layer_changed() #Initialize group names
+
         self.line_picker = LineGeometryPickerWidget(iface)
         self.line_picker.geometries_changed.connect(
             self.on_geometries_changed
@@ -175,15 +180,6 @@ class ImodCrossSectionWidget(QWidget):
     def clear_legend(self):
         pass
 
-    def get_group_names(self):
-        current_layer = self.layer_selection.currentLayer()
-        idx = current_layer.datasetGroupsIndexes()
-        #TODO: Include time index as dataset argument during QgsMeshDatasetIndex construction
-        idx = [QgsMeshDatasetIndex(group=i, dataset=0) for i in idx]
-        group_names = [current_layer.datasetGroupMetadata(i).name() for i in idx]
-
-        return idx, group_names
-
     def _repeat_to_2d(self, arr, n, axis=0):
         """Repeat array n times along new axis
         
@@ -203,14 +199,12 @@ class ImodCrossSectionWidget(QWidget):
 
     def extract_cross_section_data(self):
         current_layer = self.layer_selection.currentLayer()
-        idx, group_names = self.get_group_names()
-        gb_var = groupby_variable(group_names, idx)
 
         #Get arbitrary key
-        first_key = next(iter(gb_var.keys()))
+        first_key = next(iter(self.gb_var.keys()))
 
         #Get layer numbers: first element contains layer number
-        layer_nrs = next(zip(*gb_var[first_key]))
+        layer_nrs = next(zip(*self.gb_var[first_key]))
         layer_nrs = list(layer_nrs)
         layer_nrs.sort()
         n_lay = len(layer_nrs)
@@ -225,8 +219,8 @@ class ImodCrossSectionWidget(QWidget):
 
         #FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
         for k in range(n_lay):
-            layer_nr, dataset_bottom = gb_var["bottom"][k]
-            layer_nr, dataset_top    = gb_var["top"][k]
+            layer_nr, dataset_bottom = self.gb_var["bottom"][k]
+            layer_nr, dataset_top    = self.gb_var["top"][k]
 
             i = layer_nr * 2 - 1
             y[i-1, :] = cross_section_y_data(current_layer, geometry, dataset_top, x)
@@ -274,3 +268,9 @@ class ImodCrossSectionWidget(QWidget):
         self.rubber_band.setColor(QColor(Qt.red))
         self.rubber_band.setWidth(2)
         self.rubber_band.setToGeometry(self.line_picker.geometries[0], None)
+
+    def on_layer_changed(self):
+        current_layer = self.layer_selection.currentLayer()
+        idx, group_names = get_group_names(current_layer)
+        self.gb_var = groupby_variable(group_names, idx)
+        variable_names = list(self.gb_var.keys())
