@@ -123,8 +123,6 @@ class LineGeometryPickerWidget(QWidget):
 
 class ImodCrossSectionWidget(QWidget):
     #TODO: Use QGIS colormaps instead of pyqt ones
-    #TODO: Fix bug, so that "holes" in data by line are not connected in crosssection
-    #TODO: Include select variable box to be plotted
     #TODO: Include resolution setting in box
     #TODO: Calculate proper default resolution
     #TODO: Include time selection box
@@ -236,25 +234,24 @@ class ImodCrossSectionWidget(QWidget):
             y[i, :] = cross_section_y_data(current_layer, geometry, dataset_top, x_line)
             y[i+1, :] = cross_section_y_data(current_layer, geometry, dataset_bottom, x_line)
 
-        #Filter values line outside mesh
-        ## Assume: NaNs in first layer are NaNs in every layer
-        is_nan = np.isnan(y[0, :]) 
-        y = y[:, ~is_nan]
-        x_line = x_line[~is_nan]
-        n_x = x_line.size
-
         #Repeat x along new dimension to get np.meshgrid like array
         x = self._repeat_to_2d(x_line, n_lay * 2)
 
-        #TODO set default to 'layer' instead of 'current' with empty list. 
-        ## We cannot guarantee that bottom or top group is not selected by default at the moment.
         if len(self.dataset_variable) == 0: 
             raise ValueError("No variable set")
         elif self.dataset_variable == "layer number": 
             z = self.color_by_layer(n_lay, n_x, layer_nrs)
         else:
             z = self.color_by_variable(n_lay, n_x, geometry, x_line)
-        
+
+        #Filter values line outside mesh
+        ## Assume: NaNs in first layer are NaNs in every layer
+        is_nan = np.isnan(y[0, :])
+        y[:, is_nan] = 0.0 #Give dummy value, these will be deactivated by inactive z
+        color_nan = is_nan[1:] | is_nan[:-1] #If a vertex on either side is NaN, deactivate
+
+        z[:, color_nan] = np.nan
+
         return x, y, z
 
     def color_by_layer(self, n_lay, n_x, layer_nrs):
@@ -280,6 +277,8 @@ class ImodCrossSectionWidget(QWidget):
         return z
 
     def draw_plot(self):
+        self.plot_widget.clear() #Ensure plot is cleared before adding new stuff
+
         x, y, z = self.extract_cross_section_data()
 
         #debug
