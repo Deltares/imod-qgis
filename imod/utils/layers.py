@@ -5,7 +5,9 @@ in datasets as individual variables ("group_names").
 When MDAL supports layers for UGRID, these utilities become unnecessary
 """
 
-from 
+from qgis.core import (
+    QgsMeshDatasetIndex,
+)
 
 from collections import defaultdict
 import re
