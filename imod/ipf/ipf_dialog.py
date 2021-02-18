@@ -1,3 +1,4 @@
+import csv
 import pathlib
 import shlex
 from typing import List
@@ -14,87 +15,136 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import QDateTime, QVariant
 from qgis.core import (
     QgsVectorLayer,
-    QgsPointXY,
-    QgsFeature,
-    QgsGeometry,
     QgsProject,
     QgsField,
     QgsVectorLayerTemporalProperties,
+    qgsfunction,
+    QgsExpression,
 )
+import numpy as np
 import pandas as pd
 
-from .reading import read_ipf, sniff_timeseries_window
+from .reading import read_ipf_header, read_associated_header, IpfType
 
 
-# There's only a few dtypes that pandas read_csv will return
-QT_DATATYPES = {
-    "object": QVariant.String,
-    "int32": QVariant.Int,
-    "int64": QVariant.Int,
-    "float32": QVariant.Double,
-    "float64": QVariant.Double,
-}
+@qgsfunction(args="auto", group="Custom", usesGeometry=False)
+def ipf_datetime_start(indexcol, ext, pathparent, feature, parent):
+    filename = feature.attribute(indexcol)
+    path = f"{pathparent}/{filename}.{ext}"
+    with open(path) as f:
+        f.readline()  # nrow
+        line = f.readline()
+        try:
+            # csv.reader parse one line
+            # this catches commas in quotes
+            ncol, itype = map(int, map(str.strip, next(csv.reader([line]))))
+        # itype can be implicit, in which case it's a timeseries
+        except ValueError:
+            ncol = int(line.strip())
+            itype = 1
+        if itype != 1:
+            raise ValueError("Not a timeseries IPF")
 
+        # Skip the column names, jump to the start of the data
+        for _ in range(ncol):
+            f.readline()
+        line = f.readline()
 
-def parse_date(s: str) -> QDateTime:
-    if len(s) == 8:
-        return QDateTime.fromString(s, "yyyyMMdd")
-    elif len(s) == 14:
-        return QDateTime.fromString(s, "yyyyMMddhhmmss")
+    datetime = line.split(",")[0].strip()
+    length = len(datetime)
+    if length == 14:
+        return QDateTime.fromString(datetime, "yyyyMMddhhmmss")
+    elif length == 8:
+        return QDateTime.fromString(datetime, "yyyyMMdd")
     else:
-        raise ValueError(f"Cannot convert date: {s}")
-        # TODO: Warn user via UserCommunication class
+        raise ValueError(f"{path}: datetime format must be yyyymmddhhmmss or yyyymmdd")
 
 
-def attribute_table_columns(dataframe: pd.DataFrame) -> List[QgsField]:
-    columns = []
-    for column, dtype in dataframe.dtypes.items():
-        if column not in ("x", "y"):
-            columns.append(QgsField(column, QT_DATATYPES[str(dtype)]))
-    columns.append(QgsField("datetime_start", QVariant.DateTime))
-    columns.append(QgsField("datetime_end", QVariant.DateTime))
-    return columns
+@qgsfunction(args="auto", group="Custom", usesGeometry=False)
+def ipf_datetime_end(indexcol, ext, pathparent, feature, parent):
+    filename = feature.attribute(indexcol)
+    path = f"{pathparent}/{filename}.{ext}"
+    with open(path, "rb") as f:
+        f.seek(-2, 2)
+        while f.read(1) != b"\n":
+            f.seek(-2, 1)
+        line = f.read().decode("utf-8")
+    datetime = line.split(",")[0].strip()
+    length = len(datetime)
+    if length == 14:
+        return QDateTime.fromString(datetime, "yyyyMMddhhmmss")
+    elif length == 8:
+        return QDateTime.fromString(datetime, "yyyyMMdd")
+    else:
+        raise ValueError(f"{path}: datetime format must be yyyymmddhhmmss or yyyymmdd")
 
 
-def point_features(
-    dataframe: pd.DataFrame, parent: pathlib.Path, ext: str
-) -> List[QgsFeature]:
-    features = []
-    for _, row in dataframe.iterrows():
-        filename = row["timeseries_id"]
-        path_assoc = parent.joinpath(f"{filename}.{ext}")
-        datetime_start, datetime_end = sniff_timeseries_window(path_assoc)
-        if datetime_start is None or datetime_end is None:
-            continue
-
-        feature = QgsFeature()
-        feature.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(row["x"], row["y"])))
-        attributes = list(row.iloc[2:])
-        attributes.append(parse_date(datetime_start))
-        attributes.append(parse_date(datetime_end))
-        feature.setAttributes(attributes)
-        features.append(feature)
-
-    return features
-
-
-def add_layer(path: pathlib.Path, ext: str, columns: List[QgsField], features: List[QgsFeature]) -> None:
-    point_layer = QgsVectorLayer("Point", path.stem, "memory")
-    point_layer.startEditing()
-    point_layer.dataProvider().addAttributes(columns)
-    point_layer.dataProvider().addFeatures(features)
-    point_layer.commitChanges()
-    point_layer.setCustomProperty("ipf_type", "timeseries")
-    point_layer.setCustomProperty("ipf_assoc_ext", ext)
-    point_layer.setCustomProperty("ipf_path", str(path))
-    temporal_properties = point_layer.temporalProperties()
+def set_timeseries_windows(
+    layer: QgsVectorLayer,
+    indexcol: int,
+    ext: str,
+    pathparent: str,
+) -> None:
+    QgsExpression.registerFunction(ipf_datetime_start)
+    QgsExpression.registerFunction(ipf_datetime_end)
+    # DO NOT USE DOUBLE QUOTES INSIDE THE EXPRESSION
+    layer.addExpressionField(
+        f"ipf_datetime_start({indexcol}, '{ext}', '{pathparent}')",
+        (QgsField("datetime_start", QVariant.DateTime)),
+    )
+    layer.addExpressionField(
+        f"ipf_datetime_end({indexcol}, '{ext}', '{pathparent}')",
+        (QgsField("datetime_end", QVariant.DateTime)),
+    )
+    # Set the temporal properties
+    temporal_properties = layer.temporalProperties()
     temporal_properties.setStartField("datetime_start")
     temporal_properties.setEndField("datetime_end")
     temporal_properties.setMode(
         QgsVectorLayerTemporalProperties.ModeFeatureDateTimeStartAndEndFromFields
     )
     temporal_properties.setIsActive(True)
-    QgsProject.instance().addMapLayer(point_layer)
+
+
+def read_ipf(path: str) -> QgsVectorLayer:
+    path = pathlib.Path(path)
+    _, ncol, colnames, indexcol, ext = read_ipf_header(path)
+
+    skip_lines = 2 + ncol + 1
+    # See: https://qgis.org/pyqgis/master/core/QgsVectorLayer.html
+    uri = "&".join(
+        [
+            f"file:///{str(path.as_posix())}?encoding=UTF-8",
+            "delimiter=,",
+            "type=csv",
+            "xField=field_1",
+            "yField=field_2",
+            f"skipLines={skip_lines}",
+            "useHeader=no",
+            "trimFields=yes",
+            "geomType=point",
+        ]
+    )
+    layer = QgsVectorLayer(uri, path.stem, "delimitedtext")
+    # Set column names
+    for i, name in enumerate(colnames):
+        layer.setFieldAlias(i, name)
+
+    if indexcol >= 2:  # x:0, y:1
+        filename = next(layer.getFeatures()).attribute(indexcol)
+        assoc_path = path.parent.joinpath(f"{filename}.{ext}")
+        with open(assoc_path) as f:
+            ipf_type = read_associated_header(f)[0]
+
+        if ipf_type == IpfType.TIMESERIES:
+            set_timeseries_windows(layer, indexcol, ext, path.parent.as_posix())
+
+        layer.setCustomProperty("ipf_type", ipf_type)
+        layer.setCustomProperty("ipf_indexcolumn", indexcol)
+        layer.setCustomProperty("ipf_assoc_ext", ext)
+        layer.setCustomProperty("ipf_path", str(path))
+
+    return layer
 
 
 class ImodIpfDialog(QDialog):
@@ -109,7 +159,7 @@ class ImodIpfDialog(QDialog):
         self.close_button = QPushButton("Close")
         self.close_button.clicked.connect(self.reject)
         self.add_button = QPushButton("Add")
-        self.add_button.clicked.connect(self.open_timeseries)
+        self.add_button.clicked.connect(self.add_ipfs)
         self.add_button.clicked.connect(self.accept)
         self.line_edit.textChanged.connect(
             lambda: self.add_button.setEnabled(self.line_edit != "")
@@ -129,8 +179,6 @@ class ImodIpfDialog(QDialog):
         self.setLayout(layout)
 
     def file_dialog(self) -> None:
-        # single file:
-        # path, _ = QFileDialog.getOpenFileName(self, "Select file", "", "*.ipf")
         paths, _ = QFileDialog.getOpenFileNames(self, "Select files", "", "*.ipf")
         # paths is empty list if cancel is clicked
         if len(paths) == 0:
@@ -139,11 +187,9 @@ class ImodIpfDialog(QDialog):
             # Surround the paths by double quotes and separate by a space
             self.line_edit.setText(" ".join(f'"{p}"' for p in paths))
 
-    def open_timeseries(self):
-        paths = shlex.split(self.line_edit.text())
+    def add_ipfs(self):
+        text = self.line_edit.text()
+        paths = shlex.split(text, posix="/" in text)
         for path in paths:
-            path = pathlib.Path(path)
-            dataframe, ext = read_ipf(path)
-            columns = attribute_table_columns(dataframe)
-            features = point_features(dataframe, path.parent, ext)
-            add_layer(path, ext, columns, features)
+            layer = read_ipf(path)
+            QgsProject.instance().addMapLayer(layer)

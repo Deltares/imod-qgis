@@ -20,7 +20,7 @@ from qgis.core import (
 )
 import pandas as pd
 import pyqtgraph as pg
-from ..ipf import read_ipf, read_associated_timeseries
+from ..ipf import read_associated_timeseries, IpfType
 import pathlib
 
 
@@ -107,8 +107,8 @@ class ImodTimeSeriesWidget(QWidget):
         if len(features) == 0:
             # warn user: no features selected in current layer
             return
-        if layer.customProperty("ipf_type") == "timeseries":
-            index = [field.name() for field in layer.fields()].index("timeseries_id")
+        if layer.customProperty("ipf_type") == IpfType.TIMESERIES:
+            index = layer.customProperty("ipf_indexcolumn")
             names = [f.attribute(index) for f in features]
             ext = layer.customProperty("ipf_assoc_ext")
             ipf_path = layer.customProperty("ipf_path")
