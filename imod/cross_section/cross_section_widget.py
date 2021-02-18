@@ -32,7 +32,7 @@ import numpy as np
 import pyqtgraph as pg
 
 from .pcolormesh import PColorMeshItem
-from .plot_util import cross_section_x_data, cross_section_y_data
+from .plot_util import cross_section_x_data, cross_section_y_data, cross_section_hue_data
 from .dataset_variable_widget import VariablesWidget
 from ..utils.layers import groupby_variable, get_group_names
 
@@ -135,7 +135,13 @@ class ImodCrossSectionWidget(QWidget):
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
-        self.on_layer_changed() #Initialize group names
+
+        self.variable_selection = VariablesWidget()
+        self.variable_selection.dataset_variable_changed.connect(self.on_variable_changed)
+
+        #Initialize groupby variables and variable names
+        self.set_groupby_variables()
+        self.set_variable_names() 
 
         self.line_picker = LineGeometryPickerWidget(iface)
         self.line_picker.geometries_changed.connect(
@@ -155,6 +161,7 @@ class ImodCrossSectionWidget(QWidget):
 
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
+        first_row.addWidget(self.variable_selection)
         first_row.addWidget(self.line_picker)
 
         first_row.addWidget(self.plot_button)
@@ -213,35 +220,64 @@ class ImodCrossSectionWidget(QWidget):
         geometry = self.line_picker.geometries[0] 
 
         #Get x values of points
-        x = cross_section_x_data(current_layer, geometry, resolution=50.)
-        n_x = x.size
-        y = np.zeros((n_lay * 2, n_x))
+        x_line = cross_section_x_data(current_layer, geometry, resolution=50.)
+        n_x = x_line.size
 
-        #FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
+        #Get y values of points
+        ## Amount of layers * 2 because we have tops and bottoms we independently add
+        y = np.zeros((n_lay * 2, n_x)) 
+
+        ## FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
         for k in range(n_lay):
             layer_nr, dataset_bottom = self.gb_var["bottom"][k]
             layer_nr, dataset_top    = self.gb_var["top"][k]
 
-            i = layer_nr * 2 - 1
-            y[i-1, :] = cross_section_y_data(current_layer, geometry, dataset_top, x)
-            y[i, :] = cross_section_y_data(current_layer, geometry, dataset_bottom, x)
+            i = (layer_nr-1) * 2
+            y[i, :] = cross_section_y_data(current_layer, geometry, dataset_top, x_line)
+            y[i+1, :] = cross_section_y_data(current_layer, geometry, dataset_bottom, x_line)
 
         #Filter values line outside mesh
-        #Assume: NaNs in first layer are NaNs in every layer
+        ## Assume: NaNs in first layer are NaNs in every layer
         is_nan = np.isnan(y[0, :]) 
         y = y[:, ~is_nan]
-        x = x[~is_nan]
-        n_x = x.size
+        x_line = x_line[~is_nan]
+        n_x = x_line.size
 
-        #Repeat x along new dimension to get np.meshgrid like thing
-        x = self._repeat_to_2d(x, n_lay * 2)
+        #Repeat x along new dimension to get np.meshgrid like array
+        x = self._repeat_to_2d(x_line, n_lay * 2)
 
-        #Color by layer
-        z = np.empty((n_lay * 2 - 1, n_x - 1))
-        z[:] = np.nan
-        z[::2, :] = np.expand_dims(layer_nrs, axis=1)
+        #TODO set default to 'layer' instead of 'current' with empty list. 
+        ## We cannot guarantee that bottom or top group is not selected by default at the moment.
+        if len(self.dataset_variable) == 0: 
+            raise ValueError("No variable set")
+        elif self.dataset_variable == ["layer number"]: 
+            z = self.color_by_layer(n_lay, n_x, layer_nrs)
+        else:
+            z = self.color_by_variable(n_lay, n_x, geometry, x_line)
         
         return x, y, z
+
+    def color_by_layer(self, n_lay, n_x, layer_nrs):
+        z = np.empty((n_lay * 2 - 1, n_x - 1))
+        z[:] = np.nan
+        ## Color only parts between top and bot, not bot and top.
+        z[::2, :] = np.expand_dims(layer_nrs, axis=1)
+        return z
+
+    def color_by_variable(self, n_lay, n_x, geometry, x):
+        current_layer = self.layer_selection.currentLayer()
+        
+        x_mids = (x[1:] + x[:-1])/2
+
+        z = np.empty((n_lay * 2 - 1, n_x - 1))
+        z[:] = np.nan
+        for k in range(n_lay):
+            var_name = self.dataset_variable[0]
+
+            layer_nr, dataset = self.gb_var[var_name][k]
+            i = (layer_nr-1) * 2
+            z[i, :] = cross_section_hue_data(current_layer, geometry, dataset, x_mids)
+        return z
 
     def draw_plot(self):
         x, y, z = self.extract_cross_section_data()
@@ -258,6 +294,21 @@ class ImodCrossSectionWidget(QWidget):
         # https://github.com/pyqtgraph/pyqtgraph/blob/5eb671217c295178de255b1fece56379cdef8235/pyqtgraph/graphicsItems/PColorMeshItem.py#L140
         # So we can draw rectangular polygons if necessary.
 
+    def set_groupby_variables(self):
+        current_layer = self.layer_selection.currentLayer()
+        idx, group_names = get_group_names(current_layer)
+        self.gb_var = groupby_variable(group_names, idx)
+
+    def set_variable_names(self):
+        current_layer = self.layer_selection.currentLayer()
+        variable_names = ["layer number"]
+        variable_names.extend(list(self.gb_var.keys()))
+        variable_names = [x for x in variable_names if x not in ["bottom", "top"]]
+
+        self.variable_selection.set_layer(current_layer, variable_names)
+
+        self.dataset_variable = self.variable_selection.dataset_variable
+
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
         if len(self.line_picker.geometries) == 0:
@@ -270,7 +321,8 @@ class ImodCrossSectionWidget(QWidget):
         self.rubber_band.setToGeometry(self.line_picker.geometries[0], None)
 
     def on_layer_changed(self):
-        current_layer = self.layer_selection.currentLayer()
-        idx, group_names = get_group_names(current_layer)
-        self.gb_var = groupby_variable(group_names, idx)
-        variable_names = list(self.gb_var.keys())
+        self.set_groupby_variables()
+        self.set_variable_names()
+
+    def on_variable_changed(self):
+        self.dataset_variable = self.variable_selection.dataset_variable
