@@ -1,7 +1,8 @@
 from .reading import (
-    read_ipf,
+    read_ipf_header,
+    read_associated_header,
     read_associated_timeseries,
-    sniff_timeseries_window,
     read_associated_borehole,
+    IpfType,
 )
 from .ipf_dialog import ImodIpfDialog
