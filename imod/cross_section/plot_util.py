@@ -76,17 +76,17 @@ def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> 
     #      |
     #      b
     #
-    # a and b are vertices of a line segment in geometry
+    # a, b, c are vertices of a line segment in geometry
     # p, q are points to project on to this geometry
-    # x is the projected point
     # vector U = a -> p
     # vector V = a -> b
+    # x is the projection of p on V
     # s is length of vector V
-    # t is fractional length along V
+    # t is length along V
     #
-    # Note that when q is projected, its t will be outside of [0.0 - 1.0]
+    # Note that when q is projected, its t will be outside of [0.0 - s]
     # In this case, it will be projected at the location of a (t=0.0).
-    # Similarly, r will have its t > 1.0, and will be projected at c (t=1.0)
+    # Similarly, r will have its t > 1.0, and will be projected at c (t=s)
     vertices = np.array([(v.x(), v.y()) for v in geometry.vertices()])
     pp = np.array([(point.x(), point.y()) for point in points])
     aa = vertices[:-1]
@@ -105,9 +105,9 @@ def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> 
         s = np.linalg.norm(V)
         tt = np.dot(U, V) / s
         tt[tt < 0.0] = 0.0
-        tt[tt > 1.0] = 1.0
+        tt[tt > s] = s 
         xx[i] = x + tt
-        distances[i] = np.sqrt(np.linalg.norm(V) ** 2 - tt ** 2)
+        distances[i] = np.sqrt(s ** 2 - tt ** 2)
         x += s
     # Find the intersection point with the minimum distance
     closest = np.argmin(distances, axis=0)
