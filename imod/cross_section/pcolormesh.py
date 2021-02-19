@@ -55,8 +55,8 @@ class PColorMeshItem(GraphicsObject):
 
             "ASCII from: <https://matplotlib.org/3.2.1/api/_as_gen/
                          matplotlib.pyplot.pcolormesh.html>".
-        cmap : str, default 'viridis
-            Colormap used to map the z value to colors.
+        colorramp : QgsColorRamp
+            Colorramp used to map the z value to colors.
         edgecolors : dict, default None
             The color of the edges of the polygons.
             Default None means no edges.
@@ -85,14 +85,11 @@ class PColorMeshItem(GraphicsObject):
             self.antialiasing = kwargs['antialiasing']
         else:
             self.antialiasing = False
-        
-        if 'cmap' in kwargs.keys():
-            if kwargs['cmap'] in Gradients.keys():
-                self.cmap = kwargs['cmap']
-            else:
-                raise NameError('Undefined colormap, should be one of the following: '+', '.join(['"'+i+'"' for i in Gradients.keys()])+'.')
+
+        if 'colorramp' not in kwargs.keys():
+            raise ValueError("ColorRamp not provided")
         else:
-            self.cmap = 'viridis'
+            self.colorramp = kwargs['colorramp']
         
         # If some data have been sent we directly display it
         if len(args)>0:
@@ -187,16 +184,9 @@ class PColorMeshItem(GraphicsObject):
                 p.setRenderHint(QtGui.QPainter.Antialiasing)
                 
 
-        ## Prepare colormap
-        # First we get the LookupTable
-        pos   = [i[0] for i in Gradients[self.cmap]['ticks']]
-        color = [i[1] for i in Gradients[self.cmap]['ticks']]
-        cmap  = ColorMap(pos, color)
-        lut   = cmap.getLookupTable(0.0, 1.0, 256)
-        # Second we associate each z value, that we normalize, to the lut
+        ## Normalize data for colorramp
         norm  = self.z - np.nanmin(self.z)
         norm = norm/np.nanmax(norm)
-        norm  = (norm*(len(lut)-1)).astype(np.int32)
         
         # Go through all the data and draw the polygons accordingly
         for xi in range(self.z.shape[0]):
@@ -204,10 +194,11 @@ class PColorMeshItem(GraphicsObject):
                 
                 # Set the color of the polygon first
                 norm_value = norm[xi][yi]
-                if (norm_value == -2147483648) or (norm_value == 2147483648):
+                if np.isnan(norm_value):
                     continue #Value is NoData
-                c = lut[norm_value]
-                p.setBrush(fn.mkBrush(QtGui.QColor(c[0], c[1], c[2])))
+                color = self.colorramp.color(value=norm_value)
+
+                p.setBrush(fn.mkBrush(color))
 
                 polygon = QtGui.QPolygonF(
                     [QtCore.QPointF(self.x[xi][yi],     self.y[xi][yi]),
