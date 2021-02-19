@@ -21,6 +21,7 @@ from qgis.gui import (
 )
 from qgis.core import (
     QgsColorBrewerColorRamp,
+    QgsCptCityColorRamp,
     QgsGeometry,
     QgsWkbTypes,
     QgsPointXY,
@@ -155,7 +156,7 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget.showGrid(x=True, y=True)
 
         self.color_ramp_button = QgsColorRampButton()
-        self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
+        self.color_ramp_button.setColorRamp(QgsCptCityColorRamp(schemeName = "wkp/encyclopedia/nordisk-familjebok", variantName = ''))
         self.color_ramp_button.colorRampChanged.connect(self.draw_plot)
 
         self.rubber_band = None
