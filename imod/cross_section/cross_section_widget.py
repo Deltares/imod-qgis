@@ -122,7 +122,6 @@ class LineGeometryPickerWidget(QWidget):
 
 
 class ImodCrossSectionWidget(QWidget):
-    #TODO: Use QGIS colormaps instead of pyqt ones
     #TODO: Include resolution setting in box
     #TODO: Calculate proper default resolution
     #TODO: Include time selection box
@@ -147,13 +146,17 @@ class ImodCrossSectionWidget(QWidget):
             )
 
         self.plot_button = QPushButton("Plot")
-        self.plot_button.clicked.connect(self.draw_plot)
+        self.plot_button.clicked.connect(self.plot_data)
 
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear_plot)
 
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.showGrid(x=True, y=True)
+
+        self.color_ramp_button = QgsColorRampButton()
+        self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
+        self.color_ramp_button.colorRampChanged.connect(self.draw_plot)
 
         self.rubber_band = None
 
@@ -167,6 +170,8 @@ class ImodCrossSectionWidget(QWidget):
 
         second_row = QHBoxLayout()
         second_row.addWidget(self.plot_widget)
+
+        second_row.addWidget(self.color_ramp_button)
 
         layout = QVBoxLayout()
         layout.addLayout(first_row)
@@ -276,16 +281,20 @@ class ImodCrossSectionWidget(QWidget):
             z[i, :] = cross_section_hue_data(current_layer, geometry, dataset, x_mids)
         return z
 
+    def plot_data(self):
+        """Update data and draw plot
+        """
+        self.cross_section_data = self.extract_cross_section_data()
+        self.draw_plot()
+
     def draw_plot(self):
+        """Update plot (e.g. after change in colorramp)
+        """
         self.plot_widget.clear() #Ensure plot is cleared before adding new stuff
 
-        x, y, z = self.extract_cross_section_data()
+        colorramp = self.color_ramp_button.colorRamp()
 
-        #debug
-        self.x_values = x
-        self.y_values = y
-
-        pcmi = PColorMeshItem(x, y, z, cmap="inferno")
+        pcmi = PColorMeshItem(*self.cross_section_data, colorramp=colorramp)
         self.plot_widget.addItem(pcmi)
 
         # Might be smart to draw ConvexPolygons instead of pColorMeshItem,
