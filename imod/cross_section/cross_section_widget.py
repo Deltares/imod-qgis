@@ -53,40 +53,39 @@ from ..ipf import IpfType, read_associated_borehole
 
 
 def select_boreholes(
-    buffer_distance: float, geometry: QgsGeometry
+    borehole_layers: List[QgsVectorLayer], buffer_distance: float, geometry: QgsGeometry
 ) -> Tuple[List[str], List[pathlib.Path], np.ndarray]:
-    root = QgsProject.instance().layerTreeRoot()
-    buffered = geometry.buffer(buffer_distance, 4)
     # Create a tempory layer to contain the buffer geometry
+    buffered = geometry.buffer(buffer_distance, 4)
     tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
     tmp_feature = QgsFeature()
     tmp_feature.setGeometry(buffered)
     tmp_layer.dataProvider().addFeature(tmp_feature)
 
+    # Collect the boreholes per layer
     boreholes_id = []
     paths = []
     points = []
-    for layer in root.layerOrder():
-        is_visible = root.findLayer(layer.id()).itemVisibilityChecked()
-        if is_visible and layer.customProperty("ipf_type") == IpfType.BOREHOLE:
-            indexcol = layer.customProperty("ipf_indexcolumn")
-            ext = layer.customProperty("ipf_assoc_ext")
-            parent = pathlib.Path(layer.customProperty("ipf_path")).parent
-            output = processing.run(
-                "native:extractbylocation",
-                {
-                    "INPUT": layer,
-                    "PREDICATE": 6,  # are within
-                    "INTERSECT": tmp_layer,
-                    "OUTPUT": "memory",
-                },
-            )["OUTPUT"]
+    for layer in borehole_layers:
+        # Due to the selection, another column is added at the left
+        indexcol = layer.customProperty("ipf_indexcolumn") + 1
+        ext = layer.customProperty("ipf_assoc_ext")
+        parent = pathlib.Path(layer.customProperty("ipf_path")).parent
+        output = processing.run(
+            "native:extractbylocation",
+            {
+                "INPUT": layer,
+                "PREDICATE": 6,  # are within
+                "INTERSECT": tmp_layer,
+                "OUTPUT": "memory",
+            },
+        )["OUTPUT"]
 
-            for feature in QgsVectorLayer(output).getFeatures():
-                filename = feature.attribute(indexcol)
-                boreholes_id.append(filename)
-                paths.append(parent.joinpath(f"{filename}.{ext}"))
-                points.append(feature.geometry())
+        for feature in QgsVectorLayer(output).getFeatures():
+            filename = feature.attribute(indexcol)
+            boreholes_id.append(filename)
+            paths.append(parent.joinpath(f"{filename}.{ext}"))
+            points.append(feature.geometry().asPoint())
 
     boreholes_x = project_points_to_section(points, geometry)
     return boreholes_id, paths, boreholes_x
@@ -178,9 +177,9 @@ class LineGeometryPickerWidget(QWidget):
 
 
 class ImodCrossSectionWidget(QWidget):
-    #TODO: Include resolution setting in box
-    #TODO: Calculate proper default resolution
-    #TODO: Include time selection box
+    # TODO: Include resolution setting in box
+    # TODO: Calculate proper default resolution
+    # TODO: Include time selection box
     def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
         self.iface = iface
@@ -202,7 +201,7 @@ class ImodCrossSectionWidget(QWidget):
         self.line_picker.geometries_changed.connect(self.on_geometries_changed)
 
         self.plot_button = QPushButton("Plot")
-        self.plot_button.clicked.connect(self.plot_data)
+        self.plot_button.clicked.connect(self.draw_plot)
 
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear_plot)
@@ -211,13 +210,24 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget.showGrid(x=True, y=True)
 
         self.color_ramp_button = QgsColorRampButton()
-        self.color_ramp_button.setColorRamp(QgsCptCityColorRamp(schemeName = "wkp/encyclopedia/nordisk-familjebok", variantName = ''))
+        self.color_ramp_button.setColorRamp(
+            QgsCptCityColorRamp(
+                schemeName="wkp/encyclopedia/nordisk-familjebok", variantName=""
+            )
+        )
         self.color_ramp_button.colorRampChanged.connect(self.draw_plot)
 
+        # Selection geometry
         self.rubber_band = None
         self.buffer_distance = 100.0
+
+        # Data
+        self.x = None
+        self.y = None
+        self.z = None
         self.borehole_x = None
-        self.borehole_data = {}
+        self.borehole_data = None
+        self.relative_width = 0.05
 
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
@@ -244,7 +254,11 @@ class ImodCrossSectionWidget(QWidget):
     def clear_plot(self):
         self.plot_widget.clear()
         self.line_picker.clear_geometries()
-        self.borehole_data = {}
+        self.rubber_band = None
+        self.x = None
+        self.y = None
+        self.z = None
+        self.borehole_data = None
         self.borehole_x = None
         self.clear_legend()
 
@@ -252,12 +266,21 @@ class ImodCrossSectionWidget(QWidget):
         pass
 
     def read_boreholes(self):
+        borehole_layers = []
+        root = QgsProject.instance().layerTreeRoot()
+        for layer in root.layerOrder():
+            is_visible = root.findLayer(layer.id()).itemVisibilityChecked()
+            if is_visible and layer.customProperty("ipf_type") == IpfType.BOREHOLE:
+                borehole_layers.append(layer)
+
+        if len(borehole_layers) == 0:
+            return
+
         geometry = self.line_picker.geometries[0]
         boreholes_id, paths, self.borehole_x = select_boreholes(
-            self.buffer_distance, geometry
+            borehole_layers, self.buffer_distance, geometry
         )
-        for borehole_id, path in zip(boreholes_id, paths):
-            self.borehole_data[borehole_id] = read_associated_borehole(path)
+        self.borehole_data = [read_associated_borehole(p) for p in paths]
 
     def _repeat_to_2d(self, arr, n, axis=0):
         """Repeat array n times along new axis
@@ -275,6 +298,8 @@ class ImodCrossSectionWidget(QWidget):
 
     def extract_cross_section_data(self):
         current_layer = self.layer_selection.currentLayer()
+        if current_layer is None:
+            return
 
         # Get arbitrary key
         first_key = next(iter(self.gb_var.keys()))
@@ -327,7 +352,9 @@ class ImodCrossSectionWidget(QWidget):
 
         z[:, color_nan] = np.nan
 
-        return x, y, z
+        self.x = x
+        self.y = y
+        self.z = z
 
     def color_by_layer(self, n_lay, n_x, layer_nrs):
         z = np.empty((n_lay * 2 - 1, n_x - 1))
@@ -351,36 +378,29 @@ class ImodCrossSectionWidget(QWidget):
             z[i, :] = cross_section_hue_data(current_layer, geometry, dataset, x_mids)
         return z
 
-    def plot_data(self):
-        """Update data and draw plot
-        """
-        self.cross_section_data = self.extract_cross_section_data()
-        self.draw_plot()
-
     def draw_plot(self):
-        """Update plot (e.g. after change in colorramp)
+        """
+        Update plot (e.g. after change in colorramp)
         """
         self.plot_widget.clear()  # Ensure plot is cleared before adding new stuff
         colorramp = self.color_ramp_button.colorRamp()
 
         # Gather the data
         self.read_boreholes()
-        x, y, z = self.extract_cross_section_data()
+        self.extract_cross_section_data()
 
-        # debug
-        self.x_values = x
-        self.y_values = y
+        if self.z is not None:
+            pcmi = PColorMeshItem(self.x, self.y, self.z, colorramp=colorramp)
+            self.plot_widget.addItem(pcmi)
 
-        pcmi = PColorMeshItem(*self.cross_section_data, colorramp=colorramp)
-        self.plot_widget.addItem(pcmi)
-
-        bhpi = BoreholePlotItem(
-            self.borehole_x,
-            [df.iloc["top"].values for df in self.borehole_data],
-            [df.iloc["top"].values for df in self.borehole_data],
-            100.0,
-        )
-        self.plot_widget.addItem(bhpi)
+        if self.borehole_data is not None:
+            bhpi = BoreholePlotItem(
+                self.borehole_x,
+                [df["top"].values for df in self.borehole_data],
+                [df["top"].values for df in self.borehole_data],
+                self.relative_width * (self.borehole_x.max() - self.borehole_x.min()),
+            )
+            self.plot_widget.addItem(bhpi)
 
         # Might be smart to draw ConvexPolygons instead of pColorMeshItem,
         # (see code in pColorMeshItem)
@@ -389,17 +409,19 @@ class ImodCrossSectionWidget(QWidget):
 
     def set_groupby_variables(self):
         current_layer = self.layer_selection.currentLayer()
-        idx, group_names = get_group_names(current_layer)
-        self.gb_var = groupby_variable(group_names, idx)
+        # TODO: just don't initialize when starting the menu?
+        if current_layer is not None:
+            idx, group_names = get_group_names(current_layer)
+            self.gb_var = groupby_variable(group_names, idx)
 
     def set_variable_names(self):
         current_layer = self.layer_selection.currentLayer()
-        variable_names = list(self.gb_var.keys())
-        variable_names = [x for x in variable_names if x not in ["bottom", "top"]]
-
-        self.variable_selection.set_layer(current_layer, variable_names)
-
-        self.dataset_variable = self.variable_selection.dataset_variable
+        # TODO: just don't initialize when starting the menu?
+        if current_layer is not None:
+            variable_names = list(self.gb_var.keys())
+            variable_names = [x for x in variable_names if x not in ["bottom", "top"]]
+            self.variable_selection.set_layer(current_layer, variable_names)
+            self.dataset_variable = self.variable_selection.dataset_variable
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
