@@ -9,8 +9,23 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QColor
 from qgis.gui import QgsMapLayerComboBox, QgsColorButton, QgsColorRampButton
-from qgis.core import QgsMapLayerProxyModel, QgsColorBrewerColorRamp
+from qgis.core import (
+    QgsMapLayerProxyModel,
+    QgsColorBrewerColorRamp,
+    QgsVectorLayer,
+    QgsPointXY,
+    QgsFeature,
+    QgsGeometry,
+    QgsProject,
+)
+import pandas as pd
 import pyqtgraph as pg
+from ..ipf import read_associated_timeseries, IpfType
+import pathlib
+
+
+# pyqtgraph expects datetimes expressed as seconds from 1970-01-01
+PYQT_REFERENCE_TIME = pd.Timestamp("1970-01-01")
 
 
 class ImodTimeSeriesWidget(QWidget):
@@ -60,6 +75,7 @@ class ImodTimeSeriesWidget(QWidget):
 
         self.curves = []
         self.pens = []
+        self.current_color = 0
         self.selected = (None, None)
 
     def hideEvent(self, e):
@@ -69,6 +85,7 @@ class ImodTimeSeriesWidget(QWidget):
     def clear_plot(self):
         self.plot_widget.clear()
         self.clear_legend()
+        self.current_color = 0
 
     def clear_legend(self):
         pass
@@ -85,30 +102,70 @@ class ImodTimeSeriesWidget(QWidget):
             c.setPen(pen)
 
     def draw_plot(self):
-        import pandas as pd
-        dataframe = pd.read_csv(
-            r"C:\src\imod-qgis\imod\timeseries\test-timeseries.csv",
-            parse_dates=["date"],
-            dayfirst=True,
-        )
-        dataframe = dataframe.set_index("fid")
-        features_ids = [1, 2]
-        timeseries = dataframe.loc[features_ids]
-        reference_time = pd.Timestamp("1970-01-01")
+        layer = self.layer_selection.layer(0)
+        features = layer.selectedFeatures()
+        if len(features) == 0:
+            # warn user: no features selected in current layer
+            return
+        if layer.customProperty("ipf_type") == IpfType.TIMESERIES:
+            index = layer.customProperty("ipf_indexcolumn")
+            names = [f.attribute(index) for f in features]
+            ext = layer.customProperty("ipf_assoc_ext")
+            ipf_path = layer.customProperty("ipf_path")
+            parent = pathlib.Path(ipf_path).parent
+            for name in names:
+                dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
+                self.draw_timeseries(dataframe)
+        else:
+            # Collect the features into a dataframe, set fid as index
+            # TODO: assume Qt DateTime column format for datetime column
+            pass
+            # dataframe = pd.DataFrame(
+            #    data=[feature.attributes() for feature in features],
+            #    columns=[field.name() for field in layer.fields()],
+            # ).set_index("fid")
+            ## Make sure the date column is a date time object
+            # dataframe["date"] = pd.to_datetime(dataframe["date"], dayfirst=True)
+            # self._plot(dataframe)
 
+    def draw_timeseries(self, dataframe):
         color_ramp = self.color_ramp_button.colorRamp()
         ncolor = color_ramp.colors()
+        x = (dataframe["datetime"] - PYQT_REFERENCE_TIME).dt.total_seconds().values
+        y = dataframe["level"].values
+        curve = pg.PlotCurveItem(x, y, clickable=True)
+        pen = pg.mkPen(
+            color=color_ramp.color(self.current_color % ncolor),
+            width=2,
+            cosmetic=True,
+        )
+        curve.setPen(pen)
+        curve.sigClicked.connect(self.select_curve)
+        self.plot_widget.addItem(curve)
+        self.curves.append(curve)
+        self.pens.append(pen)
+        self.current_color += 1
 
-        for i, (feature_id, point_series) in enumerate(timeseries.groupby(timeseries.index)):
-            x = (point_series["date"] - reference_time).dt.total_seconds().values
+    def _plot(self, timeseries):
+        color_ramp = self.color_ramp_button.colorRamp()
+        ncolor = color_ramp.colors()
+        for i, (feature_id, point_series) in enumerate(
+            timeseries.groupby(timeseries.index)
+        ):
+            x = (point_series["date"] - PYQT_REFERENCE_TIME).dt.total_seconds().values
             y = point_series["level"].values
             curve = pg.PlotCurveItem(x, y, clickable=True)
-            pen = pg.mkPen(color=color_ramp.color(i % ncolor), width=2, cosmetic=True)
+            pen = pg.mkPen(
+                color=color_ramp.color(self.current_color % ncolor),
+                width=2,
+                cosmetic=True,
+            )
             curve.setPen(pen)
             curve.sigClicked.connect(self.select_curve)
             self.plot_widget.addItem(curve)
             self.curves.append(curve)
             self.pens.append(pen)
+            self.current_color += 1
 
     def apply_color(self):
         curve, pen = self.selected
