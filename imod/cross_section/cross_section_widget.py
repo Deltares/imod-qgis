@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QMenu,
 )
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPointF
 from qgis.gui import (
     QgsMapLayerComboBox,
     QgsColorButton,
@@ -25,16 +25,71 @@ from qgis.core import (
     QgsWkbTypes,
     QgsPointXY,
     QgsMeshDatasetIndex,
-    QgsMapLayerProxyModel
+    QgsMapLayerProxyModel,
+    QgsProject,
+    QgsVectorLayer,
+    QgsFeature,
 )
+from qgis import processing
+
+import pathlib
+from typing import List, Tuple
 
 import numpy as np
 import pyqtgraph as pg
 
 from .pcolormesh import PColorMeshItem
-from .plot_util import cross_section_x_data, cross_section_y_data, cross_section_hue_data
+from .borehole_plot_item import BoreholePlotItem
+from .plot_util import (
+    cross_section_x_data,
+    cross_section_y_data,
+    cross_section_hue_data,
+    project_points_to_section,
+)
 from .dataset_variable_widget import VariablesWidget
 from ..utils.layers import groupby_variable, get_group_names
+from ..ipf import IpfType, read_associated_borehole
+
+
+def select_boreholes(
+    buffer_distance: float, geometry: QgsGeometry
+) -> Tuple[List[str], List[pathlib.Path], np.ndarray]:
+    root = QgsProject.instance().layerTreeRoot()
+    buffered = geometry.buffer(buffer_distance, 4)
+    # Create a tempory layer to contain the buffer geometry
+    tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
+    tmp_feature = QgsFeature()
+    tmp_feature.setGeometry(buffered)
+    tmp_layer.dataProvider().addFeature(tmp_feature)
+
+    boreholes_id = []
+    paths = []
+    points = []
+    for layer in root.layerOrder():
+        is_visible = root.findLayer(layer.id()).itemVisibilityChecked()
+        if is_visible and layer.customProperty("ipf_type") == IpfType.BOREHOLE:
+            indexcol = layer.customProperty("ipf_indexcolumn")
+            ext = layer.customProperty("ipf_assoc_ext")
+            parent = pathlib.Path(layer.customProperty("ipf_path")).parent
+            output = processing.run(
+                "native:extractbylocation",
+                {
+                    "INPUT": layer,
+                    "PREDICATE": 6,  # are within
+                    "INTERSECT": tmp_layer,
+                    "OUTPUT": "memory",
+                },
+            )["OUTPUT"]
+
+            for feature in QgsVectorLayer(output).getFeatures():
+                filename = feature.attribute(indexcol)
+                boreholes_id.append(filename)
+                paths.append(parent.joinpath(f"{filename}.{ext}"))
+                points.append(feature.geometry())
+
+    boreholes_x = project_points_to_section(points, geometry)
+    return boreholes_id, paths, boreholes_x
+
 
 class PickGeometryTool(QgsMapTool):
     picked = pyqtSignal(
@@ -122,10 +177,10 @@ class LineGeometryPickerWidget(QWidget):
 
 
 class ImodCrossSectionWidget(QWidget):
-    #TODO: Use QGIS colormaps instead of pyqt ones
-    #TODO: Include resolution setting in box
-    #TODO: Calculate proper default resolution
-    #TODO: Include time selection box
+    # TODO: Use QGIS colormaps instead of pyqt ones
+    # TODO: Include resolution setting in box
+    # TODO: Calculate proper default resolution
+    # TODO: Include time selection box
     def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
         self.iface = iface
@@ -135,16 +190,16 @@ class ImodCrossSectionWidget(QWidget):
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
 
         self.variable_selection = VariablesWidget()
-        self.variable_selection.dataset_variable_changed.connect(self.on_variable_changed)
+        self.variable_selection.dataset_variable_changed.connect(
+            self.on_variable_changed
+        )
 
-        #Initialize groupby variables and variable names
+        # Initialize groupby variables and variable names
         self.set_groupby_variables()
-        self.set_variable_names() 
+        self.set_variable_names()
 
         self.line_picker = LineGeometryPickerWidget(iface)
-        self.line_picker.geometries_changed.connect(
-            self.on_geometries_changed
-            )
+        self.line_picker.geometries_changed.connect(self.on_geometries_changed)
 
         self.plot_button = QPushButton("Plot")
         self.plot_button.clicked.connect(self.draw_plot)
@@ -156,6 +211,9 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget.showGrid(x=True, y=True)
 
         self.rubber_band = None
+        self.buffer_distance = 100.0
+        self.borehole_x = None
+        self.borehole_data = {}
 
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
@@ -180,75 +238,86 @@ class ImodCrossSectionWidget(QWidget):
     def clear_plot(self):
         self.plot_widget.clear()
         self.line_picker.clear_geometries()
+        self.borehole_data = {}
+        self.borehole_x = None
         self.clear_legend()
 
     def clear_legend(self):
         pass
 
+    def read_boreholes(self):
+        geometry = self.line_picker.geometries[0]
+        boreholes_id, paths, self.borehole_x = select_boreholes(
+            self.buffer_distance, geometry
+        )
+        for borehole_id, path in zip(boreholes_id, paths):
+            self.borehole_data[borehole_id] = read_associated_borehole(path)
+
     def _repeat_to_2d(self, arr, n, axis=0):
         """Repeat array n times along new axis
-        
+
         Parameters
         ----------
         arr : np.array[m]
-        
         n : int
-        
 
         Returns
         -------
         np.array[n x m]
-
         """
         return np.repeat(np.expand_dims(arr, axis=axis), n, axis=axis)
 
     def extract_cross_section_data(self):
         current_layer = self.layer_selection.currentLayer()
 
-        #Get arbitrary key
+        # Get arbitrary key
         first_key = next(iter(self.gb_var.keys()))
 
-        #Get layer numbers: first element contains layer number
+        # Get layer numbers: first element contains layer number
         layer_nrs = next(zip(*self.gb_var[first_key]))
         layer_nrs = list(layer_nrs)
         layer_nrs.sort()
         n_lay = len(layer_nrs)
 
-        #TODO: Are there ever more geometries than one Linestring?
-        geometry = self.line_picker.geometries[0] 
+        # TODO: Are there ever more geometries than one Linestring?
+        geometry = self.line_picker.geometries[0]
 
-        #Get x values of points
-        x_line = cross_section_x_data(current_layer, geometry, resolution=50.)
+        # Get x values of points
+        x_line = cross_section_x_data(current_layer, geometry, resolution=50.0)
         n_x = x_line.size
 
-        #Get y values of points
+        # Get y values of points
         ## Amount of layers * 2 because we have tops and bottoms we independently add
-        y = np.zeros((n_lay * 2, n_x)) 
+        y = np.zeros((n_lay * 2, n_x))
 
         ## FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
         for k in range(n_lay):
             layer_nr, dataset_bottom = self.gb_var["bottom"][k]
-            layer_nr, dataset_top    = self.gb_var["top"][k]
+            layer_nr, dataset_top = self.gb_var["top"][k]
 
-            i = (layer_nr-1) * 2
+            i = (layer_nr - 1) * 2
             y[i, :] = cross_section_y_data(current_layer, geometry, dataset_top, x_line)
-            y[i+1, :] = cross_section_y_data(current_layer, geometry, dataset_bottom, x_line)
+            y[i + 1, :] = cross_section_y_data(
+                current_layer, geometry, dataset_bottom, x_line
+            )
 
-        #Repeat x along new dimension to get np.meshgrid like array
+        # Repeat x along new dimension to get np.meshgrid like array
         x = self._repeat_to_2d(x_line, n_lay * 2)
 
-        if len(self.dataset_variable) == 0: 
+        if len(self.dataset_variable) == 0:
             raise ValueError("No variable set")
-        elif self.dataset_variable == "layer number": 
+        elif self.dataset_variable == "layer number":
             z = self.color_by_layer(n_lay, n_x, layer_nrs)
         else:
             z = self.color_by_variable(n_lay, n_x, geometry, x_line)
 
-        #Filter values line outside mesh
+        # Filter values line outside mesh
         ## Assume: NaNs in first layer are NaNs in every layer
         is_nan = np.isnan(y[0, :])
-        y[:, is_nan] = 0.0 #Give dummy value, these will be deactivated by inactive z
-        color_nan = is_nan[1:] | is_nan[:-1] #If a vertex on either side is NaN, deactivate
+        y[:, is_nan] = 0.0  # Give dummy value, these will be deactivated by inactive z
+        color_nan = (
+            is_nan[1:] | is_nan[:-1]
+        )  # If a vertex on either side is NaN, deactivate
 
         z[:, color_nan] = np.nan
 
@@ -263,8 +332,8 @@ class ImodCrossSectionWidget(QWidget):
 
     def color_by_variable(self, n_lay, n_x, geometry, x):
         current_layer = self.layer_selection.currentLayer()
-        
-        x_mids = (x[1:] + x[:-1])/2
+
+        x_mids = (x[1:] + x[:-1]) / 2
 
         z = np.empty((n_lay * 2 - 1, n_x - 1))
         z[:] = np.nan
@@ -272,21 +341,31 @@ class ImodCrossSectionWidget(QWidget):
             var_name = self.dataset_variable
 
             layer_nr, dataset = self.gb_var[var_name][k]
-            i = (layer_nr-1) * 2
+            i = (layer_nr - 1) * 2
             z[i, :] = cross_section_hue_data(current_layer, geometry, dataset, x_mids)
         return z
 
     def draw_plot(self):
-        self.plot_widget.clear() #Ensure plot is cleared before adding new stuff
+        self.plot_widget.clear()  # Ensure plot is cleared before adding new stuff
 
+        # Gather the data
+        self.read_boreholes()
         x, y, z = self.extract_cross_section_data()
 
-        #debug
+        # debug
         self.x_values = x
         self.y_values = y
 
         pcmi = PColorMeshItem(x, y, z, cmap="inferno")
         self.plot_widget.addItem(pcmi)
+
+        bhpi = BoreholePlotItem(
+            self.borehole_x,
+            [df.iloc["top"].values for df in self.borehole_data],
+            [df.iloc["top"].values for df in self.borehole_data],
+            100.0,
+        )
+        self.plot_widget.addItem(bhpi)
 
         # Might be smart to draw ConvexPolygons instead of pColorMeshItem,
         # (see code in pColorMeshItem)
