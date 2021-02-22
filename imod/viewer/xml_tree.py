@@ -11,7 +11,15 @@ def create_legend(rgb_point_data):
                 RgbPointData=rgb_point_data)
     return legend
 
-def create_grid_model_list(path, legend, groupby_dict):
+def create_boundingbox(bbox_rectangle):
+    #TODO implement support for ZMin and ZMax as well
+    xmin = str(bbox_rectangle.xMinimum())
+    xmax = str(bbox_rectangle.xMaximum())
+    ymin = str(bbox_rectangle.yMinimum())
+    ymax = str(bbox_rectangle.yMaximum())
+    return xmu.BoundingBox(XMin = xmin, XMax = xmax, YMin = ymin, YMax = ymax)
+
+def create_grid_model_list(path, legend, groupby_dict, bbox_rectangle):
     #Manually add "computed" DataSet
     ds_elevation = xmu.DataSet(Name = "Elevation (cell centre)",
                             Time = 0,
@@ -19,6 +27,8 @@ def create_grid_model_list(path, legend, groupby_dict):
                             legend = legend)
 
     fname = os.path.basename(path)
+
+    boundingbox = create_boundingbox(bbox_rectangle)
 
     gm_list = []
 
@@ -33,20 +43,20 @@ def create_grid_model_list(path, legend, groupby_dict):
 
         uri = r'Ugrid:"{}":mesh2d'.format(path)
 
-        gm = xmu.GridModel(Name = name, Url = path, Uri = uri,
-                    GridIndex = grid_idx, LayerIndex = layer_idx,
-                    datasetlist=ds_ls)
+        gm = xmu.GridModel(Name=name, Url=path, Uri=uri,
+                    GridIndex=grid_idx, LayerIndex=layer_idx,
+                    datasetlist=ds_ls, boundingbox=boundingbox)
 
         gm_list.append(gm)
     
     return gm_list
     
 
-def create_imod_tree(path, group_names, rgb_point_data):
+def create_imod_tree(path, group_names, rgb_point_data, bbox_rectangle):
     groupby_dict = groupby_layer(group_names)
     legend = create_legend(rgb_point_data)
     
-    gm_list = create_grid_model_list(path, legend, groupby_dict)
+    gm_list = create_grid_model_list(path, legend, groupby_dict, bbox_rectangle)
 
     viewer_3d = xmu.Viewer(type="3D", 
         explorermodellist=xmu.ExplorerModelList(gridmodel=gm_list))
@@ -55,8 +65,8 @@ def create_imod_tree(path, group_names, rgb_point_data):
 
     return imod_tree
 
-def write_xml(path, xml_path, group_names, rgb_point_data):
-    imod_tree = create_imod_tree(path, group_names, rgb_point_data)
+def write_xml(path, xml_path, group_names, rgb_point_data, bbox_rectangle):
+    imod_tree = create_imod_tree(path, group_names, rgb_point_data, bbox_rectangle)
 
     processor = xmu.make_processor(xmu.IMOD6)
 

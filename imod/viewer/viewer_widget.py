@@ -34,15 +34,16 @@ class ImodViewerWidget(QWidget):
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
 
-        #Draw extent button        
+        #Draw extent button      
+        #TODO: Create seperate widget for extent_button, so that the right click button can be used to unset geometry
         self.extent_button = QPushButton("Draw extent")
         self.extent_button.clicked.connect(self.draw_extent)
+        self.rectangle_tool = RectangleMapTool(self.canvas)
+        self.rectangle_tool.rectangleCreated.connect(self.set_bbox)
 
         #Extent box
         self.extent_box = self._init_extent_box()
-        self.bbox = None #TODO: Get viewextent, use qgis-tim as example
-        self.rectangle_tool = RectangleMapTool(self.canvas)
-        self.rectangle_tool.rectangleCreated.connect(self.set_bbox)
+        self.bbox = None
 
         #Start viewer button
         self.viewer_button = QPushButton("Plot in iMOD 3D viewer")
@@ -101,7 +102,9 @@ class ImodViewerWidget(QWidget):
 
         rgb_array = self.create_rgb_array(colorramp)
 
-        write_xml(data_path, xml_path, group_names, rgb_array)
+        bbox_rectangle = self.extent_box.outputExtent()
+
+        write_xml(data_path, xml_path, group_names, rgb_array, bbox_rectangle)
 
     def rgb_components_to_float(self, components):
         return [comp/256 for comp in components]

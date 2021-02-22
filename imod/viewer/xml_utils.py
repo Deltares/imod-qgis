@@ -34,12 +34,22 @@ class DataSetList(Aggregate):
     dataset: List[DataSet]
 
 @dataclass
+class BoundingBox(Aggregate):
+    XMin : Union[Attribute, str] = "-1e9"
+    XMax : Union[Attribute, str] = "1e9"
+    YMin : Union[Attribute, str] = "-1e9"
+    YMax : Union[Attribute, str] = "1e9"
+    ZMin : Union[Attribute, str] = "-1e9"
+    ZMax : Union[Attribute, str] = "1e9"
+
+@dataclass
 class GridModel(Aggregate):
     Name: str
     Url: str
     LayerIndex: int
     Uri: str
     datasetlist: DataSetList
+    boundingbox: BoundingBox = BoundingBox()
     Type: str = "Layered Ugrid"
     GridIndex: int = 0
 
