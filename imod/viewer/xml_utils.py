@@ -14,7 +14,7 @@ class Attribute(abc.ABC):
 #%%Mapcanvas
 @dataclass
 class Legend(Aggregate):
-    Discrete: bool = False
+    LegendType: str = "Continuous"
     ColorScheme: Optional[str] = "Heatmap"
     ScaleType: Optional[str] = "Linear"
     RgbPointData: str = ""
@@ -54,7 +54,7 @@ class Viewer(Aggregate):
 
 @dataclass
 class IMOD6(Aggregate):
-    Version: Union[Attribute, str] = "7"
+    Version: Union[Attribute, str] = "8"
     viewer: List[Viewer] = None
 
 #%%Mappings

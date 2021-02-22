@@ -6,7 +6,7 @@ from . import xml_utils as xmu
 from ..utils.layers import groupby_layer, get_layer_idx
 
 def create_legend(rgb_point_data):
-    legend = xmu.Legend(Discrete = False,
+    legend = xmu.Legend(LegendType = "Continuous",
                 ColorScheme="Rainbow",
                 RgbPointData=rgb_point_data)
     return legend
