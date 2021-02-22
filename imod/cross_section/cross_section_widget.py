@@ -266,6 +266,10 @@ class ImodCrossSectionWidget(QWidget):
         pass
 
     def read_boreholes(self):
+        if len(self.line_picker.geometries) == 0:
+            return
+        geometry = self.line_picker.geometries[0]
+
         borehole_layers = []
         root = QgsProject.instance().layerTreeRoot()
         for layer in root.layerOrder():
@@ -276,10 +280,10 @@ class ImodCrossSectionWidget(QWidget):
         if len(borehole_layers) == 0:
             return
 
-        geometry = self.line_picker.geometries[0]
-        boreholes_id, paths, self.borehole_x = select_boreholes(
+        boreholes_id, paths, borehole_x = select_boreholes(
             borehole_layers, self.buffer_distance, geometry
         )
+        self.borehole_x = borehole_x
         self.borehole_data = [read_associated_borehole(p) for p in paths]
 
     def _repeat_to_2d(self, arr, n, axis=0):
@@ -311,6 +315,8 @@ class ImodCrossSectionWidget(QWidget):
         n_lay = len(layer_nrs)
 
         # TODO: Are there ever more geometries than one Linestring?
+        if len(self.line_picker.geometries) == 0:
+            return
         geometry = self.line_picker.geometries[0]
 
         # Get x values of points
