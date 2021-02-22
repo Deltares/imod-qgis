@@ -1,3 +1,5 @@
+from PyQt5.QtCore import Qt
+
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.PyQt.QtGui import QColor
 from qgis.core import QgsPointXY, QgsRectangle, QgsWkbTypes
@@ -26,11 +28,15 @@ class RectangleMapTool(QgsMapToolEmitPoint):
         self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
 
     def canvasPressEvent(self, e):
-        self.startPoint = self.toMapCoordinates(e.pos())
-        self.endPoint = self.startPoint
-        self.isEmittingPoint = True
-
-        self.showRect(self.startPoint, self.endPoint)
+        if e.button() == Qt.LeftButton:
+            self.startPoint = self.toMapCoordinates(e.pos())
+            self.endPoint = self.startPoint
+            self.isEmittingPoint = True
+            self.showRect(self.startPoint, self.endPoint)
+        
+        if e.button() == Qt.RightButton:
+            self.reset()
+            self.deactivate()
 
     def canvasReleaseEvent(self, e):
         self.isEmittingPoint = False
