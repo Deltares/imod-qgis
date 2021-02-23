@@ -227,6 +227,7 @@ class ImodCrossSectionWidget(QWidget):
         self.mesh_z = None
         self.borehole_x = None
         self.borehole_data = None
+        self.borehole_id = None
         self.relative_width = 0.05
 
         first_row = QHBoxLayout()
@@ -260,6 +261,7 @@ class ImodCrossSectionWidget(QWidget):
         self.mesh_z = None
         self.borehole_data = None
         self.borehole_x = None
+        self.borehole_id = None
         self.clear_legend()
 
     def clear_legend(self):
@@ -280,11 +282,12 @@ class ImodCrossSectionWidget(QWidget):
         if len(borehole_layers) == 0:
             return
 
-        boreholes_id, paths, borehole_x = select_boreholes(
+        borehole_id, paths, borehole_x = select_boreholes(
             borehole_layers, self.buffer_distance, geometry
         )
         self.borehole_x = borehole_x
         self.borehole_data = [read_associated_borehole(p) for p in paths]
+        self.borehole_id = borehole_id
 
     def _repeat_to_2d(self, arr, n, axis=0):
         """Repeat array n times along new axis
