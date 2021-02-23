@@ -6,9 +6,10 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QGridLayout,
     QLabel,
+    QDialog,
 )
 from PyQt5.QtGui import QColor
-from qgis.gui import QgsMapLayerComboBox, QgsColorButton, QgsColorRampButton
+from qgis.gui import QgsMapLayerComboBox, QgsColorButton
 from qgis.core import (
     QgsMapLayerProxyModel,
     QgsColorBrewerColorRamp,
@@ -21,11 +22,47 @@ from qgis.core import (
 import pandas as pd
 import pyqtgraph as pg
 from ..ipf import read_associated_timeseries, IpfType
+from ..utils import ImodUniqueColorWidget
 import pathlib
 
+import numpy as np
 
 # pyqtgraph expects datetimes expressed as seconds from 1970-01-01
 PYQT_REFERENCE_TIME = pd.Timestamp("1970-01-01")
+
+
+class SymbologyDialog(QDialog):
+    def __init__(self, color_widget, parent=None):
+        QDialog.__init__(self, parent)
+        self.color_widget = color_widget
+        row = QHBoxLayout()
+        apply_button = QPushButton("Apply")
+        cancel_button = QPushButton("Cancel")
+        apply_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+        row.addWidget(apply_button)
+        row.addWidget(cancel_button)
+        layout = QVBoxLayout()
+        layout.addWidget(self.color_widget)
+        layout.addLayout(row)
+        self.setLayout(layout)
+
+    def detach(self):
+        self.color_widget.setParent(self.parent())
+
+    # NOTA BENE: detach() and these overloaded methods are required, otherwise
+    # the color_widget is garbage collected when the dialog closes.
+    def closeEvent(self, e):
+        self.detach()
+        QDialog.closeEvent(self, e)
+
+    def reject(self):
+        self.detach()
+        QDialog.reject(self)
+
+    def accept(self):
+        self.detach()
+        QDialog.accept(self)
 
 
 class ImodTimeSeriesWidget(QWidget):
@@ -45,12 +82,14 @@ class ImodTimeSeriesWidget(QWidget):
         self.apply_color_button = QPushButton("Apply")
         self.apply_color_button.clicked.connect(self.apply_color)
 
-        self.color_ramp_button = QgsColorRampButton()
-        self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
-
         self.plot_widget = pg.PlotWidget(axisItems={"bottom": pg.DateAxisItem()})
         self.plot_widget.showGrid(x=True, y=True)
         self.plot_widget.addLegend()
+
+        self.symbology_button = QPushButton("Symbology")
+        self.symbology_button.clicked.connect(self.symbology)
+        self.color_widget = ImodUniqueColorWidget(self) 
+        self.names = None
 
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
@@ -60,12 +99,15 @@ class ImodTimeSeriesWidget(QWidget):
         second_row = QHBoxLayout()
         second_row.addWidget(self.plot_widget)
 
-        second_column = QGridLayout()
-        second_column.addWidget(QLabel("Line Color:"), 0, 0)
-        second_column.addWidget(self.color_button, 0, 1)
-        second_column.addWidget(self.apply_color_button, 1, 1)
-        second_column.addWidget(QLabel("Color ramp:"), 2, 0)
-        second_column.addWidget(self.color_ramp_button, 2, 1)
+        third_row = QHBoxLayout()
+        third_row.addWidget(QLabel("Line Color:"))
+        third_row.addWidget(self.color_button)
+        third_row.addWidget(self.apply_color_button)
+
+        second_column = QVBoxLayout() 
+        second_column.addLayout(third_row)
+        second_column.addWidget(self.symbology_button)
+        second_column.addStretch()
         second_row.addLayout(second_column)
 
         layout = QVBoxLayout()
@@ -75,7 +117,6 @@ class ImodTimeSeriesWidget(QWidget):
 
         self.curves = []
         self.pens = []
-        self.current_color = 0
         self.selected = (None, None)
 
     def hideEvent(self, e):
@@ -109,13 +150,14 @@ class ImodTimeSeriesWidget(QWidget):
             return
         if layer.customProperty("ipf_type") == IpfType.TIMESERIES:
             index = layer.customProperty("ipf_indexcolumn")
-            names = [f.attribute(index) for f in features]
             ext = layer.customProperty("ipf_assoc_ext")
             ipf_path = layer.customProperty("ipf_path")
             parent = pathlib.Path(ipf_path).parent
-            for name in names:
+            self.names = sorted([f.attribute(index) for f in features])
+            self.color_widget.set_data(self.names)
+            for name in self.names:
                 dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
-                self.draw_timeseries(dataframe)
+                self.draw_timeseries(dataframe, name)
         else:
             # Collect the features into a dataframe, set fid as index
             # TODO: assume Qt DateTime column format for datetime column
@@ -128,14 +170,13 @@ class ImodTimeSeriesWidget(QWidget):
             # dataframe["date"] = pd.to_datetime(dataframe["date"], dayfirst=True)
             # self._plot(dataframe)
 
-    def draw_timeseries(self, dataframe):
-        color_ramp = self.color_ramp_button.colorRamp()
-        ncolor = color_ramp.colors()
+    def draw_timeseries(self, dataframe, name):
+        shader = self.color_widget.shader()
         x = (dataframe["datetime"] - PYQT_REFERENCE_TIME).dt.total_seconds().values
         y = dataframe["level"].values
         curve = pg.PlotCurveItem(x, y, clickable=True)
         pen = pg.mkPen(
-            color=color_ramp.color(self.current_color % ncolor),
+            color=shader.shade(name),
             width=2,
             cosmetic=True,
         )
@@ -144,31 +185,21 @@ class ImodTimeSeriesWidget(QWidget):
         self.plot_widget.addItem(curve)
         self.curves.append(curve)
         self.pens.append(pen)
-        self.current_color += 1
-
-    def _plot(self, timeseries):
-        color_ramp = self.color_ramp_button.colorRamp()
-        ncolor = color_ramp.colors()
-        for i, (feature_id, point_series) in enumerate(
-            timeseries.groupby(timeseries.index)
-        ):
-            x = (point_series["date"] - PYQT_REFERENCE_TIME).dt.total_seconds().values
-            y = point_series["level"].values
-            curve = pg.PlotCurveItem(x, y, clickable=True)
-            pen = pg.mkPen(
-                color=color_ramp.color(self.current_color % ncolor),
-                width=2,
-                cosmetic=True,
-            )
-            curve.setPen(pen)
-            curve.sigClicked.connect(self.select_curve)
-            self.plot_widget.addItem(curve)
-            self.curves.append(curve)
-            self.pens.append(pen)
-            self.current_color += 1
 
     def apply_color(self):
         curve, pen = self.selected
         if curve is not None and pen is not None:
             pen.setColor(self.color_button.color())
+            pen.setWidth(2)
             curve.setPen(pen)
+
+    def symbology(self):
+        if self.color_widget is not None:
+            dialog = SymbologyDialog(self.color_widget, self)
+            dialog.show()
+            ok = dialog.exec_() 
+            if ok and len(self.names) > 0:
+                shader = self.color_widget.shader()
+                for curve, pen, name in zip(self.curves, self.pens, self.names):
+                    pen.setColor(shader.shade(name))
+                    curve.setPen(pen)
