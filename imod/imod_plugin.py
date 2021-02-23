@@ -3,11 +3,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.gui import QgsDockWidget
 
-# Initialize Qt resources from file resources.py
-from .resources import *
-
 # Import the code for the DockWidget
-from .imod_plugin_dockwidget import ImodDockWidget
 from pathlib import Path
 
 
