@@ -225,11 +225,17 @@ class ImodCrossSectionWidget(QWidget):
         self.mesh_x = None
         self.mesh_y = None
         self.mesh_z = None
+
         self.borehole_x = None
         self.borehole_data = None
         self.borehole_id = None
         self.relative_width = 0.05
 
+        self.line_x = None
+        self.line_y = None
+        self.line_id = None
+
+        #Setup layout
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
         first_row.addWidget(self.variable_selection)
@@ -262,6 +268,9 @@ class ImodCrossSectionWidget(QWidget):
         self.borehole_data = None
         self.borehole_x = None
         self.borehole_id = None
+        self.line_x = None
+        self.line_y = None
+        self.line_id = None
         self.clear_legend()
 
     def clear_legend(self):
@@ -288,6 +297,21 @@ class ImodCrossSectionWidget(QWidget):
         self.borehole_x = borehole_x
         self.borehole_data = [read_associated_borehole(p) for p in paths]
         self.borehole_id = borehole_id
+
+    def set_line_x(self):
+        """Set line_x values, to be used both for drawing cross_section data as well as lines.
+        """
+        current_layer = self.layer_selection.currentLayer()
+        if current_layer is None:
+            return
+        
+        # TODO: Are there ever more geometries than one Linestring?
+        if len(self.line_picker.geometries) == 0:
+            return
+        
+        geometry = self.line_picker.geometries[0]
+
+        self.line_x = cross_section_x_data(current_layer, geometry, resolution=50.0)
 
     def _repeat_to_2d(self, arr, n, axis=0):
         """Repeat array n times along new axis
@@ -316,15 +340,13 @@ class ImodCrossSectionWidget(QWidget):
         layer_nrs = list(layer_nrs)
         layer_nrs.sort()
         n_lay = len(layer_nrs)
+        n_x = self.line_x.size
 
         # TODO: Are there ever more geometries than one Linestring?
         if len(self.line_picker.geometries) == 0:
             return
+        
         geometry = self.line_picker.geometries[0]
-
-        # Get x values of points
-        x_line = cross_section_x_data(current_layer, geometry, resolution=50.0)
-        n_x = x_line.size
 
         # Get y values of points
         ## Amount of layers * 2 because we have tops and bottoms we independently add
@@ -336,20 +358,20 @@ class ImodCrossSectionWidget(QWidget):
             layer_nr, dataset_top = self.gb_var["top"][k]
 
             i = (layer_nr - 1) * 2
-            y[i, :] = cross_section_y_data(current_layer, geometry, dataset_top, x_line)
+            y[i, :] = cross_section_y_data(current_layer, geometry, dataset_top, self.line_x)
             y[i + 1, :] = cross_section_y_data(
-                current_layer, geometry, dataset_bottom, x_line
+                current_layer, geometry, dataset_bottom, self.line_x
             )
 
         # Repeat x along new dimension to get np.meshgrid like array
-        x = self._repeat_to_2d(x_line, n_lay * 2)
+        x = self._repeat_to_2d(self.line_x, n_lay * 2)
 
         if len(self.dataset_variable) == 0:
             raise ValueError("No variable set")
         elif self.dataset_variable == "layer number":
             z = self.color_by_layer(n_lay, n_x, layer_nrs)
         else:
-            z = self.color_by_variable(n_lay, n_x, geometry, x_line)
+            z = self.color_by_variable(n_lay, n_x, geometry, self.line_x)
 
         # Filter values line outside mesh
         ## Assume: NaNs in first layer are NaNs in every layer
@@ -396,6 +418,7 @@ class ImodCrossSectionWidget(QWidget):
 
         # Gather the data
         self.read_boreholes()
+        self.set_line_x()
         self.extract_cross_section_data()
 
         if self.mesh_z is not None:
