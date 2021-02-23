@@ -47,15 +47,13 @@ def format_number(number, precision):
 
 
 class ImodPseudoColorWidget(QWidget):
-    def __init__(self, data: np.ndarray, parent=None):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        self.data = data
+        self.data = None 
 
         # Create widgets
         self.min_edit = QLineEdit()
-        self.min_edit.setText(str(np.nanmin(data)))
         self.max_edit = QLineEdit()
-        self.max_edit.setText(str(np.nanmax(data)))
         self.min_edit.setValidator(QDoubleValidator())
         self.max_edit.setValidator(QDoubleValidator())
         # Connect widgets
@@ -151,7 +149,11 @@ class ImodPseudoColorWidget(QWidget):
         layout.addLayout(third_row)
         layout.addLayout(fourth_row)
         self.setLayout(layout)
-        # Finally, fill the table
+
+    def set_data(self, data: np.ndarray):
+        self.data = data
+        self.min_edit.setText(str(np.nanmin(data)))
+        self.max_edit.setText(str(np.nanmax(data)))
         self.classify()
 
     def minimum(self):

@@ -21,6 +21,7 @@ from qgis.core import (
 from PyQt5.QtWidgets import QTreeWidget, QWidget
 
 import numpy as np
+import pandas as pd
 
 
 class ImodUniqueColorShader:
@@ -35,9 +36,9 @@ class ImodUniqueColorShader:
 
 
 class ImodUniqueColorWidget(QWidget):
-    def __init__(self, data: np.ndarray, parent=None):
+    def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        self.data = data
+        self.data = None 
 
         self.color_ramp_button = QgsColorRampButton()
         self.color_ramp_button.setColorRampFromName("Viridis")
@@ -79,19 +80,25 @@ class ImodUniqueColorWidget(QWidget):
         layout.addWidget(self.table)
         layout.addLayout(second_row)
         self.setLayout(layout)
-        # Finally, fill the table
+
+    def set_data(self, data: np.ndarray):
+        self.data = data
         self.classify()
 
     def classify(self) -> None:
         self.table.clear()
-        uniques = np.unique(self.data[~np.isnan(self.data)])
+        uniques = pd.Series(self.data).dropna().unique()
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
         colors = [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
         for value, color in zip(uniques, colors):
             new_item = QgsTreeWidgetItemObject(self.table)
             # Make sure to convert from numpy type to Python type with .item()
-            new_item.setData(0, Qt.ItemDataRole.DisplayRole, value.item())
+            try:
+                python_value = value.item()
+            except AttributeError:
+                python_value = value
+            new_item.setData(0, Qt.ItemDataRole.DisplayRole, python_value)
             new_item.setData(1, Qt.ItemDataRole.EditRole, color)
             new_item.setText(2, str(value))
             new_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable)
@@ -113,11 +120,11 @@ class ImodUniqueColorWidget(QWidget):
     def save_classes(self) -> None:
         pass
 
-    def shader(self) -> ImodPalettedShader:
+    def shader(self) -> ImodUniqueColorShader:
         values = []
         colors = []
         for i in range(self.table.topLevelItemCount()):
             item = self.table.topLevelItem(i)
             values.append(item.data(0, Qt.ItemDataRole.DisplayRole))
             colors.append(item.data(1, Qt.ItemDataRole.EditRole))
-        return ImodPalettedShader(values, colors)
+        return ImodUniqueColorShader(values, colors)
