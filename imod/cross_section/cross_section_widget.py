@@ -222,9 +222,9 @@ class ImodCrossSectionWidget(QWidget):
         self.buffer_distance = 100.0
 
         # Data
-        self.x = None
-        self.y = None
-        self.z = None
+        self.mesh_x = None
+        self.mesh_y = None
+        self.mesh_z = None
         self.borehole_x = None
         self.borehole_data = None
         self.relative_width = 0.05
@@ -255,9 +255,9 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget.clear()
         self.line_picker.clear_geometries()
         self.rubber_band = None
-        self.x = None
-        self.y = None
-        self.z = None
+        self.mesh_x = None
+        self.mesh_y = None
+        self.mesh_z = None
         self.borehole_data = None
         self.borehole_x = None
         self.clear_legend()
@@ -358,9 +358,9 @@ class ImodCrossSectionWidget(QWidget):
 
         z[:, color_nan] = np.nan
 
-        self.x = x
-        self.y = y
-        self.z = z
+        self.mesh_x = x
+        self.mesh_y = y
+        self.mesh_z = z
 
     def color_by_layer(self, n_lay, n_x, layer_nrs):
         z = np.empty((n_lay * 2 - 1, n_x - 1))
@@ -395,8 +395,8 @@ class ImodCrossSectionWidget(QWidget):
         self.read_boreholes()
         self.extract_cross_section_data()
 
-        if self.z is not None:
-            pcmi = PColorMeshItem(self.x, self.y, self.z, colorramp=colorramp)
+        if self.mesh_z is not None:
+            pcmi = PColorMeshItem(self.mesh_x, self.mesh_y, self.mesh_z, colorramp=colorramp)
             self.plot_widget.addItem(pcmi)
 
         if self.borehole_data is not None:
