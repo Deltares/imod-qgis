@@ -13,11 +13,10 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QAbstractItemView,
 )
-from PyQt5.QtGui import QDoubleValidator, QStandardItemModel, QStandardItem, QIcon, QTableWidgetItem, QTableWidget, QColor
+from PyQt5.QtGui import QDoubleValidator, QColor
 from PyQt5.QtCore import Qt
 from qgis.gui import (
     QgsColorRampButton,
-    QgsColorDialog,
     QgsColorWidget,
     QgsColorSwatchDelegate,
     QgsTreeWidgetItemObject,
@@ -26,7 +25,7 @@ from qgis.core import (
     QgsGradientColorRamp,
     QgsColorRampShader,
 )
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QApplication, QWidget
+from PyQt5.QtWidgets import QTreeWidget, QWidget
 
 import numpy as np
 
@@ -51,8 +50,6 @@ class ImodPseudoColorWidget(QWidget):
     def __init__(self, data: np.ndarray, parent=None):
         QWidget.__init__(self, parent)
         self.data = data
-        self.boundaries = None
-        self.legend_items = None
 
         # Create widgets
         self.min_edit = QLineEdit()
