@@ -47,7 +47,7 @@ from .plot_util import (
     cross_section_hue_data,
     project_points_to_section,
 )
-from .dataset_variable_widget import VariablesWidget
+from ..widgets import VariablesWidget
 from ..utils.layers import groupby_variable, get_group_names
 from ..ipf import IpfType, read_associated_borehole
 
