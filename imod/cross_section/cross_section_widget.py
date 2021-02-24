@@ -58,6 +58,7 @@ def select_boreholes(
     # Create a tempory layer to contain the buffer geometry
     buffered = geometry.buffer(buffer_distance, 4)
     tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
+    tmp_layer.setCrs(QgsProject.instance().crs())
     tmp_feature = QgsFeature()
     tmp_feature.setGeometry(buffered)
     tmp_layer.dataProvider().addFeature(tmp_feature)
@@ -68,7 +69,7 @@ def select_boreholes(
     points = []
     for layer in borehole_layers:
         # Due to the selection, another column is added at the left
-        indexcol = layer.customProperty("ipf_indexcolumn") + 1
+        indexcol = layer.customProperty("ipf_indexcolumn")
         ext = layer.customProperty("ipf_assoc_ext")
         parent = pathlib.Path(layer.customProperty("ipf_path")).parent
         output = processing.run(
@@ -77,11 +78,11 @@ def select_boreholes(
                 "INPUT": layer,
                 "PREDICATE": 6,  # are within
                 "INTERSECT": tmp_layer,
-                "OUTPUT": "memory",
+                "OUTPUT": "TEMPORARY_OUTPUT",
             },
         )["OUTPUT"]
 
-        for feature in QgsVectorLayer(output).getFeatures():
+        for feature in output.getFeatures():
             filename = feature.attribute(indexcol)
             boreholes_id.append(filename)
             paths.append(parent.joinpath(f"{filename}.{ext}"))
@@ -219,7 +220,7 @@ class ImodCrossSectionWidget(QWidget):
 
         # Selection geometry
         self.rubber_band = None
-        self.buffer_distance = 100.0
+        self.buffer_distance = 1000.0
 
         # Data
         self.mesh_x = None
