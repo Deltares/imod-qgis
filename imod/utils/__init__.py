@@ -1,2 +1,0 @@
-from .pseudocolor_widget import ImodPseudoColorWidget
-from .unique_color_widget import ImodUniqueColorWidget
