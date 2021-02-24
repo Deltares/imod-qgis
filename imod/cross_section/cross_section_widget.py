@@ -88,7 +88,10 @@ def select_boreholes(
             paths.append(parent.joinpath(f"{filename}.{ext}"))
             points.append(feature.geometry().asPoint())
 
-    boreholes_x = project_points_to_section(points, geometry)
+    if len(points) > 0:
+        boreholes_x = project_points_to_section(points, geometry)
+    else:
+        boreholes_x = []
     return boreholes_id, paths, boreholes_x
 
 
@@ -278,6 +281,12 @@ class ImodCrossSectionWidget(QWidget):
         pass
 
     def read_boreholes(self):
+        def none_if_empty_list(ls):
+            if len(ls) == 0:
+                return None
+            else:
+                return ls
+
         if len(self.line_picker.geometries) == 0:
             return
         geometry = self.line_picker.geometries[0]
@@ -295,9 +304,11 @@ class ImodCrossSectionWidget(QWidget):
         borehole_id, paths, borehole_x = select_boreholes(
             borehole_layers, self.buffer_distance, geometry
         )
-        self.borehole_x = borehole_x
-        self.borehole_data = [read_associated_borehole(p) for p in paths]
-        self.borehole_id = borehole_id
+        borehole_data = [read_associated_borehole(p) for p in paths]
+
+        self.borehole_x = none_if_empty_list(borehole_x)
+        self.borehole_data = none_if_empty_list(borehole_data)
+        self.borehole_id = none_if_empty_list(borehole_id)
 
     def set_line_x(self):
         """Set line_x values, to be used both for drawing cross_section data as well as lines.
