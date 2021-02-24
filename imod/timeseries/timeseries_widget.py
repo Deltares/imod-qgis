@@ -22,7 +22,7 @@ from qgis.core import (
 import pandas as pd
 import pyqtgraph as pg
 from ..ipf import read_associated_timeseries, IpfType
-from ..utils import ImodUniqueColorWidget
+from ..widgets import ImodUniqueColorWidget
 import pathlib
 
 import numpy as np
