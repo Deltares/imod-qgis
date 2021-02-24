@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import (
+    QCheckBox,
     QWidget,
     QStackedLayout,
     QHBoxLayout,
@@ -81,13 +82,15 @@ class ImodTimeSeriesWidget(QWidget):
         self.color_button = QgsColorButton()
         self.apply_color_button = QPushButton("Apply")
         self.apply_color_button.clicked.connect(self.apply_color)
+        self.marker_checkbox = QCheckBox()
+        self.marker_checkbox.stateChanged.connect(self.show_or_hide_markers)
 
         self.plot_widget = pg.PlotWidget(axisItems={"bottom": pg.DateAxisItem()})
         self.plot_widget.showGrid(x=True, y=True)
         self.plot_widget.addLegend()
 
-        self.symbology_button = QPushButton("Symbology")
-        self.symbology_button.clicked.connect(self.symbology)
+        self.colors_button = QPushButton("Colors")
+        self.colors_button.clicked.connect(self.colors)
         self.color_widget = ImodUniqueColorWidget(self) 
         self.names = None
 
@@ -104,9 +107,14 @@ class ImodTimeSeriesWidget(QWidget):
         third_row.addWidget(self.color_button)
         third_row.addWidget(self.apply_color_button)
 
+        fourth_row = QHBoxLayout()
+        fourth_row.addWidget(QLabel("Draw markers"))
+        fourth_row.addWidget(self.marker_checkbox)
+
         second_column = QVBoxLayout() 
         second_column.addLayout(third_row)
-        second_column.addWidget(self.symbology_button)
+        second_column.addLayout(fourth_row)
+        second_column.addWidget(self.colors_button)
         second_column.addStretch()
         second_row.addLayout(second_column)
 
@@ -126,7 +134,6 @@ class ImodTimeSeriesWidget(QWidget):
     def clear_plot(self):
         self.plot_widget.clear()
         self.clear_legend()
-        self.current_color = 0
 
     def clear_legend(self):
         pass
@@ -174,14 +181,16 @@ class ImodTimeSeriesWidget(QWidget):
         shader = self.color_widget.shader()
         x = (dataframe["datetime"] - PYQT_REFERENCE_TIME).dt.total_seconds().values
         y = dataframe["level"].values
-        curve = pg.PlotCurveItem(x, y, clickable=True)
         pen = pg.mkPen(
             color=shader.shade(name),
             width=2,
             cosmetic=True,
         )
-        curve.setPen(pen)
+        symbol = "+" if self.marker_checkbox.checkState() else None
+        curve = pg.PlotDataItem(x, y, pen=pen, clickable=True, symbol=symbol)
         curve.sigClicked.connect(self.select_curve)
+        curve.curve.setClickable(True)
+        curve.curve.sigClicked.connect(self.select_curve)
         self.plot_widget.addItem(curve)
         self.curves.append(curve)
         self.pens.append(pen)
@@ -192,8 +201,9 @@ class ImodTimeSeriesWidget(QWidget):
             pen.setColor(self.color_button.color())
             pen.setWidth(2)
             curve.setPen(pen)
+            curve.setSymbolPen(pen)
 
-    def symbology(self):
+    def colors(self):
         if self.color_widget is not None:
             dialog = SymbologyDialog(self.color_widget, self)
             dialog.show()
@@ -203,3 +213,10 @@ class ImodTimeSeriesWidget(QWidget):
                 for curve, pen, name in zip(self.curves, self.pens, self.names):
                     pen.setColor(shader.shade(name))
                     curve.setPen(pen)
+                    curve.setSymbolPen(pen)
+
+    def show_or_hide_markers(self):
+        symbol = "+" if self.marker_checkbox.checkState() else None
+        for curve, pen in zip(self.curves, self.pens):
+            curve.setSymbolPen(pen)
+            curve.setSymbol(symbol)
