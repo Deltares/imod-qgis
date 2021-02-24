@@ -15,6 +15,7 @@ from qgis.gui import (
     QgsTreeWidgetItemObject,
 )
 from qgis.core import (
+    QgsColorBrewerColorRamp,
     QgsGradientColorRamp,
     QgsColorRampShader,
 )
@@ -41,7 +42,7 @@ class ImodUniqueColorWidget(QWidget):
         self.data = None 
 
         self.color_ramp_button = QgsColorRampButton()
-        self.color_ramp_button.setColorRampFromName("Viridis")
+        self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
         self.color_ramp_button.colorRampChanged.connect(self.classify)
         self.color_ramp_button.setMinimumWidth(400)
         first_row = QHBoxLayout()
