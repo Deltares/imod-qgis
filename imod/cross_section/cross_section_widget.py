@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QToolButton,
     QMenu,
+    QDoubleSpinBox
 )
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPointF
@@ -181,7 +182,6 @@ class LineGeometryPickerWidget(QWidget):
 
 
 class ImodCrossSectionWidget(QWidget):
-    # TODO: Include resolution setting in box
     # TODO: Calculate proper default resolution
     # TODO: Include time selection box
     def __init__(self, parent, iface):
@@ -213,6 +213,14 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.showGrid(x=True, y=True)
 
+        self.resolution_spinbox = QDoubleSpinBox()
+        self.resolution_spinbox.setRange(0.01, 1000.)
+        self.resolution_spinbox.setValue(50.0)
+
+        self.buffer_spinbox = QDoubleSpinBox()
+        self.buffer_spinbox.setRange(0., 10000.)
+        self.buffer_spinbox.setValue(1000.0)
+
         self.color_ramp_button = QgsColorRampButton()
         self.color_ramp_button.setColorRamp(
             QgsCptCityColorRamp(
@@ -223,7 +231,6 @@ class ImodCrossSectionWidget(QWidget):
 
         # Selection geometry
         self.rubber_band = None
-        self.buffer_distance = 1000.0
 
         # Data
         self.mesh_x = None
@@ -244,6 +251,9 @@ class ImodCrossSectionWidget(QWidget):
         first_row.addWidget(self.layer_selection)
         first_row.addWidget(self.variable_selection)
         first_row.addWidget(self.line_picker)
+
+        first_row.addWidget(self.resolution_spinbox)
+        first_row.addWidget(self.buffer_spinbox)
 
         first_row.addWidget(self.plot_button)
         first_row.addWidget(self.clear_button)
@@ -301,8 +311,10 @@ class ImodCrossSectionWidget(QWidget):
         if len(borehole_layers) == 0:
             return
 
+        buffer_distance = self.buffer_spinbox.value()
+
         borehole_id, paths, borehole_x = select_boreholes(
-            borehole_layers, self.buffer_distance, geometry
+            borehole_layers, buffer_distance, geometry
         )
         borehole_data = [read_associated_borehole(p) for p in paths]
 
@@ -323,7 +335,8 @@ class ImodCrossSectionWidget(QWidget):
         
         geometry = self.line_picker.geometries[0]
 
-        self.line_x = cross_section_x_data(current_layer, geometry, resolution=50.0)
+        self.line_x = cross_section_x_data(current_layer, geometry, 
+            resolution=self.resolution_spinbox.value())
 
     def _repeat_to_2d(self, arr, n, axis=0):
         """Repeat array n times along new axis
