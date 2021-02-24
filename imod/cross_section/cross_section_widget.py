@@ -8,7 +8,8 @@ from PyQt5.QtWidgets import (
     QLabel,
     QToolButton,
     QMenu,
-    QDoubleSpinBox
+    QDoubleSpinBox,
+    QCheckBox
 )
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPointF
@@ -213,13 +214,15 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.showGrid(x=True, y=True)
 
+        self.dynamic_resolution_box = QCheckBox("Dynamic resolution")
+
         self.resolution_spinbox = QDoubleSpinBox()
-        self.resolution_spinbox.setRange(0.01, 1000.)
+        self.resolution_spinbox.setRange(0.01, 10000.)
         self.resolution_spinbox.setValue(50.0)
 
         self.buffer_spinbox = QDoubleSpinBox()
         self.buffer_spinbox.setRange(0., 10000.)
-        self.buffer_spinbox.setValue(1000.0)
+        self.buffer_spinbox.setValue(250.0)
 
         self.color_ramp_button = QgsColorRampButton()
         self.color_ramp_button.setColorRamp(
@@ -252,6 +255,7 @@ class ImodCrossSectionWidget(QWidget):
         first_row.addWidget(self.variable_selection)
         first_row.addWidget(self.line_picker)
 
+        first_row.addWidget(self.dynamic_resolution_box)
         first_row.addWidget(self.resolution_spinbox)
         first_row.addWidget(self.buffer_spinbox)
 
@@ -490,6 +494,11 @@ class ImodCrossSectionWidget(QWidget):
         self.rubber_band.setColor(QColor(Qt.red))
         self.rubber_band.setWidth(2)
         self.rubber_band.setToGeometry(self.line_picker.geometries[0], None)
+
+        if self.dynamic_resolution_box.isChecked():
+            geometry = self.line_picker.geometries[0]
+            resolution = geometry.length() / 300.
+            self.resolution_spinbox.setValue(resolution)
 
     def on_layer_changed(self):
         self.set_groupby_variables()
