@@ -1,3 +1,11 @@
+"""
+NOTA BENE: without OpenGL, setting pen width > 1 kills performance:
+https://github.com/pyqtgraph/pyqtgraph/issues/533#
+
+This enables OpenGL:
+pg.setConfigOptions(useOpenGL=True)
+But might not work on every system...
+"""
 from PyQt5.QtWidgets import (
     QCheckBox,
     QWidget,
@@ -8,7 +16,10 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QLabel,
     QDialog,
+    QToolButton,
+    QMenu,
 )
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from qgis.gui import QgsMapLayerComboBox, QgsColorButton
 from qgis.core import (
@@ -28,8 +39,36 @@ import pathlib
 
 import numpy as np
 
+
+# Set rendering backend and set pen widths
+# DO NOT USE PEN WIDTHS > 1 WITHOUT OPENGL
+pg.setConfigOptions(useOpenGL=True)
+WIDTH = 2
+SELECTED_WIDTH = 3
 # pyqtgraph expects datetimes expressed as seconds from 1970-01-01
 PYQT_REFERENCE_TIME = pd.Timestamp("1970-01-01")
+
+
+class DatasetVariableMenu(QMenu):
+    def __init__(self, parent=None):
+        QMenu.__init__(self, parent)
+    
+    def populate_actions(self, variables):
+        self.clear()
+        for variable in variables:
+            a = self.addAction(variable)
+            a.variable_name = variable
+            a.setCheckable(True)
+
+
+class VariablesWidget(QToolButton):
+    def __init__(self, parent=None):
+        QToolButton.__init__(self, parent)
+        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.menu_datasets = DatasetVariableMenu()
+        self.setPopupMode(QToolButton.InstantPopup)
+        self.setMenu(self.menu_datasets)
+        self.setText("Columns to plot: ")
 
 
 class SymbologyDialog(QDialog):
@@ -72,6 +111,12 @@ class ImodTimeSeriesWidget(QWidget):
 
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.setFilters(QgsMapLayerProxyModel.PointLayer)
+        self.layer_selection.setMinimumWidth(200)
+
+        self.variable_selection = VariablesWidget()
+
+        self.load_button = QPushButton("Load")
+        self.load_button.clicked.connect(self.load)
 
         self.plot_button = QPushButton("Plot")
         self.plot_button.clicked.connect(self.draw_plot)
@@ -91,13 +136,15 @@ class ImodTimeSeriesWidget(QWidget):
 
         self.colors_button = QPushButton("Colors")
         self.colors_button.clicked.connect(self.colors)
-        self.color_widget = ImodUniqueColorWidget(self) 
-        self.names = None
+        self.color_widget = ImodUniqueColorWidget() 
 
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
+        first_row.addWidget(self.load_button)
+        first_row.addWidget(self.variable_selection)
         first_row.addWidget(self.plot_button)
         first_row.addWidget(self.clear_button)
+        first_row.addStretch()
 
         second_row = QHBoxLayout()
         second_row.addWidget(self.plot_widget)
@@ -123,6 +170,11 @@ class ImodTimeSeriesWidget(QWidget):
         layout.addLayout(second_row)
         self.setLayout(layout)
 
+        # Data
+        self.dataframes = {} 
+        self.variables = set() 
+        # Graphing
+        self.names = []
         self.curves = []
         self.pens = []
         self.selected = (None, None)
@@ -134,61 +186,83 @@ class ImodTimeSeriesWidget(QWidget):
     def clear_plot(self):
         self.plot_widget.clear()
         self.clear_legend()
-
+        self.names = []
+        self.curves = []
+        self.pens = []
+        self.selected = (None, None)
+    
     def clear_legend(self):
         pass
 
-    def select_curve(self, curve):
-        for c, pen in zip(self.curves, self.pens):
-            pen.setWidth(4)
-            if c is curve:
-                pen.setWidth(4)
-                self.selected = (c, pen)
-                self.color_button.setColor(pen.color())
-            else:
-                pen.setWidth(2)
-            c.setPen(pen)
-
-    def draw_plot(self):
+    def load(self):
+        self.dataframes = {}
+        self.variables = set()
         layer = self.layer_selection.layer(0)
         features = layer.selectedFeatures()
+
         if len(features) == 0:
             # warn user: no features selected in current layer
             return
+
         if layer.customProperty("ipf_type") == IpfType.TIMESERIES:
             index = layer.customProperty("ipf_indexcolumn")
             ext = layer.customProperty("ipf_assoc_ext")
             ipf_path = layer.customProperty("ipf_path")
             parent = pathlib.Path(ipf_path).parent
-            self.names = sorted([f.attribute(index) for f in features])
-            self.color_widget.set_data(self.names)
-            for name in self.names:
+            names = sorted([str(f.attribute(index)) for f in features])
+            for name in names:
                 dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
-                self.draw_timeseries(dataframe, name)
-        else:
-            # Collect the features into a dataframe, set fid as index
-            # TODO: assume Qt DateTime column format for datetime column
-            pass
-            # dataframe = pd.DataFrame(
-            #    data=[feature.attributes() for feature in features],
-            #    columns=[field.name() for field in layer.fields()],
-            # ).set_index("fid")
-            ## Make sure the date column is a date time object
-            # dataframe["date"] = pd.to_datetime(dataframe["date"], dayfirst=True)
-            # self._plot(dataframe)
+                self.dataframes[name] = dataframe
+                self.variables.update(dataframe.columns[1:])
+        
+        self.variable_selection.menu_datasets.populate_actions(self.variables)
+        self.variable_selection.showMenu()
 
-    def draw_timeseries(self, dataframe, name):
+    def select_curve(self, curve):
+        for c, pen in zip(self.curves, self.pens):
+            if c.curve is curve:
+                self.selected = (c, pen)
+                self.color_button.setColor(pen.color())
+                pen.setWidth(SELECTED_WIDTH)
+            else:
+                pen.setWidth(WIDTH)
+            c.curve.setPen(pen)
+
+    def select_item(self, item):
+        for c, pen in zip(self.curves, self.pens):
+            if c is item:
+                self.selected = (c, pen)
+                self.color_button.setColor(pen.color())
+                pen.setWidth(SELECTED_WIDTH)
+            else:
+                pen.setWidth(WIDTH)
+            c.curve.setPen(pen)
+
+    def draw_plot(self):
+        columns_to_plot = [a.variable_name for a in self.variable_selection.menu_datasets.actions() if a.isChecked()]
+        series_list = []
+        for name, dataframe in self.dataframes.items():
+            for column in columns_to_plot:
+                if column in dataframe:
+                    self.names.append(f"{name} {column}")
+                    series_list.append(dataframe[column])
+
+        self.color_widget.set_data(self.names)
         shader = self.color_widget.shader()
-        x = (dataframe["datetime"] - PYQT_REFERENCE_TIME).dt.total_seconds().values
-        y = dataframe["level"].values
+        for name, series in zip(self.names, series_list):
+            color = shader.shade(name)
+            self.draw_timeseries(series, color)
+
+    def draw_timeseries(self, series, color):
+        x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
+        y = series.values
         pen = pg.mkPen(
-            color=shader.shade(name),
-            width=2,
-            cosmetic=True,
+            color=color,
+            width=WIDTH,
         )
         symbol = "+" if self.marker_checkbox.checkState() else None
         curve = pg.PlotDataItem(x, y, pen=pen, clickable=True, symbol=symbol)
-        curve.sigClicked.connect(self.select_curve)
+        curve.sigClicked.connect(self.select_item)
         curve.curve.setClickable(True)
         curve.curve.sigClicked.connect(self.select_curve)
         self.plot_widget.addItem(curve)
@@ -199,7 +273,7 @@ class ImodTimeSeriesWidget(QWidget):
         curve, pen = self.selected
         if curve is not None and pen is not None:
             pen.setColor(self.color_button.color())
-            pen.setWidth(2)
+            pen.setWidth(WIDTH)
             curve.setPen(pen)
             curve.setSymbolPen(pen)
 
