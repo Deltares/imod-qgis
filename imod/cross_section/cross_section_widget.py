@@ -230,7 +230,7 @@ class ImodCrossSectionWidget(QWidget):
         self.borehole_x = None
         self.borehole_data = None
         self.borehole_id = None
-        self.relative_width = 0.05
+        self.relative_width = 0.01
 
         self.line_x = None
         self.line_y = None
@@ -431,7 +431,7 @@ class ImodCrossSectionWidget(QWidget):
                 self.borehole_x,
                 [df["top"].values for df in self.borehole_data],
                 [df["top"].values for df in self.borehole_data],
-                self.relative_width * (self.borehole_x.max() - self.borehole_x.min()),
+                self.relative_width * (self.line_x.max() - self.line_x.min()),
             )
             self.plot_widget.addItem(bhpi)
 
