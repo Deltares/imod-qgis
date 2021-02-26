@@ -18,8 +18,9 @@ from PyQt5.QtWidgets import (
     QDialog,
     QToolButton,
     QMenu,
+    QWidgetAction,
 )
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
 from qgis.gui import QgsMapLayerComboBox, QgsColorButton
 from qgis.core import (
@@ -52,13 +53,15 @@ PYQT_REFERENCE_TIME = pd.Timestamp("1970-01-01")
 class DatasetVariableMenu(QMenu):
     def __init__(self, parent=None):
         QMenu.__init__(self, parent)
-    
+        self.setContentsMargins(10, 5, 5, 5)
+
     def populate_actions(self, variables):
         self.clear()
         for variable in variables:
-            a = self.addAction(variable)
+            a = QWidgetAction(self)
             a.variable_name = variable
-            a.setCheckable(True)
+            a.setDefaultWidget(QCheckBox(variable))
+            self.addAction(a)
 
 
 class VariablesWidget(QToolButton):
@@ -133,10 +136,11 @@ class ImodTimeSeriesWidget(QWidget):
         self.plot_widget = pg.PlotWidget(axisItems={"bottom": pg.DateAxisItem()})
         self.plot_widget.showGrid(x=True, y=True)
         self.plot_widget.addLegend()
+        self.legend = self.plot_widget.getPlotItem().legend
 
         self.colors_button = QPushButton("Colors")
         self.colors_button.clicked.connect(self.colors)
-        self.color_widget = ImodUniqueColorWidget() 
+        self.color_widget = ImodUniqueColorWidget()
 
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
@@ -158,7 +162,7 @@ class ImodTimeSeriesWidget(QWidget):
         fourth_row.addWidget(QLabel("Draw markers"))
         fourth_row.addWidget(self.marker_checkbox)
 
-        second_column = QVBoxLayout() 
+        second_column = QVBoxLayout()
         second_column.addLayout(third_row)
         second_column.addLayout(fourth_row)
         second_column.addWidget(self.colors_button)
@@ -171,13 +175,13 @@ class ImodTimeSeriesWidget(QWidget):
         self.setLayout(layout)
 
         # Data
-        self.dataframes = {} 
-        self.variables = set() 
+        self.dataframes = {}
+        self.variables = set()
         # Graphing
         self.names = []
         self.curves = []
         self.pens = []
-        self.selected = (None, None)
+        self.selected = (None, None, None)
 
     def hideEvent(self, e):
         self.clear_plot()
@@ -185,14 +189,11 @@ class ImodTimeSeriesWidget(QWidget):
 
     def clear_plot(self):
         self.plot_widget.clear()
-        self.clear_legend()
+        self.legend.clear()
         self.names = []
         self.curves = []
         self.pens = []
         self.selected = (None, None)
-    
-    def clear_legend(self):
-        pass
 
     def load(self):
         self.dataframes = {}
@@ -214,14 +215,14 @@ class ImodTimeSeriesWidget(QWidget):
                 dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
                 self.dataframes[name] = dataframe
                 self.variables.update(dataframe.columns[1:])
-        
+
         self.variable_selection.menu_datasets.populate_actions(self.variables)
         self.variable_selection.showMenu()
 
     def select_curve(self, curve):
-        for c, pen in zip(self.curves, self.pens):
+        for c, pen, name in zip(self.curves, self.pens, self.names):
             if c.curve is curve:
-                self.selected = (c, pen)
+                self.selected = (c, pen, name)
                 self.color_button.setColor(pen.color())
                 pen.setWidth(SELECTED_WIDTH)
             else:
@@ -229,9 +230,9 @@ class ImodTimeSeriesWidget(QWidget):
             c.curve.setPen(pen)
 
     def select_item(self, item):
-        for c, pen in zip(self.curves, self.pens):
+        for c, pen, name in zip(self.curves, self.pens, self.names):
             if c is item:
-                self.selected = (c, pen)
+                self.selected = (c, pen, name)
                 self.color_button.setColor(pen.color())
                 pen.setWidth(SELECTED_WIDTH)
             else:
@@ -239,7 +240,11 @@ class ImodTimeSeriesWidget(QWidget):
             c.curve.setPen(pen)
 
     def draw_plot(self):
-        columns_to_plot = [a.variable_name for a in self.variable_selection.menu_datasets.actions() if a.isChecked()]
+        columns_to_plot = [
+            a.variable_name
+            for a in self.variable_selection.menu_datasets.actions()
+            if a.defaultWidget().isChecked()
+        ]
         series_list = []
         for name, dataframe in self.dataframes.items():
             for column in columns_to_plot:
@@ -252,6 +257,7 @@ class ImodTimeSeriesWidget(QWidget):
         for name, series in zip(self.names, series_list):
             color = shader.shade(name)
             self.draw_timeseries(series, color)
+        self.update_legend()
 
     def draw_timeseries(self, series, color):
         x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
@@ -269,25 +275,42 @@ class ImodTimeSeriesWidget(QWidget):
         self.curves.append(curve)
         self.pens.append(pen)
 
+    def update_legend(self):
+        self.legend.clear()
+        labels = self.color_widget.labels()
+        for curve, name in zip(self.curves, self.names):
+            if name in labels:
+                self.legend.addItem(curve, labels[name])
+
     def apply_color(self):
-        curve, pen = self.selected
+        curve, pen, name = self.selected
         if curve is not None and pen is not None:
-            pen.setColor(self.color_button.color())
+            color = self.color_button.color()
+            pen.setColor(color)
             pen.setWidth(WIDTH)
             curve.setPen(pen)
             curve.setSymbolPen(pen)
+            self.color_widget.set_color(name, color)
 
     def colors(self):
         if self.color_widget is not None:
             dialog = SymbologyDialog(self.color_widget, self)
             dialog.show()
-            ok = dialog.exec_() 
+            ok = dialog.exec_()
             if ok and len(self.names) > 0:
                 shader = self.color_widget.shader()
+                labels = self.color_widget.labels()
                 for curve, pen, name in zip(self.curves, self.pens, self.names):
-                    pen.setColor(shader.shade(name))
-                    curve.setPen(pen)
-                    curve.setSymbolPen(pen)
+                    if name in labels:
+                        pen.setColor(shader.shade(name))
+                        curve.setPen(pen)
+                        curve.setSymbolPen(pen)
+                    else:  # It has been removed from the colors menu
+                        self.plot_widget.getPlotItem().removeItem(curve)
+                        self.curves.remove(curve)
+                        self.pens.remove(pen)
+                        self.names.remove(name)
+                self.update_legend()
 
     def show_or_hide_markers(self):
         symbol = "+" if self.marker_checkbox.checkState() else None
