@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QToolButton,
     QMenu,
     QWidgetAction,
+    QComboBox,
 )
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
@@ -31,12 +32,17 @@ from qgis.core import (
     QgsFeature,
     QgsGeometry,
     QgsProject,
+    QgsWkbTypes,
+    QgsVectorFileWriter,
+    QgsCoordinateTransformContext,
 )
 import pandas as pd
 import pyqtgraph as pg
+from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
 from ..ipf import read_associated_timeseries, IpfType
 from ..widgets import ImodUniqueColorWidget
 import pathlib
+import tempfile
 
 import numpy as np
 
@@ -48,6 +54,17 @@ WIDTH = 2
 SELECTED_WIDTH = 3
 # pyqtgraph expects datetimes expressed as seconds from 1970-01-01
 PYQT_REFERENCE_TIME = pd.Timestamp("1970-01-01")
+
+
+def write_csv(layer, path):
+    options = QgsVectorFileWriter.SaveVectorOptions()
+    options.driverName = "csv"
+    QgsVectorFileWriter.writeAsVectorFormatV2(
+        layer,
+        path.as_posix(),
+        QgsCoordinateTransformContext(),
+        options,
+    )
 
 
 class DatasetVariableMenu(QMenu):
@@ -113,8 +130,12 @@ class ImodTimeSeriesWidget(QWidget):
         QWidget.__init__(self, parent)
 
         self.layer_selection = QgsMapLayerComboBox()
+        self.layer_selection.layerChanged.connect(self.on_layer_changed)
         self.layer_selection.setFilters(QgsMapLayerProxyModel.PointLayer)
         self.layer_selection.setMinimumWidth(200)
+
+        self.id_selection = QComboBox()
+        self.id_selection.setMinimumWidth(200)
 
         self.variable_selection = VariablesWidget()
 
@@ -128,8 +149,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.clear_button.clicked.connect(self.clear_plot)
 
         self.color_button = QgsColorButton()
-        self.apply_color_button = QPushButton("Apply")
-        self.apply_color_button.clicked.connect(self.apply_color)
+        self.color_button.colorChanged.connect(self.apply_color)
         self.marker_checkbox = QCheckBox()
         self.marker_checkbox.stateChanged.connect(self.show_or_hide_markers)
 
@@ -142,8 +162,14 @@ class ImodTimeSeriesWidget(QWidget):
         self.colors_button.clicked.connect(self.colors)
         self.color_widget = ImodUniqueColorWidget()
 
+        self.export_button = QPushButton("Export")
+        self.export_button.clicked.connect(self.export)
+        self.export_dialog = ExportDialog(self.plot_widget.plotItem.scene())
+
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
+        first_row.addWidget(QLabel("ID column:"))
+        first_row.addWidget(self.id_selection)
         first_row.addWidget(self.load_button)
         first_row.addWidget(self.variable_selection)
         first_row.addWidget(self.plot_button)
@@ -156,7 +182,6 @@ class ImodTimeSeriesWidget(QWidget):
         third_row = QHBoxLayout()
         third_row.addWidget(QLabel("Line Color:"))
         third_row.addWidget(self.color_button)
-        third_row.addWidget(self.apply_color_button)
 
         fourth_row = QHBoxLayout()
         fourth_row.addWidget(QLabel("Draw markers"))
@@ -166,6 +191,7 @@ class ImodTimeSeriesWidget(QWidget):
         second_column.addLayout(third_row)
         second_column.addLayout(fourth_row)
         second_column.addWidget(self.colors_button)
+        second_column.addWidget(self.export_button)
         second_column.addStretch()
         second_row.addLayout(second_column)
 
@@ -182,6 +208,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.curves = []
         self.pens = []
         self.selected = (None, None, None)
+        self.on_layer_changed()
 
     def hideEvent(self, e):
         self.clear_plot()
@@ -193,20 +220,39 @@ class ImodTimeSeriesWidget(QWidget):
         self.names = []
         self.curves = []
         self.pens = []
-        self.selected = (None, None)
+        self.selected = (None, None, None)
+
+    def on_layer_changed(self):
+        self.id_selection.clear()
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
+        if layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
+            index = int(layer.customProperty("ipf_indexcolumn"))
+            self.id_selection.insertItem(0, layer.attributeAlias(index))
+            self.id_selection.setEnabled(False)
+        else:
+            datetime_column = layer.temporalProperties().startField()
+            fields = [f.name() for f in layer.fields()]
+            try:
+                fields.remove(datetime_column)
+            except ValueError:
+                pass
+            self.id_selection.insertItems(0, fields)
+            self.id_selection.setEnabled(True)
 
     def load(self):
         self.dataframes = {}
         self.variables = set()
-        layer = self.layer_selection.layer(0)
+        layer = self.layer_selection.currentLayer()
         features = layer.selectedFeatures()
 
         if len(features) == 0:
             # warn user: no features selected in current layer
             return
 
-        if layer.customProperty("ipf_type") == IpfType.TIMESERIES:
-            index = layer.customProperty("ipf_indexcolumn")
+        if layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
+            index = int(layer.customProperty("ipf_indexcolumn"))
             ext = layer.customProperty("ipf_assoc_ext")
             ipf_path = layer.customProperty("ipf_path")
             parent = pathlib.Path(ipf_path).parent
@@ -215,8 +261,24 @@ class ImodTimeSeriesWidget(QWidget):
                 dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
                 self.dataframes[name] = dataframe
                 self.variables.update(dataframe.columns[1:])
+            self.variable_selection.menu_datasets.populate_actions(self.variables)
+        else:
+            datetime_column = layer.temporalProperties().startField()
+            id_column = self.id_selection.currentText()
+            if datetime_column == "":  # Not a temporal layer
+                # TODO: user communication?
+                return
+            fields = [f.name() for f in layer.fields()]
+            fields.remove(datetime_column)
+            self.variable_selection.menu_datasets.populate_actions(fields)
+            with tempfile.TemporaryDirectory() as parent:
+                path = pathlib.Path(parent) / "temp-table.csv"
+                write_csv(layer, path)
+                df = pd.read_csv(path, parse_dates=[datetime_column], infer_datetime_format=True, index_col=id_column)
+            selection = set([f.attribute(id_column) for f in features])
+            for name in selection:
+                self.dataframes[name] = df.loc[name].set_index(datetime_column)
 
-        self.variable_selection.menu_datasets.populate_actions(self.variables)
         self.variable_selection.showMenu()
 
     def select_curve(self, curve):
@@ -267,7 +329,7 @@ class ImodTimeSeriesWidget(QWidget):
             width=WIDTH,
         )
         symbol = "+" if self.marker_checkbox.checkState() else None
-        curve = pg.PlotDataItem(x, y, pen=pen, clickable=True, symbol=symbol)
+        curve = pg.PlotDataItem(x, y, pen=pen, clickable=True, symbol=symbol, symbolPen=pen)
         curve.sigClicked.connect(self.select_item)
         curve.curve.setClickable(True)
         curve.curve.sigClicked.connect(self.select_curve)
@@ -317,3 +379,7 @@ class ImodTimeSeriesWidget(QWidget):
         for curve, pen in zip(self.curves, self.pens):
             curve.setSymbolPen(pen)
             curve.setSymbol(symbol)
+
+    def export(self):
+        plot_item = self.plot_widget.plotItem
+        self.export_dialog.show(plot_item)
