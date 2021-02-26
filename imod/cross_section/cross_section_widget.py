@@ -68,7 +68,7 @@ def select_boreholes(
     points = []
     for layer in borehole_layers:
         # Due to the selection, another column is added at the left
-        indexcol = layer.customProperty("ipf_indexcolumn") + 1
+        indexcol = int(layer.customProperty("ipf_indexcolumn")) + 1
         ext = layer.customProperty("ipf_assoc_ext")
         parent = pathlib.Path(layer.customProperty("ipf_path")).parent
         output = processing.run(
@@ -274,7 +274,7 @@ class ImodCrossSectionWidget(QWidget):
         root = QgsProject.instance().layerTreeRoot()
         for layer in root.layerOrder():
             is_visible = root.findLayer(layer.id()).itemVisibilityChecked()
-            if is_visible and layer.customProperty("ipf_type") == IpfType.BOREHOLE:
+            if is_visible and layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
                 borehole_layers.append(layer)
 
         if len(borehole_layers) == 0:

@@ -139,7 +139,7 @@ def read_ipf(path: str) -> QgsVectorLayer:
         if ipf_type == IpfType.TIMESERIES:
             set_timeseries_windows(layer, indexcol, ext, path.parent.as_posix())
 
-        layer.setCustomProperty("ipf_type", ipf_type)
+        layer.setCustomProperty("ipf_type", ipf_type.name)
         layer.setCustomProperty("ipf_indexcolumn", indexcol)
         layer.setCustomProperty("ipf_assoc_ext", ext)
         layer.setCustomProperty("ipf_path", str(path))
