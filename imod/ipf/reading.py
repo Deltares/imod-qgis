@@ -146,9 +146,9 @@ def read_associated_timeseries(path: str, **kwargs) -> pd.DataFrame:
         time_column = colnames[0]
         len_date = len(df[time_column].iloc[0])
         if len_date == 14:
-            df["datetime"] = pd.to_datetime(df[time_column], format="%Y%m%d%H%M%S")
+            df.index = pd.to_datetime(df[time_column], format="%Y%m%d%H%M%S")
         elif len_date == 8:
-            df["datetime"] = pd.to_datetime(df[time_column], format="%Y%m%d")
+            df.index = pd.to_datetime(df[time_column], format="%Y%m%d")
         else:
             raise ValueError(
                 f"{path.name}: datetime format must be yyyymmddhhmmss or yyyymmdd"

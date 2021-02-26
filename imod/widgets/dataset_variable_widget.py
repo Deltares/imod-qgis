@@ -6,13 +6,14 @@ from PyQt5.QtCore import Qt, pyqtSignal
 
 DEFAULT_NAME = "layer number"
 
+
 class DatasetVariableMenu(QMenu):
 
-    dataset_variable_changed = pyqtSignal(str)  # emits empty list when "current" is selected
+    # emits empty list when "current" is selected
+    dataset_variable_changed = pyqtSignal(str)
 
     def __init__(self, parent=None, datasetType=None):
         QMenu.__init__(self, parent)
-
         self.variable_options = None
         self.layer = None
         self.action_current = None
@@ -27,7 +28,6 @@ class DatasetVariableMenu(QMenu):
         variables : list
             List with variable names
         """
-
         self.clear()
 
         if self.layer is None or self.layer.dataProvider() is None:
@@ -48,7 +48,7 @@ class DatasetVariableMenu(QMenu):
 
     def triggered_action(self):
         for a in self.actions():
-          a.setChecked(a == self.sender())
+            a.setChecked(a == self.sender())
         self.dataset_variable_changed.emit(self.sender().variable_name)
 
     def triggered_action_current(self):
@@ -61,18 +61,20 @@ class DatasetVariableMenu(QMenu):
             self.dataset_variable_changed.emit(DEFAULT_NAME)  # re-emit changed signal
 
     def set_layer(self, layer, variables):
-
         if layer is self.layer:
             return
 
         if self.layer is not None:
-            self.layer.activeScalarDatasetGroupChanged.disconnect(self.on_current_dataset_changed)
+            self.layer.activeScalarDatasetGroupChanged.disconnect(
+                self.on_current_dataset_changed
+            )
             self.layer.dataChanged.disconnect(self.populate_actions)
 
         self.layer = layer
-
         if self.layer is not None:
-            self.layer.activeScalarDatasetGroupChanged.connect(self.on_current_dataset_changed)
+            self.layer.activeScalarDatasetGroupChanged.connect(
+                self.on_current_dataset_changed
+            )
             self.layer.dataChanged.connect(self.populate_actions)
 
         self.populate_actions(variables)
@@ -84,16 +86,14 @@ class VariablesWidget(QToolButton):
 
     def __init__(self, parent=None, datasetType=None):
         QToolButton.__init__(self, parent)
-
         self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        #self.setIcon(QIcon(QPixmap(":/plugins/crayfish/images/icon_contours.png")))
-
+        # self.setIcon(QIcon(QPixmap(":/plugins/crayfish/images/icon_contours.png")))
         self.menu_datasets = DatasetVariableMenu(datasetType=datasetType)
-
         self.setPopupMode(QToolButton.InstantPopup)
         self.setMenu(self.menu_datasets)
-        self.menu_datasets.dataset_variable_changed.connect(self.on_dataset_variable_changed)
-
+        self.menu_datasets.dataset_variable_changed.connect(
+            self.on_dataset_variable_changed
+        )
         self.set_dataset_variable(DEFAULT_NAME)
 
     def on_dataset_variable_changed(self, name):
