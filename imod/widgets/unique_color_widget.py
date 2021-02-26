@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import QTreeWidget, QWidget
 
 import numpy as np
 import pandas as pd
+from typing import Dict
 
 
 class ImodUniqueColorShader:
@@ -110,6 +111,21 @@ class ImodUniqueColorWidget(QWidget):
         new_item.setData(1, Qt.ItemDataRole.EditRole, QColor(Qt.magenta))
         new_item.setText(2, "")
         new_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable)
+
+    def labels(self) -> Dict[str, str]:
+        label_dict = {}
+        for i in range(self.table.topLevelItemCount()):
+            item = self.table.topLevelItem(i)
+            value = item.data(0, Qt.ItemDataRole.DisplayRole)
+            label = item.text(2)
+            label_dict[value] = label
+        return label_dict
+
+    def set_color(self, value, color):
+        for i in range(self.table.topLevelItemCount()):
+            item = self.table.topLevelItem(i)
+            if value == item.data(0, Qt.ItemDataRole.DisplayRole):
+                item.setData(1, Qt.ItemDataRole.EditRole, color)
 
     def remove_selection(self) -> None:
         for item in self.table.selectedItems():
