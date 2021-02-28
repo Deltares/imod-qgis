@@ -1,7 +1,7 @@
 """Modified from https://github.com/lutraconsulting/qgis-crayfish-plugin/blob/master/crayfish/gui/plot_dataset_groups_widget.py
 """
 
-from PyQt5.QtWidgets import QMenu, QToolButton
+from PyQt5.QtWidgets import QMenu, QToolButton, QWidgetAction, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
 
 DEFAULT_NAME = "layer number"
@@ -107,3 +107,27 @@ class VariablesWidget(QToolButton):
     def set_layer(self, layer, variables):
         self.menu_datasets.set_layer(layer, variables)
         self.set_dataset_variable(DEFAULT_NAME)
+
+
+class MultipleVariablesMenu(QMenu):
+    def __init__(self, parent=None):
+        QMenu.__init__(self, parent)
+        self.setContentsMargins(10, 5, 5, 5)
+
+    def populate_actions(self, variables):
+        self.clear()
+        for variable in variables:
+            a = QWidgetAction(self)
+            a.variable_name = variable
+            a.setDefaultWidget(QCheckBox(variable))
+            self.addAction(a)
+
+
+class MultipleVariablesWidget(QToolButton):
+    def __init__(self, parent=None):
+        QToolButton.__init__(self, parent)
+        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.menu_datasets = MultipleVariablesMenu()
+        self.setPopupMode(QToolButton.InstantPopup)
+        self.setMenu(self.menu_datasets)
+        self.setText("Variables: ")
