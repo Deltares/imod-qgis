@@ -9,21 +9,19 @@ from PyQt5.QtWidgets import (
     QToolButton,
     QMenu,
     QDoubleSpinBox,
-    QCheckBox
+    QCheckBox,
+    QComboBox,
+    QDialog,
 )
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPointF
 from qgis.gui import (
     QgsMapLayerComboBox,
-    QgsColorButton,
-    QgsColorRampButton,
     QgsVertexMarker,
     QgsRubberBand,
     QgsMapTool,
 )
 from qgis.core import (
-    QgsColorBrewerColorRamp,
-    QgsCptCityColorRamp,
     QgsGeometry,
     QgsWkbTypes,
     QgsPointXY,
@@ -32,6 +30,7 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
     QgsFeature,
+    QgsMapLayerType,
 )
 from qgis import processing
 
@@ -40,6 +39,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pyqtgraph as pg
+from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
 
 from .pcolormesh import PColorMeshItem
 from .borehole_plot_item import BoreholePlotItem
@@ -49,14 +49,14 @@ from .plot_util import (
     cross_section_hue_data,
     project_points_to_section,
 )
-from ..widgets import VariablesWidget
+from ..widgets import MultipleVariablesWidget, VariablesWidget, ImodPseudoColorWidget, ImodUniqueColorWidget
 from ..utils.layers import groupby_variable, get_group_names
 from ..ipf import IpfType, read_associated_borehole
 
 
 def select_boreholes(
-    borehole_layers: List[QgsVectorLayer], buffer_distance: float, geometry: QgsGeometry
-) -> Tuple[List[str], List[pathlib.Path], np.ndarray]:
+    layer: QgsVectorLayer, buffer_distance: float, geometry: QgsGeometry
+) -> Tuple[np.ndarray, List[str], List[pathlib.Path]]:
     # Create a tempory layer to contain the buffer geometry
     buffered = geometry.buffer(buffer_distance, 4)
     tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
@@ -69,32 +69,139 @@ def select_boreholes(
     boreholes_id = []
     paths = []
     points = []
-    for layer in borehole_layers:
-        # Due to the selection, another column is added at the left
-        indexcol = int(layer.customProperty("ipf_indexcolumn")) + 1
-        ext = layer.customProperty("ipf_assoc_ext")
-        parent = pathlib.Path(layer.customProperty("ipf_path")).parent
-        output = processing.run(
-            "native:extractbylocation",
-            {
-                "INPUT": layer,
-                "PREDICATE": 6,  # are within
-                "INTERSECT": tmp_layer,
-                "OUTPUT": "TEMPORARY_OUTPUT",
-            },
-        )["OUTPUT"]
+    # Due to the selection, another column is added at the left
+    indexcol = int(layer.customProperty("ipf_indexcolumn"))
+    ext = layer.customProperty("ipf_assoc_ext")
+    parent = pathlib.Path(layer.customProperty("ipf_path")).parent
+    output = processing.run(
+        "native:extractbylocation",
+        {
+            "INPUT": layer,
+            "PREDICATE": 6,  # are within
+            "INTERSECT": tmp_layer,
+            "OUTPUT": "TEMPORARY_OUTPUT",
+        },
+    )["OUTPUT"]
 
-        for feature in output.getFeatures():
-            filename = feature.attribute(indexcol)
-            boreholes_id.append(filename)
-            paths.append(parent.joinpath(f"{filename}.{ext}"))
-            points.append(feature.geometry().asPoint())
+    for feature in output.getFeatures():
+        filename = feature.attribute(indexcol)
+        boreholes_id.append(filename)
+        paths.append(parent.joinpath(f"{filename}.{ext}"))
+        points.append(feature.geometry().asPoint())
 
     if len(points) > 0:
-        boreholes_x = project_points_to_section(points, geometry)
+        x = project_points_to_section(points, geometry)
     else:
-        boreholes_x = []
-    return boreholes_id, paths, boreholes_x
+        x = []
+    return x, boreholes_id, paths
+
+
+def color_by_variable(layer, n_lay, geometry, x, gb_var, var_name):
+    x_mids = (x[1:] + x[:-1]) / 2
+    z = np.full((n_lay, x_mids.size), np.nan)
+    for k in range(n_lay):
+        _, dataset = gb_var[var_name][k]
+        z[k, :] = cross_section_hue_data(layer, geometry, dataset, x_mids)
+    return z
+
+
+def extract_cross_section_data(layer, variable, gb_var, geometry, resolution):
+    # Get arbitrary key
+    first_key = next(iter(gb_var.keys()))
+
+    # Get layer numbers: first element contains layer number
+    layer_nrs = next(zip(*gb_var[first_key]))
+    layer_nrs = sorted(list(layer_nrs))
+    n_layer = len(layer_nrs)
+
+    x = cross_section_x_data(layer, geometry, resolution)
+    n_x = x.size
+    # Get y values of points
+    # Amount of layers * 2 because we have tops and bottoms we independently add
+    top = np.empty((n_layer, n_x))
+    bottom = np.empty((n_layer, n_x))
+
+    # FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
+    for k in range(n_layer):
+        _, dataset_bottom = gb_var["bottom"][k]
+        _, dataset_top = gb_var["top"][k]
+        top[k, :] = cross_section_y_data(layer, geometry, dataset_top, x)
+        bottom[k, :] = cross_section_y_data(layer, geometry, dataset_bottom, x)
+
+    if len(variable) == 0:
+        raise ValueError("No variable set")
+    elif variable == "layer number":
+        z = np.repeat(layer_nrs, n_x - 1).reshape(n_layer, n_x - 1)
+    else:
+        z = color_by_variable(layer, n_layer, geometry, x, gb_var, variable)
+
+    return x, top, bottom, z
+
+
+PSEUDOCOLOR = 0
+UNIQUE_COLOR = 1
+
+
+class ColorsDialog(QDialog):
+    def __init__(self, pseudocolor_widget, unique_color_widget, default_to, data, parent):
+        QDialog.__init__(self, parent)
+        self.pseudocolor_widget = pseudocolor_widget
+        self.unique_color_widget = unique_color_widget
+        self.data = data
+
+        self.render_type_box = QComboBox()
+        self.render_type_box.insertItems(0, ["Pseudocolor", "Unique values"])
+        self.render_type_box.setCurrentIndex(default_to)
+        self.render_type_box.currentIndexChanged.connect(self.on_render_type_changed)
+
+        apply_button = QPushButton("Apply")
+        cancel_button = QPushButton("Cancel")
+        apply_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+
+        first_row = QHBoxLayout()
+        first_row.addWidget(QLabel("Render type:"))
+        first_row.addWidget(self.render_type_box)
+        first_row.addStretch()
+
+        second_row = QHBoxLayout()
+        second_row.addWidget(apply_button)
+        second_row.addWidget(cancel_button)
+        layout = QVBoxLayout()
+        layout.addLayout(first_row)
+        layout.addWidget(self.pseudocolor_widget)
+        layout.addWidget(self.unique_color_widget)
+        layout.addLayout(second_row)
+        self.setLayout(layout)
+        self.on_render_type_changed()
+    
+    def on_render_type_changed(self):
+        if self.render_type_box.currentIndex() == PSEUDOCOLOR:
+            self.pseudocolor_widget.setVisible(True)
+            self.unique_color_widget.setVisible(False)
+            self.pseudocolor_widget.set_data(self.data)
+        else:
+            self.pseudocolor_widget.setVisible(False)
+            self.unique_color_widget.setVisible(True)
+            self.unique_color_widget.set_data(self.data)
+
+    def detach(self):
+        self.pseudocolor_widget.setParent(self.parent())
+        self.unique_color_widget.setParent(self.parent())
+
+    # NOTA BENE: detach() and these overloaded methods are required, otherwise
+    # the color_widget is garbage collected when the dialog closes.
+    def closeEvent(self, e):
+        self.detach()
+        QDialog.closeEvent(self, e)
+
+    def reject(self):
+        self.detach()
+        QDialog.reject(self)
+
+    def accept(self):
+        self.detach()
+        QDialog.accept(self)
 
 
 class PickGeometryTool(QgsMapTool):
@@ -140,6 +247,7 @@ class LineGeometryPickerWidget(QWidget):
 
         self.button = QPushButton("From map")
         self.button.clicked.connect(self.picker_clicked)
+        self.button.clicked.connect(self.clear_geometries)
 
         self.tool = PickGeometryTool(self.iface.mapCanvas())
         self.tool.picked.connect(self.on_picked)
@@ -162,7 +270,6 @@ class LineGeometryPickerWidget(QWidget):
     def start_picking_map(self):
         self.pick_mode = self.PICK_MAP
         self.iface.mapCanvas().setMapTool(self.tool)
-        self.clear_geometries()
 
     def stop_picking(self):
         if self.pick_mode == self.PICK_MAP:
@@ -190,23 +297,22 @@ class ImodCrossSectionWidget(QWidget):
         self.iface = iface
 
         self.layer_selection = QgsMapLayerComboBox()
-        self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
+        self.layer_selection.setMinimumWidth(200)
+        QgsProject.instance().layersAdded.connect(self.update_map_layer_combo_box)
+        QgsProject.instance().layersRemoved.connect(self.update_map_layer_combo_box)
 
         self.variable_selection = VariablesWidget()
-        self.variable_selection.dataset_variable_changed.connect(
-            self.on_variable_changed
-        )
-
-        # Initialize groupby variables and variable names
-        self.set_groupby_variables()
-        self.set_variable_names()
+        self.multi_variable_selection = MultipleVariablesWidget()
 
         self.line_picker = LineGeometryPickerWidget(iface)
         self.line_picker.geometries_changed.connect(self.on_geometries_changed)
 
+        self.as_line_checkbox = QCheckBox("Draw as line(s)")
+        self.as_line_checkbox.stateChanged.connect(self.on_as_line_changed)
+
         self.plot_button = QPushButton("Plot")
-        self.plot_button.clicked.connect(self.draw_plot)
+        self.plot_button.clicked.connect(self.draw)
 
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear_plot)
@@ -215,274 +321,217 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_widget.showGrid(x=True, y=True)
 
         self.dynamic_resolution_box = QCheckBox("Dynamic resolution")
+        self.dynamic_resolution_box.setChecked(True)
 
         self.resolution_spinbox = QDoubleSpinBox()
         self.resolution_spinbox.setRange(0.01, 10000.)
         self.resolution_spinbox.setValue(50.0)
 
+        self.buffer_label = QLabel("Search buffer")
         self.buffer_spinbox = QDoubleSpinBox()
         self.buffer_spinbox.setRange(0., 10000.)
         self.buffer_spinbox.setValue(250.0)
 
-        self.color_ramp_button = QgsColorRampButton()
-        self.color_ramp_button.setColorRamp(
-            QgsCptCityColorRamp(
-                schemeName="wkp/encyclopedia/nordisk-familjebok", variantName=""
-            )
-        )
-        self.color_ramp_button.colorRampChanged.connect(self.draw_plot)
+        self.pseudocolor_widget = ImodPseudoColorWidget()
+        self.unique_color_widget = ImodUniqueColorWidget()
+
+        self.color_button = QPushButton("Colors")
+        self.color_button.clicked.connect(self.colors)
+        
+        self.export_button = QPushButton("Export")
+        self.export_button.clicked.connect(self.export)
+        self.export_dialog = ExportDialog(self.plot_widget.plotItem.scene())
 
         # Selection geometry
         self.rubber_band = None
 
         # Data
-        self.mesh_x = None
-        self.mesh_y = None
-        self.mesh_z = None
+        self.x = None
+        self.top = None
+        self.bottom = None
+        self.z = None
 
-        self.borehole_x = None
         self.borehole_data = None
-        self.borehole_id = None
         self.relative_width = 0.01
 
-        self.line_x = None
-        self.line_y = None
-        self.line_id = None
+        # for redrawing
+        self.redraw = None
+        self.render_style = PSEUDOCOLOR
+        self.styling_data = None
 
-        #Setup layout
+        # Setup layout
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
+        first_row.addWidget(self.as_line_checkbox)
         first_row.addWidget(self.variable_selection)
+        first_row.addWidget(self.multi_variable_selection)
         first_row.addWidget(self.line_picker)
-
         first_row.addWidget(self.dynamic_resolution_box)
         first_row.addWidget(self.resolution_spinbox)
+        first_row.addWidget(self.buffer_label)
         first_row.addWidget(self.buffer_spinbox)
-
         first_row.addWidget(self.plot_button)
         first_row.addWidget(self.clear_button)
+        first_row.addStretch()
 
         second_row = QHBoxLayout()
         second_row.addWidget(self.plot_widget)
 
-        second_row.addWidget(self.color_ramp_button)
+        second_column = QVBoxLayout()
+        second_column.addWidget(self.color_button)
+        second_column.addWidget(self.export_button)
+        second_column.addStretch()
+        second_row.addLayout(second_column)
 
         layout = QVBoxLayout()
         layout.addLayout(first_row)
         layout.addLayout(second_row)
         self.setLayout(layout)
+        
+        # Run a single time initialize the combo boxes
+        self.update_map_layer_combo_box()
+        self.on_layer_changed()
 
     def hideEvent(self, e):
+        self.line_picker.clear_geometries()
         self.clear_plot()
+        self.redraw = None
         QWidget.hideEvent(self, e)
 
     def clear_plot(self):
         self.plot_widget.clear()
-        self.line_picker.clear_geometries()
-        self.rubber_band = None
-        self.mesh_x = None
-        self.mesh_y = None
-        self.mesh_z = None
+        self.x = None
+        self.y = None
+        self.z = None
         self.borehole_data = None
-        self.borehole_x = None
-        self.borehole_id = None
-        self.line_x = None
-        self.line_y = None
-        self.line_id = None
-        self.clear_legend()
+        self.redraw = None
+    
+    def update_map_layer_combo_box(self):
+        # Allow:
+        # * Point data with associated IPF borehole data
+        # * Mesh layers
+        # * Raster layers
+        excepted_layers = []
+        for layer in QgsProject.instance().mapLayers().values():
+            if not (
+                (layer.type() == QgsMapLayerType.MeshLayer) or
+                (layer.type() == QgsMapLayerType.RasterLayer) or
+                (layer.customProperty("ipf_type") == IpfType.BOREHOLE.name)
+            ):
+                excepted_layers.append(layer)
+        self.layer_selection.setExceptedLayerList(excepted_layers)
 
-    def clear_legend(self):
-        pass
+    def on_as_line_changed(self):
+        as_line = self.as_line_checkbox.isChecked()
+        self.variable_selection.setVisible(not as_line)
+        self.multi_variable_selection.setVisible(as_line)
 
-    def read_boreholes(self):
-        def none_if_empty_list(ls):
-            if len(ls) == 0:
-                return None
-            else:
-                return ls
-
-        if len(self.line_picker.geometries) == 0:
-            return
-        geometry = self.line_picker.geometries[0]
-
-        borehole_layers = []
-        root = QgsProject.instance().layerTreeRoot()
-        for layer in root.layerOrder():
-            is_visible = root.findLayer(layer.id()).itemVisibilityChecked()
-            if is_visible and layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
-                borehole_layers.append(layer)
-
-        if len(borehole_layers) == 0:
-            return
-
-        buffer_distance = self.buffer_spinbox.value()
-
-        borehole_id, paths, borehole_x = select_boreholes(
-            borehole_layers, buffer_distance, geometry
+    def load_borehole_data(self):
+        self.x, self.z, paths = select_boreholes(
+            self.layer_selection.currentLayer(),
+            self.buffer_spinbox.value(),
+            self.line_picker.geometries[0],
         )
-        borehole_data = [read_associated_borehole(p) for p in paths]
+        self.top = self.bottom = None
+        self.borehole_data = [read_associated_borehole(p) for p in paths]
+        variable_names = set()
+        styling_entries = []
+        for df in self.borehole_data:
+            variable_names.update(df.columns)
+            styling_entries.append(df["value"].values)  # TODO
+        self.multi_variable_selection.menu_datasets.populate_actions(variable_names)
+        self.multi_variable_selection.showMenu()
+        self.styling_data = np.concatenate(styling_entries)
 
-        self.borehole_x = none_if_empty_list(borehole_x)
-        self.borehole_data = none_if_empty_list(borehole_data)
-        self.borehole_id = none_if_empty_list(borehole_id)
+    def load_mesh_data(self):
+        self.x, self.top, self.bottom, self.z = extract_cross_section_data(
+            self.layer_selection.currentLayer(),
+            variable = self.variable_selection.dataset_variable,
+            gb_var=self.gb_var,
+            geometry=self.line_picker.geometries[0],
+            resolution=self.resolution_spinbox.value(),
+        )
+        self.styling_data = self.z.ravel()
 
-    def set_line_x(self):
-        """Set line_x values, to be used both for drawing cross_section data as well as lines.
-        """
-        current_layer = self.layer_selection.currentLayer()
-        if current_layer is None:
-            return
-        
-        # TODO: Are there ever more geometries than one Linestring?
-        if len(self.line_picker.geometries) == 0:
-            return
-        
-        geometry = self.line_picker.geometries[0]
+    def colorshader(self):
+        if self.render_style == PSEUDOCOLOR:
+            return self.pseudocolor_widget.shader()
+        elif self.render_style == UNIQUE_COLOR:
+            return self.unique_color_widget.shader()
 
-        self.line_x = cross_section_x_data(current_layer, geometry, 
-            resolution=self.resolution_spinbox.value())
+    def draw_cross_section(self):
+        self.plot_item = PColorMeshItem(self.x, self.top, self.bottom, self.z, colorshader=self.colorshader())
+        self.plot_widget.addItem(self.plot_item)
+        self.redraw = self.draw_cross_section
 
-    def _repeat_to_2d(self, arr, n, axis=0):
-        """Repeat array n times along new axis
+    def draw_boreholes(self):
+        column_to_plot = [
+            a.variable_name
+            for a in self.variable_selection.menu_datasets.actions()
+            #if a.defaultWidget().isChecked()
+        ]  # TODO
+        print(column_to_plot)
+        self.plot_item = BoreholePlotItem(
+            self.x,
+            [df["top"].values for df in self.borehole_data],
+            [df["value"].values for df in self.borehole_data],  # TODO
+            self.relative_width * (self.x.max() - self.x.min()),
+            colorshader=self.colorshader(),
+        )
+        self.plot_widget.addItem(self.plot_item)
+        self.redraw = self.draw_boreholes
 
-        Parameters
-        ----------
-        arr : np.array[m]
-        n : int
-
-        Returns
-        -------
-        np.array[n x m]
-        """
-        return np.repeat(np.expand_dims(arr, axis=axis), n, axis=axis)
-
-    def extract_cross_section_data(self):
-        current_layer = self.layer_selection.currentLayer()
-        if current_layer is None:
-            return
-
-        # Get arbitrary key
-        first_key = next(iter(self.gb_var.keys()))
-
-        # Get layer numbers: first element contains layer number
-        layer_nrs = next(zip(*self.gb_var[first_key]))
-        layer_nrs = list(layer_nrs)
-        layer_nrs.sort()
-        n_lay = len(layer_nrs)
-        n_x = self.line_x.size
-
-        # TODO: Are there ever more geometries than one Linestring?
-        if len(self.line_picker.geometries) == 0:
-            return
-        
-        geometry = self.line_picker.geometries[0]
-
-        # Get y values of points
-        ## Amount of layers * 2 because we have tops and bottoms we independently add
-        y = np.zeros((n_lay * 2, n_x))
-
-        ## FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
-        for k in range(n_lay):
-            layer_nr, dataset_bottom = self.gb_var["bottom"][k]
-            layer_nr, dataset_top = self.gb_var["top"][k]
-
-            i = (layer_nr - 1) * 2
-            y[i, :] = cross_section_y_data(current_layer, geometry, dataset_top, self.line_x)
-            y[i + 1, :] = cross_section_y_data(
-                current_layer, geometry, dataset_bottom, self.line_x
-            )
-
-        # Repeat x along new dimension to get np.meshgrid like array
-        x = self._repeat_to_2d(self.line_x, n_lay * 2)
-
-        if len(self.dataset_variable) == 0:
-            raise ValueError("No variable set")
-        elif self.dataset_variable == "layer number":
-            z = self.color_by_layer(n_lay, n_x, layer_nrs)
-        else:
-            z = self.color_by_variable(n_lay, n_x, geometry, self.line_x)
-
-        # Filter values line outside mesh
-        ## Assume: NaNs in first layer are NaNs in every layer
-        is_nan = np.isnan(y[0, :])
-        y[:, is_nan] = 0.0  # Give dummy value, these will be deactivated by inactive z
-        color_nan = (
-            is_nan[1:] | is_nan[:-1]
-        )  # If a vertex on either side is NaN, deactivate
-
-        z[:, color_nan] = np.nan
-
-        self.mesh_x = x
-        self.mesh_y = y
-        self.mesh_z = z
-
-    def color_by_layer(self, n_lay, n_x, layer_nrs):
-        z = np.empty((n_lay * 2 - 1, n_x - 1))
-        z[:] = np.nan
-        ## Color only parts between top and bot, not bot and top.
-        z[::2, :] = np.expand_dims(layer_nrs, axis=1)
-        return z
-
-    def color_by_variable(self, n_lay, n_x, geometry, x):
-        current_layer = self.layer_selection.currentLayer()
-
-        x_mids = (x[1:] + x[:-1]) / 2
-
-        z = np.empty((n_lay * 2 - 1, n_x - 1))
-        z[:] = np.nan
-        for k in range(n_lay):
-            var_name = self.dataset_variable
-
-            layer_nr, dataset = self.gb_var[var_name][k]
-            i = (layer_nr - 1) * 2
-            z[i, :] = cross_section_hue_data(current_layer, geometry, dataset, x_mids)
-        return z
-
-    def draw_plot(self):
+    def draw(self):
         """
         Update plot (e.g. after change in colorramp)
         """
-        self.plot_widget.clear()  # Ensure plot is cleared before adding new stuff
-        colorramp = self.color_ramp_button.colorRamp()
-
-        # Gather the data
-        self.read_boreholes()
-        self.set_line_x()
-        self.extract_cross_section_data()
-
-        if self.mesh_z is not None:
-            pcmi = PColorMeshItem(self.mesh_x, self.mesh_y, self.mesh_z, colorramp=colorramp)
-            self.plot_widget.addItem(pcmi)
-
-        if self.borehole_data is not None:
-            bhpi = BoreholePlotItem(
-                self.borehole_x,
-                [df["top"].values for df in self.borehole_data],
-                [df["top"].values for df in self.borehole_data],
-                self.relative_width * (self.line_x.max() - self.line_x.min()),
-            )
-            self.plot_widget.addItem(bhpi)
-
-        # Might be smart to draw ConvexPolygons instead of pColorMeshItem,
-        # (see code in pColorMeshItem)
-        # https://github.com/pyqtgraph/pyqtgraph/blob/5eb671217c295178de255b1fece56379cdef8235/pyqtgraph/graphicsItems/PColorMeshItem.py#L140
-        # So we can draw rectangular polygons if necessary.
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
+        if len(self.line_picker.geometries) == 0:
+            return
+        layer_type = layer.type()
+        
+        if layer_type == QgsMapLayerType.MeshLayer:
+            self.load_mesh_data()
+            self.render_style = PSEUDOCOLOR
+            self.pseudocolor_widget.set_data(self.styling_data)
+            self.draw_cross_section()
+        elif layer_type == QgsMapLayerType.RasterLayer:
+            return
+        elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
+            self.load_borehole_data()
+            self.render_style = UNIQUE_COLOR
+            self.unique_color_widget.set_data(self.styling_data)
+            self.draw_boreholes()
 
     def set_groupby_variables(self):
-        current_layer = self.layer_selection.currentLayer()
+        layer = self.layer_selection.currentLayer()
         # TODO: just don't initialize when starting the menu?
-        if current_layer is not None:
-            idx, group_names = get_group_names(current_layer)
-            self.gb_var = groupby_variable(group_names, idx)
+        if layer is not None:
+            if layer.type() == QgsMapLayerType.MeshLayer:
+                idx, group_names = get_group_names(layer)
+                self.gb_var = groupby_variable(group_names, idx)
 
     def set_variable_names(self):
-        current_layer = self.layer_selection.currentLayer()
+        layer = self.layer_selection.currentLayer()
         # TODO: just don't initialize when starting the menu?
-        if current_layer is not None:
-            variable_names = list(self.gb_var.keys())
-            variable_names = [x for x in variable_names if x not in ["bottom", "top"]]
-            self.variable_selection.set_layer(current_layer, variable_names)
-            self.dataset_variable = self.variable_selection.dataset_variable
+        if layer is not None:
+            if layer.type() == QgsMapLayerType.MeshLayer:
+                variable_names = list(self.gb_var.keys())
+                variable_names = [x for x in variable_names]
+                self.variable_selection.set_layer(layer, variable_names)
+
+    def set_borehole_columns(self):
+        layer = self.layer_selection.currentLayer()
+        # TODO: just don't initialize when starting the menu?
+        if layer is not None:
+            if layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
+                variable_names = set()
+                for df in self.borehole_data:
+                    variable_names.update(df.columns)
+                self.multi_variable_selection.menu_datasets.populate_actions(variable_names)
+                self.variable_selection.showMenu()
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
@@ -497,12 +546,55 @@ class ImodCrossSectionWidget(QWidget):
 
         if self.dynamic_resolution_box.isChecked():
             geometry = self.line_picker.geometries[0]
-            resolution = geometry.length() / 300.
+            resolution = geometry.length() / 300.0
             self.resolution_spinbox.setValue(resolution)
+        
+        if self.line_picker.pick_mode == self.line_picker.PICK_NO:
+            layer = self.layer_selection.currentLayer()
+            # TODO: just don't initialize when starting the menu?
+            if layer is not None:
+                self.load_borehole_data()
+                self.set_borehole_columns()
 
     def on_layer_changed(self):
-        self.set_groupby_variables()
-        self.set_variable_names()
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
+        layer_type = layer.type()
+        if layer_type == QgsMapLayerType.MeshLayer:
+            self.as_line_checkbox.setVisible(True)
+            self.as_line_checkbox.setChecked(False)
+            self.as_line_checkbox.setEnabled(True)
+            self.dynamic_resolution_box.setVisible(True)
+            self.resolution_spinbox.setVisible(True)
+            self.buffer_label.setVisible(False)
+            self.buffer_spinbox.setVisible(False)
+            self.set_groupby_variables()
+            self.set_variable_names()
+        elif layer_type == QgsMapLayerType.RasterLayer:
+            self.as_line_checkbox.setVisible(True)
+            self.as_line_checkbox.setChecked(True)
+            self.as_line_checkbox.setEnabled(False)
+            self.dynamic_resolution_box.setVisible(True)
+            self.resolution_spinbox.setVisible(True)
+            self.buffer_label.setVisible(False)
+            self.buffer_spinbox.setVisible(False)
+        elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
+            self.as_line_checkbox.setVisible(False)
+            self.dynamic_resolution_box.setVisible(False)
+            self.resolution_spinbox.setVisible(False)
+            self.buffer_label.setVisible(True)
+            self.buffer_spinbox.setVisible(True)
 
-    def on_variable_changed(self):
-        self.dataset_variable = self.variable_selection.dataset_variable
+    def colors(self):
+        dialog = ColorsDialog(self.pseudocolor_widget, self.unique_color_widget, self.render_style, self.styling_data, self)
+        dialog.show()
+        ok = dialog.exec_()
+        if ok and self.redraw is not None:
+            self.render_style = dialog.render_type_box.currentIndex()
+            self.plot_widget.removeItem(self.plot_item)
+            self.redraw()
+
+    def export(self):
+        plot_item = self.plot_widget.plotItem
+        self.export_dialog.show(plot_item)
