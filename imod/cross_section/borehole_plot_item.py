@@ -22,11 +22,13 @@ class BoreholePlotItem(GraphicsObject):
             rectangle colors
         width: float
             with of the boreholes
+        colorshader: Union[QgsColorShader, ImodColorShader]
         """
         GraphicsObject.__init__(self)
         self.qpicture = None
         self.axisOrder = getConfigOption("imageAxisOrder")
         self.edgecolors = kwargs.pop("edgecolors", None)
+        self.colorshader = kwargs.pop("colorshader")
         if len(args) > 0:
             self.setData(*args)
 
@@ -47,14 +49,15 @@ class BoreholePlotItem(GraphicsObject):
         else:
             p.setPen(fn.mkPen(self.edgecolors))
 
-        for midx, topbot in zip(self.x, self.y):
+        for midx, topbot, values in zip(self.x, self.y, self.z):
             left = midx - 0.5 * self.borehole_width
             right = midx + 0.5 * self.borehole_width
-            for top, bottom in zip(topbot[:-1], topbot[1:]):
-                r = np.random.randint(low=0, high=255)
-                g = np.random.randint(low=0, high=255)
-                b = np.random.randint(low=0, high=255)
-                p.setBrush(fn.mkBrush(QtGui.QColor(r, g, b)))
+            for top, bottom, value in zip(topbot[:-1], topbot[1:], values[:-1]):
+                to_draw, r, g, b, alpha = self.colorshader.shade(value)
+                if not to_draw:
+                    continue
+                color = QtGui.QColor(r, g, b, alpha)
+                p.setBrush(fn.mkBrush(color))
                 rect = QtCore.QRectF(
                     QtCore.QPointF(left, top),
                     QtCore.QPointF(right, bottom),
