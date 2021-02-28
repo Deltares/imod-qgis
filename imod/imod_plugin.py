@@ -77,7 +77,7 @@ class ImodPlugin:
             self.timeseries_widget = QgsDockWidget("iMOD Time Series Plot")
             self.timeseries_widget.setObjectName("ImodTimeSeriesDock")
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.timeseries_widget)
-            widget = ImodTimeSeriesWidget(self.timeseries_widget)
+            widget = ImodTimeSeriesWidget(self.timeseries_widget, self.iface)
             self.timeseries_widget.setWidget(widget)
             self.timeseries_widget.hide()
         self.timeseries_widget.setVisible(not self.timeseries_widget.isVisible())

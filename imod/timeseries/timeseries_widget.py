@@ -18,7 +18,6 @@ from PyQt5.QtWidgets import (
     QDialog,
     QToolButton,
     QMenu,
-    QWidgetAction,
     QComboBox,
 )
 from PyQt5.QtCore import Qt, QEvent
@@ -35,12 +34,13 @@ from qgis.core import (
     QgsWkbTypes,
     QgsVectorFileWriter,
     QgsCoordinateTransformContext,
+    QgsMapLayerType,
 )
 import pandas as pd
 import pyqtgraph as pg
 from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
 from ..ipf import read_associated_timeseries, IpfType
-from ..widgets import ImodUniqueColorWidget
+from ..widgets import ImodUniqueColorWidget, MultipleVariablesWidget
 import pathlib
 import tempfile
 
@@ -67,32 +67,8 @@ def write_csv(layer, path):
     )
 
 
-class DatasetVariableMenu(QMenu):
-    def __init__(self, parent=None):
-        QMenu.__init__(self, parent)
-        self.setContentsMargins(10, 5, 5, 5)
-
-    def populate_actions(self, variables):
-        self.clear()
-        for variable in variables:
-            a = QWidgetAction(self)
-            a.variable_name = variable
-            a.setDefaultWidget(QCheckBox(variable))
-            self.addAction(a)
-
-
-class VariablesWidget(QToolButton):
-    def __init__(self, parent=None):
-        QToolButton.__init__(self, parent)
-        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        self.menu_datasets = DatasetVariableMenu()
-        self.setPopupMode(QToolButton.InstantPopup)
-        self.setMenu(self.menu_datasets)
-        self.setText("Columns to plot: ")
-
-
 class SymbologyDialog(QDialog):
-    def __init__(self, color_widget, parent=None):
+    def __init__(self, color_widget, parent):
         QDialog.__init__(self, parent)
         self.color_widget = color_widget
         row = QHBoxLayout()
@@ -126,18 +102,19 @@ class SymbologyDialog(QDialog):
 
 
 class ImodTimeSeriesWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
+        self.iface = iface
 
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
-        self.layer_selection.setFilters(QgsMapLayerProxyModel.PointLayer)
         self.layer_selection.setMinimumWidth(200)
+        QgsProject.instance().layersAdded.connect(self.update_map_layer_combo_box)
+        QgsProject.instance().layersRemoved.connect(self.update_map_layer_combo_box)
 
-        self.id_selection = QComboBox()
-        self.id_selection.setMinimumWidth(200)
-
-        self.variable_selection = VariablesWidget()
+        self.id_selection_box = QComboBox()
+        self.id_selection_box.setMinimumWidth(200)
+        self.variable_selection = MultipleVariablesWidget()
 
         self.load_button = QPushButton("Load")
         self.load_button.clicked.connect(self.load)
@@ -169,7 +146,7 @@ class ImodTimeSeriesWidget(QWidget):
         first_row = QHBoxLayout()
         first_row.addWidget(self.layer_selection)
         first_row.addWidget(QLabel("ID column:"))
-        first_row.addWidget(self.id_selection)
+        first_row.addWidget(self.id_selection_box)
         first_row.addWidget(self.load_button)
         first_row.addWidget(self.variable_selection)
         first_row.addWidget(self.plot_button)
@@ -208,7 +185,9 @@ class ImodTimeSeriesWidget(QWidget):
         self.curves = []
         self.pens = []
         self.selected = (None, None, None)
-        self.on_layer_changed()
+
+        # Run a single time initialize the combo boxes
+        self.update_map_layer_combo_box()
 
     def hideEvent(self, e):
         self.clear_plot()
@@ -222,15 +201,31 @@ class ImodTimeSeriesWidget(QWidget):
         self.pens = []
         self.selected = (None, None, None)
 
+    def update_map_layer_combo_box(self):
+        # Allow:
+        # * point data with associated IPF timeseries
+        # * point data with a temporal column
+        excepted_layers = []
+        for layer in QgsProject.instance().mapLayers().values():
+            if (layer.type() != QgsMapLayerType.VectorLayer) or (layer.geometryType() != QgsWkbTypes.PointGeometry):
+                excepted_layers.append(layer)
+            else:
+                is_ipf_series = layer.customProperty("ipf_type") == IpfType.TIMESERIES.name
+                is_temporal = layer.temporalProperties().startField() != ""
+                if not (is_ipf_series or is_temporal):
+                    excepted_layers.append(layer)
+        self.layer_selection.setExceptedLayerList(excepted_layers)
+
     def on_layer_changed(self):
-        self.id_selection.clear()
         layer = self.layer_selection.currentLayer()
         if layer is None:
             return
+
+        self.id_selection_box.clear()
         if layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
             index = int(layer.customProperty("ipf_indexcolumn"))
-            self.id_selection.insertItem(0, layer.attributeAlias(index))
-            self.id_selection.setEnabled(False)
+            self.id_selection_box.insertItem(0, layer.attributeAlias(index))
+            self.id_selection_box.setEnabled(False)
         else:
             datetime_column = layer.temporalProperties().startField()
             fields = [f.name() for f in layer.fields()]
@@ -238,13 +233,17 @@ class ImodTimeSeriesWidget(QWidget):
                 fields.remove(datetime_column)
             except ValueError:
                 pass
-            self.id_selection.insertItems(0, fields)
-            self.id_selection.setEnabled(True)
+            self.id_selection_box.insertItems(0, fields)
+            self.id_selection_box.setEnabled(True)
+        self.iface.setActiveLayer(layer)
 
     def load(self):
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
         self.dataframes = {}
         self.variables = set()
-        layer = self.layer_selection.currentLayer()
+        self.variable_selection.menu_datasets.clear()
         features = layer.selectedFeatures()
 
         if len(features) == 0:
@@ -264,7 +263,7 @@ class ImodTimeSeriesWidget(QWidget):
             self.variable_selection.menu_datasets.populate_actions(self.variables)
         else:
             datetime_column = layer.temporalProperties().startField()
-            id_column = self.id_selection.currentText()
+            id_column = self.id_selection_box.currentText()
             if datetime_column == "":  # Not a temporal layer
                 # TODO: user communication?
                 return
