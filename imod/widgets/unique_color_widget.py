@@ -28,13 +28,13 @@ from typing import Dict
 
 class ImodUniqueColorShader:
     def __init__(self, values, colors):
-        self.color_lookup = {v: c for v, c in zip(values, colors)}
+        self.color_lookup = {v: c.getRgb() for v, c in zip(values, colors)}
     
     def shade(self, value):
         try:
-            return self.color_lookup[value]
+            return (True, *self.color_lookup[value])
         except KeyError:  # e.g. NaN
-            return QColor("transparent")
+            return False, 0, 0, 0, 0
 
 
 class ImodUniqueColorWidget(QWidget):
