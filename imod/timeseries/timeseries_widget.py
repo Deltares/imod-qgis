@@ -316,7 +316,8 @@ class ImodTimeSeriesWidget(QWidget):
         self.color_widget.set_data(self.names)
         shader = self.color_widget.shader()
         for name, series in zip(self.names, series_list):
-            color = shader.shade(name)
+            to_draw, r, g, b, alpha = shader.shade(name)
+            color = QColor(r, g, b, alpha)
             self.draw_timeseries(series, color)
         self.update_legend()
 
@@ -363,7 +364,9 @@ class ImodTimeSeriesWidget(QWidget):
                 labels = self.color_widget.labels()
                 for curve, pen, name in zip(self.curves, self.pens, self.names):
                     if name in labels:
-                        pen.setColor(shader.shade(name))
+                        to_draw, r, g, b, alpha = shader.shade(name)
+                        color = QColor(r, g, b, alpha)
+                        pen.setColor(color)
                         curve.setPen(pen)
                         curve.setSymbolPen(pen)
                     else:  # It has been removed from the colors menu
