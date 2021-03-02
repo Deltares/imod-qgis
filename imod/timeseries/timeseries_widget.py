@@ -101,12 +101,33 @@ class SymbologyDialog(QDialog):
         QDialog.accept(self)
 
 
+class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
+    def enterEvent(self, e):
+        self.update_layers()
+        super(UpdatingQgsMapLayerComboBox, self).enterEvent(e)
+    
+    def update_layers(self):
+        # Allow:
+        # * point data with associated IPF timeseries
+        # * point data with a temporal column
+        excepted_layers = []
+        for layer in QgsProject.instance().mapLayers().values():
+            if (layer.type() != QgsMapLayerType.VectorLayer) or (layer.geometryType() != QgsWkbTypes.PointGeometry):
+                excepted_layers.append(layer)
+            else:
+                is_ipf_series = layer.customProperty("ipf_type") == IpfType.TIMESERIES.name
+                is_temporal = layer.temporalProperties().startField() != ""
+                if not (is_ipf_series or is_temporal):
+                    excepted_layers.append(layer)
+        self.setExceptedLayerList(excepted_layers)
+
+
 class ImodTimeSeriesWidget(QWidget):
     def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
         self.iface = iface
 
-        self.layer_selection = QgsMapLayerComboBox()
+        self.layer_selection = UpdatingQgsMapLayerComboBox()
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
         self.layer_selection.setMinimumWidth(200)
 
@@ -181,7 +202,7 @@ class ImodTimeSeriesWidget(QWidget):
 
         # Run a single time initialize the combo boxes
         self.feature_ids = None
-        self.update_map_layer_combo_box()
+        self.layer_selection.update_layers()
 
     def hideEvent(self, e):
         self.clear_plot()
@@ -194,25 +215,6 @@ class ImodTimeSeriesWidget(QWidget):
         self.curves = []
         self.pens = []
     
-    def enterEvent(self, e):
-        self.update_map_layer_combo_box()
-        super(ImodTimeSeriesWidget, self).enterEvent(e)
-
-    def update_map_layer_combo_box(self):
-        # Allow:
-        # * point data with associated IPF timeseries
-        # * point data with a temporal column
-        excepted_layers = []
-        for layer in QgsProject.instance().mapLayers().values():
-            if (layer.type() != QgsMapLayerType.VectorLayer) or (layer.geometryType() != QgsWkbTypes.PointGeometry):
-                excepted_layers.append(layer)
-            else:
-                is_ipf_series = layer.customProperty("ipf_type") == IpfType.TIMESERIES.name
-                is_temporal = layer.temporalProperties().startField() != ""
-                if not (is_ipf_series or is_temporal):
-                    excepted_layers.append(layer)
-        self.layer_selection.setExceptedLayerList(excepted_layers)
-
     def on_layer_changed(self):
         layer = self.layer_selection.currentLayer()
         if layer is None:
