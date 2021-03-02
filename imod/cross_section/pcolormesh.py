@@ -144,7 +144,8 @@ class PColorMeshItem(GraphicsObject):
                 lower = self.bottom[yi, xi]
                 value = self.z[yi, xi]
                 to_draw, r, g, b, alpha = self.colorshader.shade(value)
-                if (not to_draw) or np.isnan(value):
+                to_draw = to_draw and not any(np.isnan(e) for e in (left, right, upper, lower, value))
+                if not to_draw:
                     continue
                 color = QColor(r, g, b, alpha)
                 painter.setBrush(fn.mkBrush(color))
