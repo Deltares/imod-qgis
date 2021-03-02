@@ -131,10 +131,14 @@ def read_ipf(path: str) -> QgsVectorLayer:
         layer.setFieldAlias(i, name)
 
     if indexcol >= 2:  # x:0, y:1
-        filename = next(layer.getFeatures()).attribute(indexcol)
-        assoc_path = path.parent.joinpath(f"{filename}.{ext}")
-        with open(assoc_path) as f:
-            ipf_type = read_associated_header(f)[0]
+        assoc_columns = set()
+        for feature in layer.getFeatures():
+            filename = feature.attribute(indexcol)
+            assoc_path = path.parent.joinpath(f"{filename}.{ext}")
+            with open(assoc_path) as f:
+                ipf_type, _, _, colnames, _ = read_associated_header(f)
+            # Skip the first column, it's always depth or datetime
+            assoc_columns.update(colnames[1:])
 
         if ipf_type == IpfType.TIMESERIES:
             set_timeseries_windows(layer, indexcol, ext, path.parent.as_posix())
@@ -143,6 +147,8 @@ def read_ipf(path: str) -> QgsVectorLayer:
         layer.setCustomProperty("ipf_indexcolumn", indexcol)
         layer.setCustomProperty("ipf_assoc_ext", ext)
         layer.setCustomProperty("ipf_path", str(path))
+        # use an ASCII record separator: ␞
+        layer.setCustomProperty("ipf_assoc_columns", "␞".join(assoc_columns))
 
     return layer
 
