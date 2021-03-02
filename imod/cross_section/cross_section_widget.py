@@ -27,6 +27,7 @@ from qgis.core import (
     QgsPointXY,
     QgsMeshDatasetIndex,
     QgsMapLayerProxyModel,
+    QgsProject,
     QgsVectorLayer,
     QgsFeature,
     QgsMapLayerType,
