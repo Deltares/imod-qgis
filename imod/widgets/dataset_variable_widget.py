@@ -113,14 +113,35 @@ class MultipleVariablesMenu(QMenu):
     def __init__(self, parent=None):
         QMenu.__init__(self, parent)
         self.setContentsMargins(10, 5, 5, 5)
+        self.checkboxes = []
+        self.variables = []
 
     def populate_actions(self, variables):
+        self.checkboxes = []
+        self.variables = []
         self.clear()
+        self.check_all = QCheckBox("Select all")
+        self.check_all.stateChanged.connect(self.on_check_all)
+        self.add_checkbox(self.check_all)
+        self.addSeparator()
         for variable in variables:
-            a = QWidgetAction(self)
-            a.variable_name = variable
-            a.setDefaultWidget(QCheckBox(variable))
-            self.addAction(a)
+            checkbox = QCheckBox(variable)
+            self.checkboxes.append(checkbox)
+            self.add_checkbox(checkbox)
+            self.variables.append(variable)
+
+    def add_checkbox(self, checkbox):
+        a = QWidgetAction(self) 
+        a.setDefaultWidget(checkbox)
+        self.addAction(a)
+
+    def on_check_all(self):
+        state = self.check_all.isChecked()
+        for b in self.checkboxes:
+            b.setChecked(state)
+
+    def checked_variables(self):
+        return [v for v, b in zip(self.variables, self.checkboxes) if b.isChecked()]
 
 
 class MultipleVariablesWidget(QToolButton):
@@ -131,3 +152,6 @@ class MultipleVariablesWidget(QToolButton):
         self.setPopupMode(QToolButton.InstantPopup)
         self.setMenu(self.menu_datasets)
         self.setText("Variables: ")
+
+    def checked_variables(self):
+        return self.menu_datasets.checked_variables()
