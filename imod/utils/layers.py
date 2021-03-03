@@ -32,12 +32,12 @@ def get_group_names(layer):
 
 
 def groupby_variable(group_names, dataset_indexes):
-    grouped = defaultdict(list)
+    grouped = defaultdict(dict)
     for group_name, dataset_idx in zip(group_names, dataset_indexes):
         if "_layer_" in group_name:
             parts = group_name.split("_layer_")
             name, layer_number = parts
-            grouped[name].append((int(layer_number), dataset_idx))
+            grouped[name][layer_number] = dataset_idx
     return grouped
 
 
