@@ -27,7 +27,11 @@ from qgis.core import (
 )
 from PyQt5.QtWidgets import QTreeWidget, QWidget
 
+from typing import Dict, Union
+
 import numpy as np
+
+Number = Union[int, float]
 
 
 SHADER_TYPES = {
@@ -217,7 +221,7 @@ class ImodPseudoColorWidget(QWidget):
                 item.setText(2, f"{start} - {end}{suffix}")
                 start = end
             item = self.table.topLevelItem(nrow - 1)
-            item.setText(2, f"< {end}{suffix}")
+            item.setText(2, f"> {start}{suffix}")
         else:
             for i in range(nrow):
                 item = self.table.topLevelItem(i)
@@ -247,6 +251,24 @@ class ImodPseudoColorWidget(QWidget):
 
     def save_classes(self):
         pass
+
+    def labels(self) -> Dict[str, str]:
+        label_dict = {}
+        for i in range(self.table.topLevelItemCount()):
+            item = self.table.topLevelItem(i)
+            value = item.data(0, Qt.ItemDataRole.DisplayRole)
+            label = item.text(2)
+            label_dict[value] = label
+        return label_dict
+
+    def colors(self) -> Dict[Number, QColor]:
+        color_dict = {}
+        for i in range(self.table.topLevelItemCount()):
+            item = self.table.topLevelItem(i)
+            value = item.data(0, Qt.ItemDataRole.DisplayRole)
+            color = item.data(1, Qt.ItemDataRole.EditRole)
+            color_dict[value] = color
+        return color_dict
 
     def shader(self) -> QgsColorRampShader:
         shader_type = SHADER_TYPES[self.interpolation_box.currentText()]

@@ -121,6 +121,15 @@ class ImodUniqueColorWidget(QWidget):
             label_dict[value] = label
         return label_dict
 
+    def colors(self) -> Dict[str, QColor]:
+        color_dict = {}
+        for i in range(self.table.topLevelItemCount()):
+            item = self.table.topLevelItem(i)
+            value = item.data(0, Qt.ItemDataRole.DisplayRole)
+            color = item.data(1, Qt.ItemDataRole.EditRole)
+            color_dict[value] = color 
+        return color_dict
+
     def set_color(self, value, color):
         for i in range(self.table.topLevelItemCount()):
             item = self.table.topLevelItem(i)
