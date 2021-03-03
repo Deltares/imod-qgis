@@ -41,13 +41,13 @@ from typing import List, Tuple
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
+from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
 
 from .pcolormesh import PColorMeshItem
 from .borehole_plot_item import BoreholePlotItem
 from .plot_util import (
     cross_section_x_data,
     cross_section_y_data,
-    cross_section_hue_data,
     project_points_to_section,
 )
 from ..widgets import MultipleVariablesWidget, VariablesWidget, ImodPseudoColorWidget, ImodUniqueColorWidget
@@ -97,54 +97,38 @@ def select_boreholes(
     return x, boreholes_id, paths
 
 
-def color_by_variable(layer, n_lay, geometry, x, variables_indexes, var_name):
-    x_mids = (x[1:] + x[:-1]) / 2
-    z = np.full((n_lay, x_mids.size), np.nan)
-    for k in range(n_lay):
-        _, dataset = variables_indexes[var_name][k]
-        z[k, :] = cross_section_hue_data(layer, geometry, dataset, x_mids)
-    return z
-
-
-def extract_cross_section_data(layer, variable, variables_indexes, geometry, resolution):
-    # Get arbitrary key
-    first_key = next(iter(variables_indexes.keys()))
-
-    # Get layer numbers: first element contains layer number
-    layer_nrs = next(zip(*variables_indexes[first_key]))
-    layer_nrs = sorted(list(layer_nrs))
-    n_layer = len(layer_nrs)
-
+def extract_cross_section_data(layer, variables_indexes, variable, layer_numbers, geometry, resolution):
+    n_layer = len(layer_numbers)
     x = cross_section_x_data(layer, geometry, resolution)
     n_x = x.size
-    # Get y values of points
-    # Amount of layers * 2 because we have tops and bottoms we independently add
     top = np.empty((n_layer, n_x))
     bottom = np.empty((n_layer, n_x))
 
     # FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
-    for k in range(n_layer):
-        _, top_index = variables_indexes["top"][k]
-        _, bottom_index = variables_indexes["bottom"][k]
-        top[k, :] = cross_section_y_data(layer, geometry, top_index, x)
-        bottom[k, :] = cross_section_y_data(layer, geometry, bottom_index, x)
+    for i, k in enumerate(layer_numbers):
+        top_index = variables_indexes["top"][k]
+        bottom_index = variables_indexes["bottom"][k]
+        top[i, :] = cross_section_y_data(layer, geometry, top_index, x)
+        bottom[i, :] = cross_section_y_data(layer, geometry, bottom_index, x)
 
-    if len(variable) == 0:
-        raise ValueError("No variable set")
-    elif variable == "layer number":
-        z = np.repeat(layer_nrs, n_x - 1).reshape(n_layer, n_x - 1)
+    if variable == "layer number":
+        z = np.repeat(layer_numbers, n_x - 1).reshape(n_layer, n_x - 1)
     else:
-        z = color_by_variable(layer, n_layer, geometry, x, variables_indexes, variable)
+        x_mids = (x[1:] + x[:-1]) / 2
+        z = np.full((n_layer, x_mids.size), np.nan)
+        for i, k in enumerate(layer_numbers):
+            dataset_index = variables_indexes[variable][k]
+            z[i, :] = cross_section_y_data(layer, geometry, dataset_index, x_mids)
 
     return x, top, bottom, z
 
 
-def extract_cross_section_lines(layer, variables, variables_indexes, geometry, resolution):
-    n_lines = len(variables)
+def extract_cross_section_lines(layer, variables_indexes, variable, layer_numbers, geometry, resolution):
+    n_lines = len(layer_numbers)
     x = cross_section_x_data(layer, geometry, resolution)
     top = np.empty((n_lines, x.size))
-    for i, variable in enumerate(variables):
-        dataset_index = variables_indexes[variable]
+    for i, k in enumerate(layer_numbers):
+        dataset_index = variables_indexes[variable][k]
         top[i, :] = cross_section_y_data(layer, geometry, dataset_index, x)
     return x, top
 
@@ -167,6 +151,10 @@ def extract_raster_cross_section_lines(layer, variables, variables_indexes, geom
 PSEUDOCOLOR = 0
 UNIQUE_COLOR = 1
 WIDTH = 2
+
+RUBBER_BAND_COLOR = QColor(Qt.red)
+BUFFER_RUBBER_BAND_COLOR = QColor(Qt.red)
+BUFFER_RUBBER_BAND_COLOR.setAlphaF(0.2)
 
 
 class ColorsDialog(QDialog):
@@ -363,7 +351,6 @@ class ImodCrossSectionWidget(QWidget):
         self.line_picker.geometries_changed.connect(self.on_geometries_changed)
 
         self.as_line_checkbox = QCheckBox("Draw as line(s)")
-        self.as_line_checkbox.stateChanged.connect(self.on_as_line_changed)
 
         self.plot_button = QPushButton("Plot")
         self.plot_button.clicked.connect(self.draw)
@@ -373,6 +360,9 @@ class ImodCrossSectionWidget(QWidget):
 
         self.plot_widget = pg.PlotWidget()
         self.plot_widget.showGrid(x=True, y=True)
+        self.plot_widget.addLegend()
+        self.legend = self.plot_widget.getPlotItem().legend
+        self.legend_items = []
 
         self.dynamic_resolution_box = QCheckBox("Dynamic resolution")
         self.dynamic_resolution_box.setChecked(True)
@@ -385,12 +375,15 @@ class ImodCrossSectionWidget(QWidget):
         self.buffer_spinbox = QDoubleSpinBox()
         self.buffer_spinbox.setRange(0., 10000.)
         self.buffer_spinbox.setValue(250.0)
+        self.buffer_spinbox.valueChanged.connect(self.refresh_buffer)
 
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
 
         self.color_button = QPushButton("Colors")
-        self.color_button.clicked.connect(self.colors)
+        self.color_button.clicked.connect(self.change_colors)
+        self.legend_checkbox = QCheckBox("Add to legend")
+        self.legend_checkbox.stateChanged.connect(self.update_legend)
         
         self.export_button = QPushButton("Export")
         self.export_button.clicked.connect(self.export)
@@ -398,8 +391,11 @@ class ImodCrossSectionWidget(QWidget):
 
         # Selection geometry
         self.rubber_band = None
+        self.show_buffer = False
+        self.buffer_rubber_band = None
 
         # Data
+        self.variables_indexes = None
         self.x = None
         self.top = None
         self.bottom = None
@@ -433,6 +429,7 @@ class ImodCrossSectionWidget(QWidget):
 
         second_column = QVBoxLayout()
         second_column.addWidget(self.color_button)
+        second_column.addWidget(self.legend_checkbox)
         second_column.addWidget(self.export_button)
         second_column.addStretch()
         second_row.addLayout(second_column)
@@ -445,7 +442,6 @@ class ImodCrossSectionWidget(QWidget):
         # Run a single time initialize the combo boxes
         self.layer_selection.update_layers()
         self.on_layer_changed()
-        self.on_as_line_changed()
 
     def hideEvent(self, e):
         self.line_picker.clear_geometries()
@@ -455,6 +451,8 @@ class ImodCrossSectionWidget(QWidget):
 
     def clear_plot(self):
         self.plot_widget.clear()
+        self.legend.clear()
+        self.legend_items = []
         self.x = None
         self.top = None
         self.bottom = None
@@ -462,14 +460,17 @@ class ImodCrossSectionWidget(QWidget):
         self.styling_data = None
         self.borehole_data = None
         self.redraw = None
+
+    def refresh_buffer(self):
+        self.iface.mapCanvas().scene().removeItem(self.buffer_rubber_band)
+        if self.show_buffer and len(self.line_picker.geometries) > 0:
+            self.buffer_rubber_band = QgsRubberBand(
+                self.iface.mapCanvas(), QgsWkbTypes.PolygonGeometry
+            )
+            self.buffer_rubber_band.setColor(BUFFER_RUBBER_BAND_COLOR)
+            buffer_distance = self.buffer_spinbox.value()
+            self.buffer_rubber_band.setToGeometry(self.line_picker.geometries[0].buffer(buffer_distance, 4), None)
     
-
-    def on_as_line_changed(self):
-        # Will only be called when a mesh layer is currentLayer
-        as_line = self.as_line_checkbox.isChecked()
-        self.multi_variable_selection.setVisible(as_line)
-        self.set_variable_names()
-
     def load_borehole_data(self):
         self.x, self.z, paths = select_boreholes(
             self.layer_selection.currentLayer(),
@@ -498,22 +499,26 @@ class ImodCrossSectionWidget(QWidget):
         self.z = self.styling_data = np.array(variables_to_plot)
 
     def load_mesh_data(self):
+        variable = self.variable_selection.dataset_variable
+        indexes = self.variables_indexes[variable]
+        layers = self.multi_variable_selection.checked_variables()
         if self.as_line_checkbox.isChecked():
-            variables_to_plot = self.multi_variable_selection.checked_variables()
             self.x, self.top = extract_cross_section_lines(
                 self.layer_selection.currentLayer(),
-                variables=variables_to_plot,
                 variables_indexes=self.variables_indexes,
+                variable=variable,
+                layer_numbers=layers,
                 geometry=self.line_picker.geometries[0],
                 resolution=self.resolution_spinbox.value(),
             )
             self.bottom = None
-            self.z = self.styling_data = np.array(variables_to_plot)
+            self.z = self.styling_data = np.array([f"{variable} layer {layer}" for layer in layers])
         else:
             self.x, self.top, self.bottom, self.z = extract_cross_section_data(
                 self.layer_selection.currentLayer(),
-                variable = self.variable_selection.dataset_variable,
                 variables_indexes=self.variables_indexes,
+                variable=variable,
+                layer_numbers=layers,
                 geometry=self.line_picker.geometries[0],
                 resolution=self.resolution_spinbox.value(),
             )
@@ -524,6 +529,39 @@ class ImodCrossSectionWidget(QWidget):
             return self.pseudocolor_widget.shader()
         elif self.render_style == UNIQUE_COLOR:
             return self.unique_color_widget.shader()
+
+    def labels(self):
+        if self.render_style == PSEUDOCOLOR:
+            return self.pseudocolor_widget.labels()
+        elif self.render_style == UNIQUE_COLOR:
+            return self.unique_color_widget.labels()
+
+    def colors(self):
+        if self.render_style == PSEUDOCOLOR:
+            return self.pseudocolor_widget.colors()
+        elif self.render_style == UNIQUE_COLOR:
+            return self.unique_color_widget.colors()
+    
+    def update_legend(self):
+        first_item = self.plot_item[0]
+        add_to_legend = self.legend_checkbox.isChecked()
+        # For lines
+        if isinstance(first_item, pg.PlotDataItem):
+            for item, name in zip(self.plot_item, self.labels().values()):
+                self.legend.removeItem(item)
+                if add_to_legend:
+                    self.legend.addItem(item, name)
+        # For polygons of cross sections, boreholes
+        else:
+            for item in self.legend_items:
+                self.legend.removeItem(item)
+            self.legend_items = []
+            if add_to_legend:
+                for color, name in zip(self.colors().values(), self.labels().values()):
+                    item = pg.BarGraphItem(x=0, y=0, brush=color)
+                    # The name is interpreted as HTML, so literal "<" or ">"" isn't allowed
+                    self.legend.addItem(item, name.replace("<", "&lt;").replace(">", "&gt;"))
+                    self.legend_items.append(item)
 
     def draw_cross_section(self):
         self.plot_item = [PColorMeshItem(self.x, self.top, self.bottom, self.z, colorshader=self.colorshader())]
@@ -538,17 +576,17 @@ class ImodCrossSectionWidget(QWidget):
             to_draw, r, g, b, alpha = colorshader.shade(variable)
             color = QColor(r, g, b, alpha)
             pen = pg.mkPen(color=color, width=WIDTH)
-            curve = pg.PlotDataItem(x=self.x, y=y, pen=pen)
+            curve = pg.PlotDataItem(x=self.x, y=y, pen=pen, stepMode="right")
             self.plot_item.append(curve)
             self.plot_widget.addItem(curve)
         self.redraw = self.draw_cross_section_lines
 
     def draw_boreholes(self):
-        column_to_plot = self.multi_variable_selection.checked_variables()
+        column_to_plot = self.variable_selection.dataset_variable
         self.plot_item = [BoreholePlotItem(
             self.x,
             [df["top"].values for df in self.borehole_data],
-            [df["value"].values for df in self.borehole_data],  # TODO
+            [df[column_to_plot].values for df in self.borehole_data],
             self.relative_width * (self.x.max() - self.x.min()),
             colorshader=self.colorshader(),
         )]
@@ -586,13 +624,15 @@ class ImodCrossSectionWidget(QWidget):
             self.render_style = UNIQUE_COLOR
             self.unique_color_widget.set_data(self.styling_data)
             self.draw_boreholes()
+        
+        self.update_legend()
 
     def set_variable_names(self):
         layer = self.layer_selection.currentLayer()
         if layer.type() == QgsMapLayerType.MeshLayer:
             indexes, names = get_group_names(layer)
             self.variables_indexes = groupby_variable(names, indexes)
-            self.variable_selection.set_layer(layer, self.variables_indexes.keys())
+            self.variable_selection.menu_datasets.populate_actions(self.variables_indexes.keys())
             self.set_variable_layernumbers()
         elif layer.type() == QgsMapLayerType.RasterLayer:
             variables = [] 
@@ -604,26 +644,34 @@ class ImodCrossSectionWidget(QWidget):
             self.multi_variable_selection.menu_datasets.populate_actions(variables)
         elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
             variables = layer.customProperty("ipf_assoc_columns").split("␞")
-            self.multi_variable_selection.menu_datasets.populate_actions(variables)
+            self.variable_selection.set_layer(variables)
 
     def set_variable_layernumbers(self):
+        layer = self.layer_selection.currentLayer()
+        if layer.type() != QgsMapLayerType.MeshLayer:
+            return
+        variable = self.variable_selection.dataset_variable
+        layers = [str(a) for a in self.variables_indexes[variable].keys()]
+        self.multi_variable_selection.menu_datasets.populate_actions(layers)
         if self.as_line_checkbox.isChecked():
-            variable = self.variable_selection.dataset_variable
-            layers = [str(a[0]) for a in self.variables_indexes[variable]]
-            #self.variables_indexes = {n: i for i, n in zip(indexes, names)}
-            #self.multi_variable_selection.menu_datasets.populate_actions(names)
-            self.multi_variable_selection.menu_datasets.populate_actions(layers)
+            self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
+        else:
+            self.multi_variable_selection.menu_datasets.check_all.setChecked(False)
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
+        self.iface.mapCanvas().scene().removeItem(self.buffer_rubber_band)
         if len(self.line_picker.geometries) == 0:
             return
         self.rubber_band = QgsRubberBand(
             self.iface.mapCanvas(), QgsWkbTypes.PointGeometry
         )
-        self.rubber_band.setColor(QColor(Qt.red))
+        self.rubber_band.setColor(RUBBER_BAND_COLOR)
         self.rubber_band.setWidth(2)
         self.rubber_band.setToGeometry(self.line_picker.geometries[0], None)
+
+        if self.show_buffer:
+            self.refresh_buffer()
 
         if self.dynamic_resolution_box.isChecked():
             geometry = self.line_picker.geometries[0]
@@ -644,6 +692,8 @@ class ImodCrossSectionWidget(QWidget):
             self.buffer_label.setVisible(False)
             self.buffer_spinbox.setVisible(False)
             self.variable_selection.setVisible(True)
+            self.multi_variable_selection.setVisible(True)
+            self.show_buffer = False
         elif layer_type == QgsMapLayerType.RasterLayer:
             self.as_line_checkbox.setVisible(True)
             self.as_line_checkbox.setChecked(True)
@@ -653,6 +703,8 @@ class ImodCrossSectionWidget(QWidget):
             self.buffer_label.setVisible(False)
             self.buffer_spinbox.setVisible(False)
             self.variable_selection.setVisible(False)
+            self.multi_variable_selection.setVisible(True)
+            self.show_buffer = False
         elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
             self.as_line_checkbox.setVisible(False)
             self.as_line_checkbox.setChecked(True)
@@ -661,10 +713,13 @@ class ImodCrossSectionWidget(QWidget):
             self.resolution_spinbox.setVisible(False)
             self.buffer_label.setVisible(True)
             self.buffer_spinbox.setVisible(True)
-            self.variable_selection.setVisible(False)
+            self.variable_selection.setVisible(True)
+            self.multi_variable_selection.setVisible(False)
+            self.show_buffer = True
         self.set_variable_names()
+        self.refresh_buffer()
 
-    def colors(self):
+    def change_colors(self):
         dialog = ColorsDialog(self.pseudocolor_widget, self.unique_color_widget, self.render_style, self.styling_data, self)
         dialog.show()
         ok = dialog.exec_()
@@ -673,6 +728,7 @@ class ImodCrossSectionWidget(QWidget):
             for item in self.plot_item:
                 self.plot_widget.removeItem(item)
             self.redraw()
+            self.update_legend()
 
     def export(self):
         plot_item = self.plot_widget.plotItem
