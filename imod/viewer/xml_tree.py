@@ -69,7 +69,7 @@ def create_file_tree(path, group_names, rgb_point_data, bbox_rectangle):
     file_tree = xmu.IMOD6(viewer=[xmu.Viewer(), viewer_3d])
     return(file_tree)
 
-def create_command_tree(path, group_names, rgb_point_data, bbox_rectangle):
+def add_to_explorer_tree(path, group_names, rgb_point_data, bbox_rectangle):
     viewer_3d = create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle)
 
     command_tree = xmu.ImodCommand(viewer=[xmu.Viewer(), viewer_3d])
@@ -84,7 +84,8 @@ def write_xml(path, xml_path, group_names, rgb_point_data, bbox_rectangle):
     xml.serialize_to_file(processor, file_tree, xml_path, indent='   ')
 
 def serialize_xml(path, group_names, rgb_point_data, bbox_rectangle):
-    command_tree = create_command_tree(path, group_names, rgb_point_data, bbox_rectangle)
+    #TODO: Viewer_widget should provide function and arguments for command, as to make this more generic.
+    command_tree = add_to_explorer_tree(path, group_names, rgb_point_data, bbox_rectangle)
 
     processor = xmu.make_processor(xmu.ImodCommand)
 
