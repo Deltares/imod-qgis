@@ -74,6 +74,8 @@ class ModelToLoad(Aggregate):
 
 @dataclass 
 class ImodCommand(Aggregate):
+    """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram"]
+    """
     Version: Union[Attribute, str] = "8"
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
