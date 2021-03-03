@@ -22,8 +22,3 @@ viewer_exe = sys.argv[1]
 
 with open(configdir / "viewer_exe.txt", "w") as f:
     f.write(viewer_exe)
-
-with open("activate.py", "r") as src:
-    content = src.read()
-with open(configdir / "activate.py", "w") as dst:
-    dst.write(content)
