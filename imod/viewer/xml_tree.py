@@ -52,7 +52,7 @@ def create_grid_model_list(path, legend, groupby_dict, bbox_rectangle):
     return gm_list
     
 
-def create_imod_tree(path, group_names, rgb_point_data, bbox_rectangle):
+def create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle):
     groupby_dict = groupby_layer(group_names)
     legend = create_legend(rgb_point_data)
     
@@ -61,13 +61,31 @@ def create_imod_tree(path, group_names, rgb_point_data, bbox_rectangle):
     viewer_3d = xmu.Viewer(type="3D", 
         explorermodellist=xmu.ExplorerModelList(gridmodel=gm_list))
 
-    imod_tree = xmu.IMOD6(viewer=[xmu.Viewer(), viewer_3d])
+    return viewer_3d
 
-    return imod_tree
+def create_file_tree(path, group_names, rgb_point_data, bbox_rectangle):
+    viewer_3d = create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle)
+
+    file_tree = xmu.IMOD6(viewer=[xmu.Viewer(), viewer_3d])
+    return(file_tree)
+
+def create_command_tree(path, group_names, rgb_point_data, bbox_rectangle):
+    viewer_3d = create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle)
+
+    command_tree = xmu.ImodCommand(viewer=[xmu.Viewer(), viewer_3d])
+
+    return command_tree
 
 def write_xml(path, xml_path, group_names, rgb_point_data, bbox_rectangle):
-    imod_tree = create_imod_tree(path, group_names, rgb_point_data, bbox_rectangle)
+    file_tree = create_file_tree(path, group_names, rgb_point_data, bbox_rectangle)
 
     processor = xmu.make_processor(xmu.IMOD6)
 
-    xml.serialize_to_file(processor, imod_tree, xml_path, indent='   ')
+    xml.serialize_to_file(processor, file_tree, xml_path, indent='   ')
+
+def serialize_xml(path, group_names, rgb_point_data, bbox_rectangle):
+    command_tree = create_command_tree(path, group_names, rgb_point_data, bbox_rectangle)
+
+    processor = xmu.make_processor(xmu.ImodCommand)
+
+    return xml.serialize_to_string(processor, command_tree, indent='   ')

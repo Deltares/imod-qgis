@@ -67,6 +67,19 @@ class IMOD6(Aggregate):
     Version: Union[Attribute, str] = "8"
     viewer: List[Viewer] = None
 
+#%%iMOD commands
+@dataclass
+class ModelToLoad(Aggregate):
+    guid: Union[Attribute, str] = ""
+
+@dataclass 
+class ImodCommand(Aggregate):
+    Version: Union[Attribute, str] = "8"
+    type: Union[Attribute, str] = ""
+    guid: Union[Attribute, str] = ""
+    viewer: Optional[List[Viewer]] = None
+    modeltoload: Optional[ModelToLoad] = None
+
 #%%Mappings
 type_mapping = {
     bool: xml.boolean,
