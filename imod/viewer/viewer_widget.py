@@ -46,18 +46,25 @@ class ImodViewerWidget(QWidget):
         self.bbox = None
 
         #Start viewer button
-        self.viewer_button = QPushButton("Plot in iMOD 3D viewer")
+        self.viewer_button = QPushButton("start iMOD 3D viewer")
         self.viewer_button.clicked.connect(self.start_viewer)
+
+        self.update_button = QPushButton("update 3D plot")
+        self.update_button.clicked.connect(self.update_viewer)
 
         #Define layout
         first_column = QVBoxLayout()
         first_column.addWidget(self.layer_selection)
         first_column.addWidget(self.extent_button)
 
+        third_column = QVBoxLayout()
+        third_column.addWidget(self.viewer_button)
+        third_column.addWidget(self.update_button)
+
         layout = QHBoxLayout() #Create horizontal layout, define stretch factors as 1 - 2 - 1
         layout.addLayout(first_column, 1)
         layout.addWidget(self.extent_box, 2)
-        layout.addWidget(self.viewer_button, 1)
+        layout.addWidget(third_column, 1)
 
         self.setLayout(layout)
 
@@ -123,3 +130,7 @@ class ImodViewerWidget(QWidget):
         self.settings_to_xml(xml_path)
 
         self.server_handler.start_server()
+    
+    def update_viewer(self):
+        pass
+        self.server_handler.send()
