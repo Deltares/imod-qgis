@@ -1,4 +1,6 @@
 from pyqtgraph.Qt import QtGui, QtCore
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 import numpy as np
 from pyqtgraph import functions as fn
 from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
@@ -27,7 +29,7 @@ class BoreholePlotItem(GraphicsObject):
         GraphicsObject.__init__(self)
         self.qpicture = None
         self.axisOrder = getConfigOption("imageAxisOrder")
-        self.edgecolors = kwargs.pop("edgecolors", None)
+        self.edgecolors = kwargs.pop("edgecolors", QColor(Qt.black))
         self.colorshader = kwargs.pop("colorshader")
         if len(args) > 0:
             self.setData(*args)
