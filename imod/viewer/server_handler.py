@@ -68,7 +68,9 @@ class ServerHandler:
         with open(configdir / "environmental-variables.json", "r") as f:
             env_vars = json.loads(f.read())
 
+        hostAdress = f"{self.HOST}:{self.PORT}"
         subprocess.Popen([viewer_exe, str(xml_path)], env = env_vars)
+        #subprocess.Popen([viewer_exe, "--file", str(xml_path), "--hostAdress", hostAdress], env = env_vars)
 
 
     def send(self, data) -> str:
