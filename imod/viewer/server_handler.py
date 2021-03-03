@@ -57,6 +57,7 @@ class ServerHandler:
         configuration directory.
         """
         self.PORT = self.find_free_port()
+        print(self.PORT)
         configdir = self.get_configdir()
 
         xml_path = configdir / "qgis_viewer.imod"
@@ -67,18 +68,18 @@ class ServerHandler:
         with open(configdir / "environmental-variables.json", "r") as f:
             env_vars = json.loads(f.read())
 
-        subprocess.run([viewer_exe, str(xml_path)], env = env_vars)
+        subprocess.Popen([viewer_exe, str(xml_path)], env = env_vars)
 
 
     def send(self, data) -> str:
         """
-        Send a data package (should be a JSON string) to the external
+        Send a data package (should be a XML string) to the external
         interpreter, running gistim.
 
         Parameters
         ----------
         data: str
-            A JSON string describing the operation and parameters
+            A XML string describing the operation and parameters
 
         Returns
         -------
