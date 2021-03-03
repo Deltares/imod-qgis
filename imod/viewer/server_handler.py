@@ -13,7 +13,7 @@ import socket
 import subprocess
 from contextlib import closing
 from pathlib import Path
-
+from .server import StatefulImodServer
 
 class ServerHandler:
     def __init__(self):
@@ -59,17 +59,16 @@ class ServerHandler:
         self.PORT = self.find_free_port()
         configdir = self.get_configdir()
 
+        xml_path = configdir / "qgis_viewer.imod"
+
         with open(configdir / "viewer_exe.txt") as f:
             viewer_exe = f.read().strip()
 
-        script = configdir / "activate.py"
-        env_vars = configdir / "environmental-variables.json"
-        xml_path = configdir / "qgis_viewer.imod"
+        with open(configdir / "environmental-variables.json", "r") as f:
+            env_vars = json.loads(f.read())
 
-        subprocess.Popen(
-            f"python {script} {env_vars} {viewer_exe} {xml_path}",
-            creationflags=subprocess.CREATE_NEW_CONSOLE,
-        )
+        subprocess.run([viewer_exe, str(xml_path)], env = env_vars)
+
 
     def send(self, data) -> str:
         """
