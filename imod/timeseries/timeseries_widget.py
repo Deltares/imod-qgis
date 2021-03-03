@@ -338,10 +338,10 @@ class ImodTimeSeriesWidget(QWidget):
         self.pens.append(pen)
 
     def update_legend(self):
-        self.legend.clear()
         labels = self.color_widget.labels()
         for curve, name in zip(self.curves, self.names):
             if name in labels:
+                self.legend.removeItem(curve)
                 self.legend.addItem(curve, labels[name])
 
     def apply_color(self):
