@@ -57,10 +57,6 @@ def cross_section_y_data(layer, geometry, dataset_index, x):
     return y
 
 
-def cross_section_hue_data(layer, geometry, dataset_index, x):
-    return cross_section_y_data(layer, geometry, dataset_index, x)
-
-
 def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> np.ndarray:
     # vectors are denoted by upper case: U, V
     # scalar variables are lower case: a, p, s, x
