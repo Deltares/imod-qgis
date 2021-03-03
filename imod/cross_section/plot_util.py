@@ -23,7 +23,7 @@ pyqtGraphAcceptNaN = check_if_PyQt_version_is_before(5, 13, 1)
 
 
 def cross_section_x_data(layer, geometry, resolution=1.0):
-    """ return list defining X points for plot """
+    """return list defining X points for plot """
     x = []
     if not layer:
         return x
@@ -41,7 +41,7 @@ def cross_section_x_data(layer, geometry, resolution=1.0):
     return np.array(x)
 
 
-def cross_section_y_data(layer, geometry, dataset, x):
+def cross_section_y_data(layer, geometry, dataset_index, x):
     """ return array defining Y points for plot """
     y = np.zeros(x.shape)
     if not layer:
@@ -50,15 +50,11 @@ def cross_section_y_data(layer, geometry, dataset, x):
     # TODO: This seems quite brute force. Is there a faster way to do this? Some raytracing algorithm?
     for i, x_value in enumerate(x):
         pt = geometry.interpolate(x_value).asPoint()
-        y[i] = layer.datasetValue(dataset, pt).scalar()
+        y[i] = layer.datasetValue(dataset_index, pt).scalar()
         if not pyqtGraphAcceptNaN and math.isnan(y[i]):
             continue
 
     return y
-
-
-def cross_section_hue_data(layer, geometry, dataset, x):
-    return cross_section_y_data(layer, geometry, dataset, x)
 
 
 def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> np.ndarray:

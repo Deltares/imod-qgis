@@ -12,31 +12,38 @@ from qgis.core import (
 from collections import defaultdict
 import re
 
-def get_group_names(layer):
-    idx = layer.datasetGroupsIndexes()
-    #TODO: Include time index as dataset argument during QgsMeshDatasetIndex construction
-    idx = [QgsMeshDatasetIndex(group=i, dataset=0) for i in idx]
-    group_names = [layer.datasetGroupMetadata(i).name() for i in idx]
 
-    return idx, group_names
+def natural_sort_key(pair, _nsre=re.compile('([0-9]+)')):
+    # From: https://stackoverflow.com/questions/4836710/is-there-a-built-in-function-for-string-natural-sort
+    s = pair[0]
+    return [int(text) if text.isdigit() else text.lower()
+            for text in _nsre.split(s)]   
+
+
+def get_group_names(layer):
+    indexes = layer.datasetGroupsIndexes()
+    #TODO: Include time index as dataset argument during QgsMeshDatasetIndex construction
+    indexes = [QgsMeshDatasetIndex(group=i, dataset=0) for i in indexes]
+    group_names = [layer.datasetGroupMetadata(i).name() for i in indexes]
+    # Sort the entries by name
+    sorted_pairs = sorted(zip(group_names, indexes), key=natural_sort_key)
+    group_names, indexes = [list(tup) for tup in zip(*sorted_pairs)]
+    return indexes, group_names
+
 
 def groupby_variable(group_names, dataset_indexes):
-    """Groupby variable
-    """
-
-    gb = defaultdict(list)
-
+    grouped = defaultdict(dict)
     for group_name, dataset_idx in zip(group_names, dataset_indexes):
-
         if "_layer_" in group_name:
             parts = group_name.split("_layer_")
-            name, lay_nr = parts
-            gb[name].append((int(lay_nr), dataset_idx))
-        
-    return gb
+            name, layer_number = parts
+            grouped[name][layer_number] = dataset_idx
+    return grouped
+
 
 def groupby_layer(group_names):
-    """Groupby layer, provided by a list variable names ("group names", in MDAL terms).
+    """
+    Groupby layer, provided by a list variable names ("group names", in MDAL terms).
     
     Parameters
     ----------
@@ -53,22 +60,20 @@ def groupby_layer(group_names):
     """
     prog = re.compile("(.+)_(layer_\d+)")
     groups = [prog.match(group_name) for group_name in group_names]
-
     #Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
     groups = list(filter(None.__ne__, groups))
     #Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
     #the .group confusingly is a regex method here.
     groups = [(g.group(2), g.group(0)) for g in groups] 
-
     gb = defaultdict(list)
     for key, group in groups:
         gb[key].append(group)
     return gb
 
 
-
 def get_layer_idx(layer_key):
-    """Extract layer number from a key such as 'layer_1'
+    """
+    Extract layer number from a key such as 'layer_1'
 
     Parameters
     ----------
@@ -79,5 +84,4 @@ def get_layer_idx(layer_key):
     -------
     int
     """
-
     return int(re.match("layer_(\d+)", layer_key).group(1))

@@ -1,10 +1,8 @@
 """Modified from https://github.com/lutraconsulting/qgis-crayfish-plugin/blob/master/crayfish/gui/plot_dataset_groups_widget.py
 """
 
-from PyQt5.QtWidgets import QMenu, QToolButton
+from PyQt5.QtWidgets import QMenu, QToolButton, QWidgetAction, QCheckBox
 from PyQt5.QtCore import Qt, pyqtSignal
-
-DEFAULT_NAME = "layer number"
 
 
 class DatasetVariableMenu(QMenu):
@@ -15,9 +13,9 @@ class DatasetVariableMenu(QMenu):
     def __init__(self, parent=None, datasetType=None):
         QMenu.__init__(self, parent)
         self.variable_options = None
-        self.layer = None
         self.action_current = None
         self.datasetType = datasetType
+        self.dataset_variable = None
 
     def populate_actions(self, variables):
         """
@@ -29,17 +27,6 @@ class DatasetVariableMenu(QMenu):
             List with variable names
         """
         self.clear()
-
-        if self.layer is None or self.layer.dataProvider() is None:
-            return
-
-        self.action_current = self.addAction(DEFAULT_NAME)
-        self.action_current.variable_name = DEFAULT_NAME
-        self.action_current.setCheckable(True)
-        self.action_current.setChecked(True)
-        self.action_current.triggered.connect(self.triggered_action_current)
-        self.addSeparator()
-
         for variable in variables:
             a = self.addAction(variable)
             a.variable_name = variable
@@ -54,31 +41,11 @@ class DatasetVariableMenu(QMenu):
     def triggered_action_current(self):
         for a in self.actions():
             a.setChecked(a == self.action_current)
-        self.dataset_variable_changed.emit(DEFAULT_NAME)
+        self.dataset_variable_changed.emit(None)
 
     def on_current_dataset_changed(self):
         if self.action_current.isChecked():
-            self.dataset_variable_changed.emit(DEFAULT_NAME)  # re-emit changed signal
-
-    def set_layer(self, layer, variables):
-        if layer is self.layer:
-            return
-
-        if self.layer is not None:
-            self.layer.activeScalarDatasetGroupChanged.disconnect(
-                self.on_current_dataset_changed
-            )
-            self.layer.dataChanged.disconnect(self.populate_actions)
-
-        self.layer = layer
-        if self.layer is not None:
-            self.layer.activeScalarDatasetGroupChanged.connect(
-                self.on_current_dataset_changed
-            )
-            self.layer.dataChanged.connect(self.populate_actions)
-
-        self.populate_actions(variables)
-
+            self.dataset_variable_changed.emit()  # re-emit changed signal
 
 class VariablesWidget(QToolButton):
 
@@ -94,16 +61,67 @@ class VariablesWidget(QToolButton):
         self.menu_datasets.dataset_variable_changed.connect(
             self.on_dataset_variable_changed
         )
-        self.set_dataset_variable(DEFAULT_NAME)
+        self.set_dataset_variable(None)
 
     def on_dataset_variable_changed(self, name):
         self.dataset_variable = name
-        self.setText("Variable: " + name)
+        if name is None:
+            self.setText("Variable: ")
+        else:
+            self.setText("Variable: " + name)
         self.dataset_variable_changed.emit(name)
 
     def set_dataset_variable(self, name):
         self.on_dataset_variable_changed(name)
 
-    def set_layer(self, layer, variables):
-        self.menu_datasets.set_layer(layer, variables)
-        self.set_dataset_variable(DEFAULT_NAME)
+    def set_layer(self, variables):
+        self.menu_datasets.populate_actions(variables)
+        self.set_dataset_variable(variables[0])
+
+
+class MultipleVariablesMenu(QMenu):
+    def __init__(self, parent=None):
+        QMenu.__init__(self, parent)
+        self.setContentsMargins(10, 5, 5, 5)
+        self.checkboxes = []
+        self.variables = []
+
+    def populate_actions(self, variables):
+        self.checkboxes = []
+        self.variables = []
+        self.clear()
+        self.check_all = QCheckBox("Select all")
+        self.check_all.stateChanged.connect(self.on_check_all)
+        self.add_checkbox(self.check_all)
+        self.addSeparator()
+        for variable in variables:
+            checkbox = QCheckBox(variable)
+            self.checkboxes.append(checkbox)
+            self.add_checkbox(checkbox)
+            self.variables.append(variable)
+
+    def add_checkbox(self, checkbox):
+        a = QWidgetAction(self) 
+        a.setDefaultWidget(checkbox)
+        self.addAction(a)
+
+    def on_check_all(self):
+        state = self.check_all.isChecked()
+        for b in self.checkboxes:
+            b.setChecked(state)
+
+    def checked_variables(self):
+        return [v for v, b in zip(self.variables, self.checkboxes) if b.isChecked()]
+
+
+class MultipleVariablesWidget(QToolButton):
+    def __init__(self, parent=None):
+        QToolButton.__init__(self, parent)
+        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.menu_datasets = MultipleVariablesMenu()
+        self.setPopupMode(QToolButton.InstantPopup)
+        self.setMenu(self.menu_datasets)
+        self.setText("Selection: ")
+
+    def checked_variables(self):
+        return self.menu_datasets.checked_variables()
