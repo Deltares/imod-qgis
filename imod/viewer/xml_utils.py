@@ -44,6 +44,7 @@ class BoundingBox(Aggregate):
 
 @dataclass
 class GridModel(Aggregate):
+    guid: Union[Attribute, str]
     Name: str
     Url: str
     LayerIndex: int
@@ -72,6 +73,24 @@ class IMOD6(Aggregate):
 class ModelToLoad(Aggregate):
     guid: Union[Attribute, str] = ""
 
+@dataclass
+class OutputObject(Aggregate):
+    guid: Union[Attribute, str] = ""
+
+@dataclass
+class Polyline(Aggregate):
+    polyline: List[float]
+
+@dataclass
+class Polylines(Aggregate):
+    polyline_list: List[Polyline]
+
+@dataclass
+class CreateFenceDiagram(Aggregate):
+    modelsToCut: List[str]
+    polylines: Polylines
+    outputobject: OutputObject
+
 @dataclass 
 class ImodCommand(Aggregate):
     """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram"]
@@ -80,7 +99,9 @@ class ImodCommand(Aggregate):
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
     viewer: Optional[List[Viewer]] = None
-    modeltoload: Optional[ModelToLoad] = None
+    modelToLoad: Optional[ModelToLoad] = None
+    createFenceDiagram: Optional[CreateFenceDiagram] = None
+
 
 #%%Mappings
 type_mapping = {
