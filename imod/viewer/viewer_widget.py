@@ -12,11 +12,14 @@ from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
 from .maptools import RectangleMapTool
-from .xml_tree import write_xml
+from .imod.xml_tree import load_to_explorer_tree, write_xml, add_to_explorer_tree, create_file_tree, command_xml
 from .server_handler import ServerHandler
+from ..utils.layers import groupby_layer
 
 import os
 import subprocess
+
+import uuid
 
 # TODOs: 
 #   - Implement current functionality & cleanup old stuff
@@ -92,12 +95,16 @@ class ImodViewerWidget(QWidget):
         print("Please draw extent")
         self.canvas.setMapTool(self.rectangle_tool)
 
-    def settings_to_xml(self, xml_path):
+    def initialize_xml(self, xml_path):
+        """Write imod projectfile to immediately have data in the explorer.
+        """
+        self.xml_dict = {}
+
         current_layer = self.layer_selection.currentLayer()
-        data_path = current_layer.dataProvider().dataSourceUri()
+        self.xml_dict["path"] = current_layer.dataProvider().dataSourceUri()
     
         idx = current_layer.datasetGroupsIndexes()
-        group_names = [current_layer.datasetGroupMetadata(QgsMeshDatasetIndex(group=i)).name() for i in idx]
+        self.xml_dict["group_names"] = [current_layer.datasetGroupMetadata(QgsMeshDatasetIndex(group=i)).name() for i in idx]
 
         style_group_index = idx[0]  #Same style used for all groups in QGIS 3.16
                                     #FUTURE: Check if this remains
@@ -107,11 +114,15 @@ class ImodViewerWidget(QWidget):
             ).colorRampShader(
             ).colorRampItemList()
 
-        rgb_array = self.create_rgb_array(colorramp)
+        self.xml_dict["rgb_point_data"] = self.create_rgb_array(colorramp)
 
-        bbox_rectangle = self.extent_box.outputExtent()
+        self.xml_dict["bbox_rectangle"] = self.extent_box.outputExtent()
 
-        write_xml(data_path, xml_path, group_names, rgb_array, bbox_rectangle)
+        n_layers = len(groupby_layer(self.xml_dict["group_names"]))
+
+        self.xml_dict["guids_grids"] = [uuid.uuid4() for i in range(n_layers)]
+
+        write_xml(xml_path, **self.xml_dict)
 
     def rgb_components_to_float(self, components):
         return [comp/256 for comp in components]
@@ -132,4 +143,7 @@ class ImodViewerWidget(QWidget):
         self.server_handler.start_server()
     
     def update_viewer(self):
-        self.server_handler.send()
+        #Load model
+        for guid_grid in self.xml_dict["guids_grids"]:
+            command = command_xml(load_to_explorer_tree, guid_grid=gruid_grid)
+            self.server_handler.send(command)
