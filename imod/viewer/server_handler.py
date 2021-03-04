@@ -17,7 +17,7 @@ from .server import StatefulImodServer
 
 class ServerHandler:
     def __init__(self):
-        self.HOST = "localhost"
+        self.HOST = "127.0.0.1" # = localhost in IPv4 protocol
         self.PORT = None
         self.socket = None
 
@@ -57,7 +57,7 @@ class ServerHandler:
         configuration directory.
         """
         self.PORT = self.find_free_port()
-        print(self.PORT)
+        
         configdir = self.get_configdir()
 
         xml_path = configdir / "qgis_viewer.imod"
@@ -69,8 +69,10 @@ class ServerHandler:
             env_vars = json.loads(f.read())
 
         hostAdress = f"{self.HOST}:{self.PORT}"
-        subprocess.Popen([viewer_exe, str(xml_path)], env = env_vars)
-        #subprocess.Popen([viewer_exe, "--file", str(xml_path), "--hostAdress", hostAdress], env = env_vars)
+        
+        subprocess.Popen(
+            [viewer_exe, "--file", str(xml_path), "--hostAddress", hostAdress], 
+                env = env_vars)
 
 
     def send(self, data) -> str:
