@@ -19,8 +19,15 @@ def create_boundingbox(bbox_rectangle):
     ymax = str(bbox_rectangle.yMaximum())
     return xmu.BoundingBox(XMin = xmin, XMax = xmax, YMin = ymin, YMax = ymax)
 
-def create_grid_model_list(path, legend, groupby_dict, bbox_rectangle):
+def create_grid_model_list(**xml_dict):
+    "path=None, legend=None, groupby_dict=None, bbox_rectangle=None"
     #Manually add "computed" DataSet
+    guids_grids = xml_dict['guids_grids']
+    path = xml_dict['path']
+    legend = xml_dict['legend']
+    groupby_dict = xml_dict['groupby_dict']
+    bbox_rectangle = xml_dict['bbox_rectangle']
+
     ds_elevation = xmu.DataSet(Name = "Elevation (cell centre)",
                             Time = 0,
                             Origin = "computed",
@@ -32,7 +39,7 @@ def create_grid_model_list(path, legend, groupby_dict, bbox_rectangle):
 
     gm_list = []
 
-    for key in groupby_dict.keys():
+    for key, guid_grid in zip(groupby_dict.keys(), guids_grids):
         ds_ls = xmu.DataSetList(
             [xmu.DataSet(Name = i) for i in groupby_dict[key]]+[ds_elevation]
             )
@@ -43,7 +50,8 @@ def create_grid_model_list(path, legend, groupby_dict, bbox_rectangle):
 
         uri = r'Ugrid:"{}":mesh2d'.format(path)
 
-        gm = xmu.GridModel(Name=name, Url=path, Uri=uri,
+        gm = xmu.GridModel(guid = guid_grid, Name=name, 
+                    Url=path, Uri=uri,
                     GridIndex=grid_idx, LayerIndex=layer_idx,
                     datasetlist=ds_ls, boundingbox=boundingbox)
 
@@ -52,40 +60,68 @@ def create_grid_model_list(path, legend, groupby_dict, bbox_rectangle):
     return gm_list
     
 
-def create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle):
-    groupby_dict = groupby_layer(group_names)
-    legend = create_legend(rgb_point_data)
+def create_viewer_tree(**xml_dict):
+    group_names = xml_dict.pop("group_names")
+    rgb_point_data = xml_dict.pop("rgb_point_data")
+
+    xml_dict["groupby_dict"] = groupby_layer(group_names)
+    xml_dict["legend"] = create_legend(rgb_point_data)
     
-    gm_list = create_grid_model_list(path, legend, groupby_dict, bbox_rectangle)
+    gm_list = create_grid_model_list(**xml_dict)
 
     viewer_3d = xmu.Viewer(type="3D", 
         explorermodellist=xmu.ExplorerModelList(gridmodel=gm_list))
 
     return viewer_3d
 
-def create_file_tree(path, group_names, rgb_point_data, bbox_rectangle):
-    viewer_3d = create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle)
+def create_file_tree(**xml_dict):
+    viewer_3d = create_viewer_tree(**xml_dict)
 
-    file_tree = xmu.IMOD6(viewer=[xmu.Viewer(), viewer_3d])
-    return(file_tree)
+    return xmu.IMOD6(viewer=[xmu.Viewer(), viewer_3d])
 
-def add_to_explorer_tree(path, group_names, rgb_point_data, bbox_rectangle):
-    viewer_3d = create_viewer_tree(path, group_names, rgb_point_data, bbox_rectangle)
+def write_xml(xml_path, **xml_dict):
+    """Write xml command
 
-    command_tree = xmu.ImodCommand(viewer=[xmu.Viewer(), viewer_3d])
+    xml_path : string
+        path to xml file
+    
+    xml_dict : dict
+        dictionary, should contain keys "path", "group_names", "rgb_point_data", "bbox_rectangle"
 
-    return command_tree
-
-def write_xml(path, xml_path, group_names, rgb_point_data, bbox_rectangle):
-    file_tree = create_file_tree(path, group_names, rgb_point_data, bbox_rectangle)
+    """
+    file_tree = create_file_tree(**xml_dict)
 
     processor = xmu.make_processor(xmu.IMOD6)
 
     xml.serialize_to_file(processor, file_tree, xml_path, indent='   ')
 
-def serialize_xml(path, group_names, rgb_point_data, bbox_rectangle):
-    #TODO: Viewer_widget should provide function and arguments for command, as to make this more generic.
-    command_tree = add_to_explorer_tree(path, group_names, rgb_point_data, bbox_rectangle)
+def add_to_explorer_tree(**xml_dict):
+    viewer_3d = create_viewer_tree(**xml_dict)
+
+    return xmu.ImodCommand(viewer=[xmu.Viewer(), viewer_3d], type="AddToExplorer")
+
+def load_to_explorer_tree(**xml_dict):
+    guid_grid = xml_dict["guid_grid"]
+    
+    modeltoload = xmu.ModelToLoad(guid=guid_grid)
+
+    return xmu.ImodCommand(modeltoload=modeltoload, type="LoadExplorerModel")
+
+
+def command_xml(func, **xml_dict):
+    """Serialize command, func should indicate which command should be called.
+
+    func : types.FunctionTypes
+        Functions should be either: add_to_explorer_tree, load_to_explorer_tree
+
+    xml_dict : dict
+        
+    """
+
+    if not callable(func):
+        raise TypeError("func should be callable")
+
+    command_tree = func(**xml_dict)
 
     processor = xmu.make_processor(xmu.ImodCommand)
 
