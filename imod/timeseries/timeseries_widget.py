@@ -134,12 +134,15 @@ class ImodTimeSeriesWidget(QWidget):
         self.id_selection_box = QComboBox()
         self.id_selection_box.setMinimumWidth(200)
         self.variable_selection = MultipleVariablesWidget()
-
+    
         self.plot_button = QPushButton("Plot")
         self.plot_button.clicked.connect(self.draw_plot)
 
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear_plot)
+
+        self.update_on_select = QCheckBox("Update on selection")
+        self.update_on_select.stateChanged.connect(self.toggle_update)
 
         self.color_button = QgsColorButton()
         self.color_button.colorChanged.connect(self.apply_color)
@@ -164,6 +167,7 @@ class ImodTimeSeriesWidget(QWidget):
         first_row.addWidget(QLabel("ID column:"))
         first_row.addWidget(self.id_selection_box)
         first_row.addWidget(self.variable_selection)
+        first_row.addWidget(self.update_on_select)
         first_row.addWidget(self.plot_button)
         first_row.addWidget(self.clear_button)
         first_row.addStretch()
@@ -203,6 +207,8 @@ class ImodTimeSeriesWidget(QWidget):
         # Run a single time initialize the combo boxes
         self.feature_ids = None
         self.layer_selection.update_layers()
+        # Set default state of checkbox
+        self.update_on_select.setChecked(True)
 
     def hideEvent(self, e):
         self.clear_plot()
@@ -214,6 +220,16 @@ class ImodTimeSeriesWidget(QWidget):
         self.names = []
         self.curves = []
         self.pens = []
+
+    def toggle_update(self):
+        updating = self.update_on_select.isChecked()
+        self.plot_button.setEnabled(not updating)
+        self.clear_button.setEnabled(not updating)
+        layer = self.layer_selection.currentLayer()
+        if updating:
+            layer.selectionChanged.connect(self.on_select)
+        else:
+            layer.selectionChanged.disconnect(self.on_select)
     
     def on_layer_changed(self):
         layer = self.layer_selection.currentLayer()
@@ -301,6 +317,10 @@ class ImodTimeSeriesWidget(QWidget):
             else:
                 pen.setWidth(WIDTH)
             c.curve.setPen(pen)
+
+    def on_select(self):
+        self.clear_plot()
+        self.draw_plot()
 
     def draw_plot(self):
         self.load()
