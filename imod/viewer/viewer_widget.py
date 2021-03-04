@@ -64,7 +64,7 @@ class ImodViewerWidget(QWidget):
         layout = QHBoxLayout() #Create horizontal layout, define stretch factors as 1 - 2 - 1
         layout.addLayout(first_column, 1)
         layout.addWidget(self.extent_box, 2)
-        layout.addWidget(third_column, 1)
+        layout.addLayout(third_column, 1)
 
         self.setLayout(layout)
 
@@ -132,5 +132,4 @@ class ImodViewerWidget(QWidget):
         self.server_handler.start_server()
     
     def update_viewer(self):
-        pass
         self.server_handler.send()
