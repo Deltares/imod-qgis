@@ -13,7 +13,7 @@ from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
 from .maptools import RectangleMapTool
 from . import xml_tree
-from .server_handler import Server
+from .server import Server
 from ..utils.layers import groupby_layer
 
 import os

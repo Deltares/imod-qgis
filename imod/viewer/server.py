@@ -13,7 +13,6 @@ import socket
 import subprocess
 from contextlib import closing
 from pathlib import Path
-from .server import StatefulImodServer
 
 class Server:
     def __init__(self):
