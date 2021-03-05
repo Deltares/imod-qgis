@@ -12,8 +12,8 @@ from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
 from .maptools import RectangleMapTool
-from .imod.xml_tree import load_to_explorer_tree, write_xml, add_to_explorer_tree, create_file_tree, command_xml
-from .server_handler import ServerHandler
+from . import xml_tree
+from .server_handler import Server
 from ..utils.layers import groupby_layer
 
 import os
@@ -31,7 +31,7 @@ class ImodViewerWidget(QWidget):
 
         self.canvas = canvas
         self.crs = self.canvas.mapSettings().destinationCrs()
-        self.server_handler = ServerHandler()
+        self.server = Server()
 
         #Layer selection
         self.layer_selection = QgsMapLayerComboBox()
@@ -95,7 +95,7 @@ class ImodViewerWidget(QWidget):
         print("Please draw extent")
         self.canvas.setMapTool(self.rectangle_tool)
 
-    def initialize_xml(self, xml_path):
+    def update_xml(self):
         """Write imod projectfile to immediately have data in the explorer.
         """
         self.xml_dict = {}
@@ -122,7 +122,9 @@ class ImodViewerWidget(QWidget):
 
         self.xml_dict["guids_grids"] = [uuid.uuid4() for i in range(n_layers)]
 
-        write_xml(xml_path, **self.xml_dict)
+    def write_xml(self, xml_path):
+        self.update_xml()
+        xml_tree.write_xml(xml_path, **self.xml_dict)
 
     def rgb_components_to_float(self, components):
         return [comp/256 for comp in components]
@@ -135,15 +137,25 @@ class ImodViewerWidget(QWidget):
         return ' '.join(self.rgb_string(c) for c in colorramp)
 
     def start_viewer(self):
-        configdir = self.server_handler.get_configdir()
+        configdir = self.server.get_configdir()
         xml_path = configdir / 'qgis_viewer.imod'
 
-        self.settings_to_xml(xml_path)
+        self.write_xml(xml_path)
 
-        self.server_handler.start_server()
+        self.server.start_server()
+        self.server.start_imod()
+        self.server.accept_client()
     
     def update_viewer(self):
-        #Load model
+        self.update_xml()
+
+        #Add to explorer
+        command = xml_tree.command_xml(xml_tree.add_to_explorer_tree, **self.xml_dict)
+        self.server.send(command)
+
+        #Load layers
         for guid_grid in self.xml_dict["guids_grids"]:
-            command = command_xml(load_to_explorer_tree, guid_grid=gruid_grid)
-            self.server_handler.send(command)
+            print("load data")
+            command = xml_tree.command_xml(xml_tree.load_to_explorer_tree, guid_grid=guid_grid)
+            print(command)
+            self.server.send(command)

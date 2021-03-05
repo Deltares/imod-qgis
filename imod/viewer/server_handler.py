@@ -15,7 +15,7 @@ from contextlib import closing
 from pathlib import Path
 from .server import StatefulImodServer
 
-class ServerHandler:
+class Server:
     def __init__(self):
         self.HOST = "127.0.0.1" # = localhost in IPv4 protocol
         self.PORT = None
@@ -52,11 +52,20 @@ class ServerHandler:
         return configdir
 
     def start_server(self) -> None:
+        self.PORT = self.find_free_port()
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.HOST, self.PORT))
+        self.socket.listen(4)
+
+    def accept_client(self):
+        self.client, address = self.socket.accept()
+
+    def start_imod(self) -> None:
         """
-        Starts a new interpreter, based on the settings in the
+        Starts imod, based on the settings in the
         configuration directory.
         """
-        self.PORT = self.find_free_port()
         
         configdir = self.get_configdir()
 
@@ -68,12 +77,17 @@ class ServerHandler:
         with open(configdir / "environmental-variables.json", "r") as f:
             env_vars = json.loads(f.read())
 
-        hostAdress = f"{self.HOST}:{self.PORT}"
+        hostAddress = f"{self.HOST}:{self.PORT}"
         
         subprocess.Popen(
-            [viewer_exe, "--file", str(xml_path), "--hostAddress", hostAdress], 
+            [viewer_exe, "--file", str(xml_path), "--hostAddress", hostAddress], 
                 env = env_vars)
 
+        xml_path = str(xml_path)
+
+        print(f"{viewer_exe} --file {xml_path} --hostAddress {hostAddress}")
+
+        print(hostAddress)
 
     def send(self, data) -> str:
         """
@@ -90,11 +104,15 @@ class ServerHandler:
         received: str
             Value depends on the requested operation
         """
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((self.HOST, self.PORT))
-        self.socket.sendall(bytes(data, "utf-8"))
-        received = str(self.socket.recv(1024), "utf-8")
-        return received
+        
+        debug_path = r"c:\Users\engelen\projects_wdir\iMOD6\test_data\temp\command.xml"
+        with open(debug_path, "w") as f:
+            f.write(data)
+
+        self.client.sendall(bytes(data, "utf-8"))
+        #self.socket.sendall(bytes(data, "utf-8"))
+        #received = str(self.socket.recv(1024), "utf-8")
+        #return received
 
     def kill(self) -> None:
         """
