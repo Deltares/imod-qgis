@@ -99,8 +99,8 @@ class ImodCommand(Aggregate):
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
     viewer: Optional[List[Viewer]] = None
-    modelToLoad: Optional[ModelToLoad] = None
-    createFenceDiagram: Optional[CreateFenceDiagram] = None
+    modeltoload: Optional[List[ModelToLoad]] = None #List as a hack to get an aggregate with only attributes in the xml file
+    createfencediagram: Optional[CreateFenceDiagram] = None
 
 
 #%%Mappings
@@ -231,3 +231,26 @@ def make_processor(datacls: type, element_required: bool = True):
         alias=datacls.__name__.lower(),
         required=element_required,
     )
+## %%
+#@dataclass
+#class ModelToLoad(Aggregate):
+#   guid: Union[Attribute, str] = ""
+#
+#@dataclass 
+#class ImodCommand(Aggregate):
+#   """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram"]
+#   """
+#   #model_To_Load: ModelToLoad
+#   modeltoload: List[ModelToLoad]
+#   type: Union[Attribute, str] = ""
+#
+#
+#if True:
+#    #model_to_load = ModelToLoad(guid="aaaaaaaaaaaa")
+#    model_to_load = ModelToLoad()
+#    command = ImodCommand(modeltoload = [model_to_load], type = "LoadExplorerModel")
+#    processor = make_processor(ImodCommand)
+#
+#    print(xml.serialize_to_string(processor, command, indent='   '))
+## %%
+#

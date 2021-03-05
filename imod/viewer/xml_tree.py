@@ -105,7 +105,7 @@ def load_to_explorer_tree(**xml_dict):
     
     modeltoload = xmu.ModelToLoad(guid=guid_grid)
 
-    return xmu.ImodCommand(modeltoload=modeltoload, type="LoadExplorerModel")
+    return xmu.ImodCommand(modeltoload=[modeltoload], type="LoadExplorerModel")
 
 
 def command_xml(func, **xml_dict):
