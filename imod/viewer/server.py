@@ -68,7 +68,6 @@ class Server:
         
         configdir = self.get_configdir()
 
-        xml_path = configdir / "qgis_viewer.imod"
 
         with open(configdir / "viewer_exe.txt") as f:
             viewer_exe = f.read().strip()
@@ -77,21 +76,14 @@ class Server:
             env_vars = json.loads(f.read())
 
         hostAddress = f"{self.HOST}:{self.PORT}"
-        
-        subprocess.Popen(
-            [viewer_exe, "--file", str(xml_path), "--hostAddress", hostAddress], 
+
+        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress], 
                 env = env_vars)
 
-        xml_path = str(xml_path)
-
-        print(f"{viewer_exe} --file {xml_path} --hostAddress {hostAddress}")
-
-        print(hostAddress)
 
     def send(self, data) -> str:
         """
-        Send a data package (should be a XML string) to the external
-        interpreter, running gistim.
+        Send a data package (should be a XML string) to the viewer to command it from Qgis
 
         Parameters
         ----------
@@ -104,14 +96,14 @@ class Server:
             Value depends on the requested operation
         """
         
-        debug_path = r"c:\Users\engelen\projects_wdir\iMOD6\test_data\temp\command.xml"
-        with open(debug_path, "w") as f:
+        configdir = self.get_configdir()
+        with open(configdir / "last_command.xml", "w") as f:
             f.write(data)
 
         self.client.sendall(bytes(data, "utf-8"))
-        #self.socket.sendall(bytes(data, "utf-8"))
-        #received = str(self.socket.recv(1024), "utf-8")
-        #return received
+        #Receive data from viewer, serves as a blocking call, so that sent requests are not piled up
+        received = str(self.client.recv(1024), "utf-8") 
+        return received
 
     def kill(self) -> None:
         """
