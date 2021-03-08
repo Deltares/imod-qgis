@@ -21,10 +21,6 @@ import subprocess
 
 import uuid
 
-# TODOs: 
-#   - Implement current functionality & cleanup old stuff
-#   - Add functionality for view iMOD button
-
 class ImodViewerWidget(QWidget):
     def __init__(self, canvas, parent=None):
         QWidget.__init__(self, parent)
@@ -146,14 +142,11 @@ class ImodViewerWidget(QWidget):
         self.update_viewer()
     
     def load_layers(self):
-        import time
-        #Load layers
         print(".....Loading layers.....")
         for i, guid_grid in enumerate(self.xml_dict["guids_grids"]):
             print(f"{i}:{guid_grid}")
             command = xml_tree.command_xml(xml_tree.load_to_explorer_tree, guid_grid=guid_grid)
             self.server.send(command)
-            #time.sleep(1)
 
     def update_viewer(self):
         self.update_xml()
