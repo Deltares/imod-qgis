@@ -10,8 +10,8 @@ Primary components are:
 * Cross-section visualization 
 
 ## Installation instructions
-We currently have not spent time on creating an installer, 
-so a couple of 
+We currently have not spent time yet on creating an installer, 
+so a couple of steps are required to get a working iMOD plugin in QGIS.
 
 ### 1. Installing QGIS
 You can download the standalone QGIS setup 
