@@ -96,7 +96,7 @@ class ImodViewerWidget(QWidget):
         self.canvas.setMapTool(self.rectangle_tool)
 
     def update_xml(self):
-        """Write imod projectfile to immediately have data in the explorer.
+        """Update data for xml file.
         """
         self.xml_dict = {}
 
@@ -123,6 +123,8 @@ class ImodViewerWidget(QWidget):
         self.xml_dict["guids_grids"] = [uuid.uuid4() for i in range(n_layers)]
 
     def write_xml(self, xml_path):
+        """Write imod projectfile to immediately have data in the explorer.
+        """
         self.update_xml()
         xml_tree.write_xml(xml_path, **self.xml_dict)
 
@@ -137,15 +139,22 @@ class ImodViewerWidget(QWidget):
         return ' '.join(self.rgb_string(c) for c in colorramp)
 
     def start_viewer(self):
-        configdir = self.server.get_configdir()
-        xml_path = configdir / 'qgis_viewer.imod'
-
-        self.write_xml(xml_path)
-
         self.server.start_server()
         self.server.start_imod()
         self.server.accept_client()
+
+        self.update_viewer()
     
+    def load_layers(self):
+        import time
+        #Load layers
+        print(".....Loading layers.....")
+        for i, guid_grid in enumerate(self.xml_dict["guids_grids"]):
+            print(f"{i}:{guid_grid}")
+            command = xml_tree.command_xml(xml_tree.load_to_explorer_tree, guid_grid=guid_grid)
+            self.server.send(command)
+            #time.sleep(1)
+
     def update_viewer(self):
         self.update_xml()
 
@@ -153,9 +162,4 @@ class ImodViewerWidget(QWidget):
         command = xml_tree.command_xml(xml_tree.add_to_explorer_tree, **self.xml_dict)
         self.server.send(command)
 
-        #Load layers
-        for guid_grid in self.xml_dict["guids_grids"]:
-            print("load data")
-            command = xml_tree.command_xml(xml_tree.load_to_explorer_tree, guid_grid=guid_grid)
-            print(command)
-            self.server.send(command)
+        self.load_layers()
