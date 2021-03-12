@@ -37,7 +37,7 @@ To install them, follow these steps:
 Download the iMOD QGIS plugin code from the [Github page](https://github.com/Deltares/imod-qgis) 
 (You are probably reading these instructions on this page already).
 
-Unpack the zip files, and copy them to your QGIS plugin directory. 
+Unpack the zip files, and copy the `imod` folder to your QGIS plugin directory. 
 This is probably located in your Appdata folder.
 In windows it is something such as:
 `c:\Users\%USER%\AppData\Roaming\QGIS\QGIS3\profiles\default\python\plugins`
