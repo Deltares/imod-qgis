@@ -49,11 +49,21 @@ class ImodPlugin:
         self.action_netcdf_manager = self.add_action(
             icon_name, "NetCDF Manager", self.toggle_netcdf_manager, True
         )
+        self.action_nhi_data = self.add_action(
+            icon_name, "Add NHI Data", self.nhi_data_dialog, True
+        )
 
     def ipf_dialog(self):
         from .ipf import ImodIpfDialog
 
         dialog = ImodIpfDialog()
+        dialog.show()
+        dialog.exec_()
+
+    def nhi_data_dialog(self):
+        from .nhi_data import ImodNhiDataDialog
+
+        dialog = ImodNhiDataDialog(self.iface)
         dialog.show()
         dialog.exec_()
 
