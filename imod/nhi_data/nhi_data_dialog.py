@@ -26,7 +26,6 @@ class ImodNhiDataDialog(QDialog):
         QDialog.__init__(self, parent)
         self.setWindowTitle("Add NHI data")
         self.iface = iface
-
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText("service type, (part of) name")
         # QStandard Item Model

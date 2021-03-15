@@ -2,6 +2,7 @@ import json
 import os
 from pathlib import Path
 import platform
+from typing import Dict, List
 import urllib.request
 from xml.etree import cElementTree as ElementTree
 
@@ -10,9 +11,8 @@ PROVIDERS = [
     ("https://data.nhi.nu/geoserver/ows", "wcs", "2.0.1"),
     ("https://data.nhi.nu/geoserver/ows", "wfs", "2.0.0"),
     ("https://data.nhi.nu/geoserver/ows", "wms", "1.3.0"),
-    #    ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wcs", "2.0.1"),
-    #    ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wfs", "2.0.0"),
-    #    ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wms", "1.3.0"),
+    ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wcs", "2.0.1"),
+    ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wms", "1.3.0"),
 ]
 NAMESPACES = {
     "wcs": "http://www.opengis.net/wcs/2.0",
@@ -22,7 +22,7 @@ NAMESPACES = {
 }
 
 
-def wcs_metadata(url, version):
+def wcs_metadata(url: str, version: str) -> List[Dict]:
     response = urllib.request.urlopen(
         f"{url}?service=WCS&version={version}&request=GetCapabilities"
     ).read()
@@ -50,7 +50,7 @@ def wcs_metadata(url, version):
     return metadata
 
 
-def wfs_metadata(url, version):
+def wfs_metadata(url: str, version: str) -> List[Dict]:
     response = urllib.request.urlopen(
         f"{url}?service=wfs&version={version}&request=GetCapabilities"
     ).read()
@@ -70,7 +70,7 @@ def wfs_metadata(url, version):
     return metadata
 
 
-def wms_metadata(url, version):
+def wms_metadata(url: str, version: str) -> List[Dict]:
     response = urllib.request.urlopen(
         f"{url}?service=wms&version={version}&request=GetCapabilities"
     ).read()
@@ -105,7 +105,7 @@ def wms_metadata(url, version):
     return metadata
 
 
-def fetch_metadata():
+def fetch_metadata() -> None:
     functions = {
         "wcs": wcs_metadata,
         "wfs": wfs_metadata,
