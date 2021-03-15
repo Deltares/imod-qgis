@@ -653,10 +653,7 @@ class ImodCrossSectionWidget(QWidget):
         variable = self.variable_selection.dataset_variable
         layers = [str(a) for a in self.variables_indexes[variable].keys()]
         self.multi_variable_selection.menu_datasets.populate_actions(layers)
-        if self.as_line_checkbox.isChecked():
-            self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
-        else:
-            self.multi_variable_selection.menu_datasets.check_all.setChecked(False)
+        self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
