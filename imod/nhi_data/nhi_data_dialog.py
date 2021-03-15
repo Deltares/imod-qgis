@@ -103,8 +103,10 @@ class ImodNhiDataDialog(QDialog):
             )
             self.iface.addRasterLayer(uri, title, service)
         elif service == "wcs":
-            layer["format"] = "GeoTIFF"  # layer["formats"][0]
-            uri = "cache=AlwaysNetwork&crs=EPSG:28992&format={format}&identifier={identifier}&url={url}".format(
+            # https://docs.qgis.org/3.16/en/docs/pyqgis_developer_cookbook/loadlayer.html#raster-layers
+            # cache options: AlwaysCache, PreferCache, PreferNetwork, AlwaysNetwork
+            # AlwaysCache seems to result in an error?
+            uri = "cache=PreferCache&crs={crs}&format={format}&identifier={identifier}&url={url}".format(
                 **layer
             )
             self.iface.addRasterLayer(uri, title, service)
