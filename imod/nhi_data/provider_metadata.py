@@ -58,9 +58,10 @@ def wfs_metadata(url: str, version: str) -> List[Dict]:
     root = ElementTree.XML(response)
     metadata = []
     for xml_layer in root.find("wfs:FeatureTypeList", NAMESPACES):
+        crs = xml_layer.find("wfs:DefaultCRS", NAMESPACES).text.split("::")[1]
         d = {
             "abstract": xml_layer.find("wfs:Abstract", NAMESPACES).text,
-            "crs": xml_layer.find("wfs:DefaultCRS", NAMESPACES).text,
+            "crs": f"EPSG:{crs}",
             "title": xml_layer.find("wfs:Title", NAMESPACES).text,
             "typename": xml_layer.find("wfs:Name", NAMESPACES).text,
             "service": "wfs",
