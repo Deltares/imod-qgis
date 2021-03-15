@@ -28,16 +28,17 @@ def wcs_metadata(url: str, version: str) -> List[Dict]:
     ).read()
     root = ElementTree.XML(response)
     # Read WCS capabilities
-    # Whole boatload of CRS supported
+    # Whole boatload of CRS supported;
     # Just defaulting to ESPG:28992 for now
-    formats = [item.text for item in root.find("wcs:ServiceMetadata", NAMESPACES)]
+    # Also will default to format=GeoTIFF; to fetch formats:
+    # formats = [item.text for item in root.find("wcs:ServiceMetadata", NAMESPACES)]
     contents_xml = root.find("wcs:Contents", NAMESPACES)
     metadata = []
     for layer_xml in contents_xml:
         d = {
             "abstract": layer_xml.find("ows:Abstract", NAMESPACES).text,
             "crs": "EPSG:28992",
-            "formats": formats,
+            "format": "GeoTIFF",
             "identifier": layer_xml.find("wcs:CoverageId", NAMESPACES).text.replace(
                 "__", ":"
             ),
@@ -77,9 +78,7 @@ def wms_metadata(url: str, version: str) -> List[Dict]:
     root = ElementTree.XML(response)
     metadata = []
     xml_layers = root.find("wms:Capability", NAMESPACES).find("wms:Layer", NAMESPACES)
-    default_crs = "EPSG:28992"
     for xml_layer in xml_layers.findall("wms:Layer", NAMESPACES):
-        crs_options = [a.text for a in xml_layer.findall("wms:CRS", NAMESPACES)]
         style = xml_layer.find("wms:Style", NAMESPACES)
         if style is not None:
             imgformat = (
@@ -92,7 +91,7 @@ def wms_metadata(url: str, version: str) -> List[Dict]:
             imgformat = "image/png"
         d = {
             "abstract": xml_layer.find("wms:Abstract", NAMESPACES).text,
-            "crs": default_crs if default_crs in crs_options else crs_options[0],
+            "crs": "EPSG:28992",
             "format": imgformat,
             "layers": xml_layer.find("wms:Name", NAMESPACES).text,
             "service": "wms",
