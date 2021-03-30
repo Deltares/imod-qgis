@@ -55,6 +55,16 @@ class GridModel(Aggregate):
     Type: str = "Layered Ugrid"
     GridIndex: int = 0
 
+@dataclass
+class Object(Aggregate):
+    type : Union[Attribute, str]
+    guid : Union[Attribute, str]
+    name : Optional[Union[Attribute, str]] = None
+
+@dataclass
+class ObjectGuids(Aggregate):
+    object: List[Object]
+
 #%% GUI widgets
 @dataclass
 class ExplorerModelList(Aggregate):
@@ -74,11 +84,11 @@ class IMOD6(Aggregate):
 class ModelToLoad(Aggregate):
     guid: Union[Attribute, str] = ""
 
+#%% Fence diagrams
 @dataclass
 class OutputObject(Aggregate):
     guid: Union[Attribute, str] = ""
 
-#%% Fence diagrams
 @dataclass
 class Polyline(Aggregate):
     polyline: List[float]
@@ -104,6 +114,10 @@ class ImodCommand(Aggregate):
     viewer: Optional[List[Viewer]] = None
     modeltoload: Optional[List[ModelToLoad]] = None #List as a hack to get an aggregate with only attributes in the xml file
     createfencediagram: Optional[CreateFenceDiagram] = None
+    Url : Optional[str] = None
+    boundingbox : Optional[BoundingBox] = None
+    objectguids : Optional[ObjectGuids] = None
+
 
 
 #%%Mappings
