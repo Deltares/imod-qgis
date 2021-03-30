@@ -14,7 +14,7 @@ from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 from .maptools import RectangleMapTool
 from . import xml_tree
 from .server import Server
-from ..utils.layers import groupby_layer, groupby_variable
+from ..utils.layers import groupby_variable
 
 import os
 import subprocess
