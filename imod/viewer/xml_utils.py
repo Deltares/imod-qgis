@@ -11,7 +11,7 @@ class Aggregate(abc.ABC):
 class Attribute(abc.ABC):
     pass
 
-#%%Mapcanvas
+#%% Styling
 @dataclass
 class Legend(Aggregate):
     LegendType: str = "Continuous"
@@ -20,6 +20,7 @@ class Legend(Aggregate):
     RgbPointData: str = ""
     NanColor: str = "1 1 1"
 
+#%% Data models
 @dataclass
 class DataSet(Aggregate):
     Name: str
@@ -54,6 +55,7 @@ class GridModel(Aggregate):
     Type: str = "Layered Ugrid"
     GridIndex: int = 0
 
+#%% GUI widgets
 @dataclass
 class ExplorerModelList(Aggregate):
     gridmodel: List[GridModel]
@@ -68,7 +70,6 @@ class IMOD6(Aggregate):
     Version: Union[Attribute, str] = "8"
     viewer: List[Viewer] = None
 
-#%%iMOD commands
 @dataclass
 class ModelToLoad(Aggregate):
     guid: Union[Attribute, str] = ""
@@ -77,6 +78,7 @@ class ModelToLoad(Aggregate):
 class OutputObject(Aggregate):
     guid: Union[Attribute, str] = ""
 
+#%% Fence diagrams
 @dataclass
 class Polyline(Aggregate):
     polyline: List[float]
@@ -91,9 +93,10 @@ class CreateFenceDiagram(Aggregate):
     polylines: Polylines
     outputobject: OutputObject
 
+#%% iMOD command
 @dataclass 
 class ImodCommand(Aggregate):
-    """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram"]
+    """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram", "OpenFileLoadModels"]
     """
     Version: Union[Attribute, str] = "8"
     type: Union[Attribute, str] = ""
@@ -111,21 +114,14 @@ type_mapping = {
     str: xml.string,
 }
 
-name_mapping = {}
-
+#Name mapping, can be used to force different names if necessary
+# e.g.: 
 # name_mapping = {
 #     NoData: "noData",
-#     NoDataList: "noDataList",
-#     KeywordList: "keywordList",
-#     ProjectCrs: "projectCrs",
-#     TransformContext: "transformContext",
-#     EvaluateDefaultValues: "evaluateDefaultValues",
-#     HomePath: "homePath",
-#     Layer_Tree_Group_Leaf: "layer-tree-group",
-#     Layer_Tree_Group_Root: "layer-tree-group",
-#     SrcDest: "srcDest",
-#     SpatialRefSys_Property: "SpatialRefSys",
 # }
+
+name_mapping = {}
+
 
 #%%Functions
 # Following dataformats are now supported:
@@ -231,26 +227,3 @@ def make_processor(datacls: type, element_required: bool = True):
         alias=datacls.__name__.lower(),
         required=element_required,
     )
-## %%
-#@dataclass
-#class ModelToLoad(Aggregate):
-#   guid: Union[Attribute, str] = ""
-#
-#@dataclass 
-#class ImodCommand(Aggregate):
-#   """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram"]
-#   """
-#   #model_To_Load: ModelToLoad
-#   modeltoload: List[ModelToLoad]
-#   type: Union[Attribute, str] = ""
-#
-#
-#if True:
-#    #model_to_load = ModelToLoad(guid="aaaaaaaaaaaa")
-#    model_to_load = ModelToLoad()
-#    command = ImodCommand(modeltoload = [model_to_load], type = "LoadExplorerModel")
-#    processor = make_processor(ImodCommand)
-#
-#    print(xml.serialize_to_string(processor, command, indent='   '))
-## %%
-#
