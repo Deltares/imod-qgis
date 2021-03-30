@@ -3,7 +3,7 @@ import os
 import declxml as xml
 from . import xml_utils as xmu
 
-from ..utils.layers import groupby_layer, get_layer_idx
+from ..utils.layers import groupby_layer, get_layer_idx, groupby_variable
 
 def create_legend(rgb_point_data):
     legend = xmu.Legend(LegendType = "Continuous",
@@ -73,6 +73,31 @@ def create_viewer_tree(**xml_dict):
         explorermodellist=xmu.ExplorerModelList(gridmodel=gm_list))
 
     return viewer_3d
+
+def create_object_list(guids_grids=None, variable_names=None, **xml_dict):
+    if guids_grids is None:
+        raise ValueError("guids_grids is not specified")
+
+    objects = [xmu.Object(type="LayeredGrid", guid=guids_grids[0])]
+    for i, name in enumerate(variable_names):
+        objects.append(xmu.Object(name=name, type="LayeredDataSet",guid=guids_grids[i+1]))
+
+    return xmu.ObjectGuids(object= objects)
+
+def open_file_models_tree(**xml_dict):
+    objectguids = create_object_list(**xml_dict)
+
+    viewer = [xmu.Viewer(type="3D")]
+    path = xml_dict['path']
+    boundingbox = create_boundingbox(xml_dict["bbox_rectangle"])
+
+    return xmu.ImodCommand(
+        type="OpenFileLoadModels",
+        objectguids=objectguids, 
+        viewer=viewer, 
+        Url=path, 
+        boundingbox=boundingbox
+        )
 
 def create_file_tree(**xml_dict):
     viewer_3d = create_viewer_tree(**xml_dict)

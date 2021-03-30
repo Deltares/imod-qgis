@@ -14,7 +14,7 @@ from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 from .maptools import RectangleMapTool
 from . import xml_tree
 from .server import Server
-from ..utils.layers import groupby_layer
+from ..utils.layers import groupby_layer, groupby_variable
 
 import os
 import subprocess
@@ -102,6 +102,9 @@ class ImodViewerWidget(QWidget):
         idx = current_layer.datasetGroupsIndexes()
         self.xml_dict["group_names"] = [current_layer.datasetGroupMetadata(QgsMeshDatasetIndex(group=i)).name() for i in idx]
 
+        self.xml_dict["variable_names"] = list(groupby_variable(self.xml_dict["group_names"], idx).keys())
+        self.xml_dict["variable_names"].append("Elevation (cell centre)") #computed by the viewer itsself from 'top' and 'bot'
+
         style_group_index = idx[0]  #Same style used for all groups in QGIS 3.16
                                     #FUTURE: Check if this remains
 
@@ -114,15 +117,9 @@ class ImodViewerWidget(QWidget):
 
         self.xml_dict["bbox_rectangle"] = self.extent_box.outputExtent()
 
-        n_layers = len(groupby_layer(self.xml_dict["group_names"]))
+        n_vars = len(self.xml_dict["variable_names"])
 
-        self.xml_dict["guids_grids"] = [uuid.uuid4() for i in range(n_layers)]
-
-    def write_xml(self, xml_path):
-        """Write imod projectfile to immediately have data in the explorer.
-        """
-        self.update_xml()
-        xml_tree.write_xml(xml_path, **self.xml_dict)
+        self.xml_dict["guids_grids"] = [uuid.uuid4() for i in range(n_vars+1)]
 
     def rgb_components_to_float(self, components):
         return [comp/256 for comp in components]
@@ -140,19 +137,15 @@ class ImodViewerWidget(QWidget):
         self.server.accept_client()
 
         self.update_viewer()
-    
-    def load_layers(self):
-        print(".....Loading layers.....")
-        for i, guid_grid in enumerate(self.xml_dict["guids_grids"]):
-            print(f"{i}:{guid_grid}")
-            command = xml_tree.command_xml(xml_tree.load_to_explorer_tree, guid_grid=guid_grid)
-            self.server.send(command)
+
+    def load_file(self):
+        command = xml_tree.command_xml(
+            xml_tree.open_file_models_tree, 
+            **self.xml_dict
+            )
+        print(command)
+        self.server.send(command)
 
     def update_viewer(self):
         self.update_xml()
-
-        #Add to explorer
-        command = xml_tree.command_xml(xml_tree.add_to_explorer_tree, **self.xml_dict)
-        self.server.send(command)
-
-        self.load_layers()
+        self.load_file()
