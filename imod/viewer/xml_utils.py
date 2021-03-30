@@ -72,7 +72,7 @@ class ExplorerModelList(Aggregate):
 
 @dataclass
 class Viewer(Aggregate):
-    type: Union[Attribute, str] = "2D"
+    type: Union[Attribute, str] = "3D"
     explorermodellist: Optional[ExplorerModelList] = None
 
 @dataclass
