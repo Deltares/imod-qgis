@@ -1,23 +1,17 @@
 from PyQt5.QtWidgets import (
     QWidget,
-    QStackedLayout,
     QHBoxLayout,
     QVBoxLayout,
     QPushButton,
-    QGridLayout,
-    QLabel,
 )
 
 from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
-from ..widgets.maptools import RectangleMapTool
+from ..widgets import RectangleMapTool
 from . import xml_tree
 from .server import Server
 from ..utils.layers import groupby_variable
-
-import os
-import subprocess
 
 import uuid
 
