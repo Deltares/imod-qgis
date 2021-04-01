@@ -65,6 +65,10 @@ class Object(Aggregate):
 class ObjectGuids(Aggregate):
     object: List[Object]
 
+@dataclass
+class TargetModel(Aggregate):
+    guid : Union[Attribute, str]
+
 #%% GUI widgets
 @dataclass
 class ExplorerModelList(Aggregate):
@@ -106,13 +110,20 @@ class CreateFenceDiagram(Aggregate):
 #%% iMOD command
 @dataclass 
 class ImodCommand(Aggregate):
-    """type: ["AddToExplorer", "LoadExplorerModel", "CreateFenceDiagram", "OpenFileLoadModels"]
+    """type: [
+        "AddToExplorer", 
+        "LoadExplorerModel", 
+        "CreateFenceDiagram", 
+        "OpenFileLoadModels",
+        "UnloadModel"
+        ]
     """
     Version: Union[Attribute, str] = "8"
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
     viewer: Optional[List[Viewer]] = None
     modeltoload: Optional[List[ModelToLoad]] = None #List as a hack to get an aggregate with only attributes in the xml file
+    targetmodel: Optional[List[TargetModel]] = None
     createfencediagram: Optional[CreateFenceDiagram] = None
     Url : Optional[str] = None
     boundingbox : Optional[BoundingBox] = None
