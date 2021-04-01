@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
 from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
 from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
-from .maptools import RectangleMapTool
+from ..widgets.maptools import RectangleMapTool
 from . import xml_tree
 from .server import Server
 from ..utils.layers import groupby_variable
