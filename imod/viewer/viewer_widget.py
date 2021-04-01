@@ -67,6 +67,9 @@ class ImodViewerWidget(QWidget):
 
         self.setLayout(layout)
 
+        #Initiate dictionary for xml commands
+        self.xml_dict = {}
+
     def _init_extent_box(self):
         extent_box = QgsExtentGroupBox()
 
@@ -94,7 +97,6 @@ class ImodViewerWidget(QWidget):
     def update_xml(self):
         """Update data for xml file.
         """
-        self.xml_dict = {}
 
         current_layer = self.layer_selection.currentLayer()
         self.xml_dict["path"] = current_layer.dataProvider().dataSourceUri()
@@ -138,7 +140,28 @@ class ImodViewerWidget(QWidget):
 
         self.update_viewer()
 
-    def load_file(self):
+    def load_model(self):
+        """Load model from explorer into the renderer
+        """
+        command = xml_tree.command_xml(
+            xml_tree.model_load_tree,
+            **self.xml_dict
+        )
+        self.server.send(command)
+
+    def unload_model(self):
+        """Unload model, removing it from the explorer as well
+        """
+        command = xml_tree.command_xml(
+            xml_tree.model_unload_tree,
+            **self.xml_dict
+        )
+        print(command)
+        self.server.send(command)
+
+    def open_file(self):
+        """Open file into viewer explorer
+        """
         command = xml_tree.command_xml(
             xml_tree.open_file_models_tree, 
             **self.xml_dict
@@ -147,5 +170,14 @@ class ImodViewerWidget(QWidget):
         self.server.send(command)
 
     def update_viewer(self):
+        """Update viewer. 
+        First, if created, unload previous model in viewer, also removing it from its explorer.
+        Second, update data dictionary.
+        Third, open file from a path into viewer explorer.
+        Fourth, load model from explorer into renderer.
+        """
+        if "guids_grids" in self.xml_dict.keys():
+            self.unload_model()
         self.update_xml()
-        self.load_file()
+        self.open_file()
+        self.load_model()
