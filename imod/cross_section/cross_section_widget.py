@@ -6,27 +6,20 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QGridLayout,
     QLabel,
-    QToolButton,
-    QMenu,
     QDoubleSpinBox,
     QCheckBox,
     QComboBox,
     QDialog,
 )
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt, pyqtSignal, QRectF, QPointF
+from PyQt5.QtCore import Qt
 from qgis.gui import (
     QgsMapLayerComboBox,
-    QgsVertexMarker,
     QgsRubberBand,
-    QgsMapTool,
 )
 from qgis.core import (
     QgsGeometry,
     QgsWkbTypes,
-    QgsPointXY,
-    QgsMeshDatasetIndex,
-    QgsMapLayerProxyModel,
     QgsProject,
     QgsVectorLayer,
     QgsFeature,
@@ -50,7 +43,13 @@ from .plot_util import (
     cross_section_y_data,
     project_points_to_section,
 )
-from ..widgets import MultipleVariablesWidget, VariablesWidget, ImodPseudoColorWidget, ImodUniqueColorWidget
+from ..widgets import (
+    MultipleVariablesWidget, 
+    VariablesWidget, 
+    ImodPseudoColorWidget, 
+    ImodUniqueColorWidget, 
+    LineGeometryPickerWidget
+)
 from ..utils.layers import groupby_variable, get_group_names
 from ..ipf import IpfType, read_associated_borehole
 
@@ -224,91 +223,6 @@ class ColorsDialog(QDialog):
     def accept(self):
         self.detach()
         QDialog.accept(self)
-
-
-class PickGeometryTool(QgsMapTool):
-    picked = pyqtSignal(
-        list, bool
-    )  # list of pointsXY, whether finished or still drawing
-
-    def __init__(self, canvas):
-        QgsMapTool.__init__(self, canvas)
-        self.points = []
-        self.capturing = False
-
-    def canvasMoveEvent(self, e):
-        if not self.capturing:
-            return
-        self.picked.emit(self.points + [e.mapPoint()], False)
-
-    def canvasPressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            self.capturing = True
-            self.points.append(e.mapPoint())
-            self.picked.emit(self.points, False)
-        if e.button() == Qt.RightButton:
-            self.picked.emit(self.points, True)
-            self.capturing = False
-            self.points = []
-
-    def canvasReleaseEvent(self, e):
-        pass
-
-
-class LineGeometryPickerWidget(QWidget):
-    geometries_changed = pyqtSignal()
-    PICK_NO, PICK_MAP, PICK_LAYER = range(3)
-
-    def __init__(self, iface, parent=None):
-        QWidget.__init__(self, parent)
-
-        self.iface = iface
-        self.pick_mode = self.PICK_NO
-        self.pick_layer = None
-        self.geometries = []
-
-        self.button = QPushButton("From map")
-        self.button.clicked.connect(self.picker_clicked)
-        self.button.clicked.connect(self.clear_geometries)
-
-        self.tool = PickGeometryTool(self.iface.mapCanvas())
-        self.tool.picked.connect(self.on_picked)
-        self.tool.setButton(self.button)
-
-        layout = QHBoxLayout()
-        layout.addWidget(self.button)
-        self.setLayout(layout)
-
-    def clear_geometries(self):
-        self.geometries = []
-        self.geometries_changed.emit()
-
-    def picker_clicked(self):
-        was_active = self.pick_mode == self.PICK_MAP
-        self.stop_picking()
-        if not was_active:
-            self.start_picking_map()
-
-    def start_picking_map(self):
-        self.pick_mode = self.PICK_MAP
-        self.iface.mapCanvas().setMapTool(self.tool)
-
-    def stop_picking(self):
-        if self.pick_mode == self.PICK_MAP:
-            self.iface.mapCanvas().unsetMapTool(self.tool)
-        elif self.pick_mode == self.PICK_LAYER:
-            self.pick_layer.selectionChanged.disconnect(self.on_pick_selection_changed)
-            self.pick_layer = None
-        self.pick_mode = self.PICK_NO
-
-    def on_picked(self, points, finished):
-        if len(points) >= 2:
-            self.geometries = [QgsGeometry.fromPolylineXY(points)]
-        else:
-            self.geometries = []
-        self.geometries_changed.emit()
-        if finished:  # no more updates
-            self.stop_picking()
 
 
 class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
