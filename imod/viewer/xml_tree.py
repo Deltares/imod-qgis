@@ -27,6 +27,20 @@ def create_object_list(guids_grids=None, variable_names=None, **xml_dict):
 
     return xmu.ObjectGuids(object= objects)
 
+def model_unload_tree(**xml_dict):
+    guids_grids = xml_dict["guids_grids"]
+    return xmu.ImodCommand(
+        type="UnloadModel",
+        targetmodel = [xmu.TargetModel(guid=guid) for guid in guids_grids]
+        )
+
+def model_load_tree(**xml_dict):
+    guids_grids = xml_dict["guids_grids"]
+    return xmu.ImodCommand(
+        type="LoadExplorerModel",
+        modeltoload = [xmu.ModelToLoad(guid=guid) for guid in guids_grids]
+        )
+
 def open_file_models_tree(**xml_dict):
     objectguids = create_object_list(**xml_dict)
 
