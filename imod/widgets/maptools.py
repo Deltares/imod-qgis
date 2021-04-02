@@ -213,6 +213,7 @@ class MultipleLineGeometryPickerWidget(QWidget):
 
         self.clear_button = QPushButton("Clear fence diagram")
         self.clear_button.clicked.connect(self.clear_rubber_bands)
+        self.clear_button.clicked.connect(self.stop_picking)
 
         self.tool = PickGeometryTool(canvas)
         self.tool.picked.connect(self.on_picked)
@@ -238,7 +239,6 @@ class MultipleLineGeometryPickerWidget(QWidget):
         
     def picker_clicked(self):
         was_active = self.pick_mode == self.PICK_MAP
-        #self.stop_picking()
         if not was_active:
             self.start_picking_map()
 
@@ -261,6 +261,8 @@ class MultipleLineGeometryPickerWidget(QWidget):
     def clear_rubber_bands(self):
         self.clear_multi_lines()
         self.clear_last_line()
+
+    def stop_picking(self):
         self.canvas.unsetMapTool(self.tool)
         self.pick_mode = self.PICK_NO
 
