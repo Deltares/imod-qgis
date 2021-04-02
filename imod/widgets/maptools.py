@@ -2,12 +2,16 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
+    QVBoxLayout,
     QPushButton,
 )
 from PyQt5.QtGui import QColor
 
 from qgis.core import (
-    QgsPointXY, 
+    QgsPointXY,
+    QgsPoint,
+    QgsLineString,
+    QgsMultiLineString,
     QgsRectangle, 
     QgsWkbTypes, 
     QgsGeometry,
@@ -18,6 +22,7 @@ from qgis.gui import (
     QgsRubberBand
 )
 
+RUBBER_BAND_COLOR = QColor(Qt.red)
 
 class RectangleMapTool(QgsMapToolEmitPoint):
     rectangleCreated = pyqtSignal()
@@ -188,3 +193,106 @@ class LineGeometryPickerWidget(QWidget):
         self.geometries_changed.emit()
         if finished:  # no more updates
             self.stop_picking()
+
+class MultipleLineGeometryPickerWidget(QWidget):
+    PICK_NO, PICK_MAP, PICK_LAYER = range(3)
+
+    def __init__(self, canvas, parent=None):
+        QWidget.__init__(self, parent)
+
+        self.canvas = canvas
+        self.pick_mode = self.PICK_NO
+        self.pick_layer = None
+        self.geometries = []
+        self.last_geometry = None
+
+        self.draw_button = QPushButton("Draw fence diagram")
+        self.draw_button.clicked.connect(self.picker_clicked)
+        self.draw_button.clicked.connect(self.clear_multi_lines)
+        self.draw_button.clicked.connect(self.clear_last_line)
+
+        self.clear_button = QPushButton("Clear fence diagram")
+        self.clear_button.clicked.connect(self.clear_rubber_bands)
+
+        self.tool = PickGeometryTool(canvas)
+        self.tool.picked.connect(self.on_picked)
+        self.tool.setButton(self.draw_button)
+
+        self.last_rubber_band = None
+        self.rubber_bands = None
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.draw_button)
+        layout.addWidget(self.clear_button)
+        self.setLayout(layout)
+
+    def clear_multi_lines(self):
+        self.geometries = []
+        self.canvas.scene().removeItem(self.rubber_bands)
+        self.rubber_bands = None
+        
+    def clear_last_line(self):
+        self.last_geometry = None
+        self.canvas.scene().removeItem(self.last_rubber_band)
+        self.last_rubber_band = None
+        
+    def picker_clicked(self):
+        was_active = self.pick_mode == self.PICK_MAP
+        #self.stop_picking()
+        if not was_active:
+            self.start_picking_map()
+
+    def start_picking_map(self):
+        self.pick_mode = self.PICK_MAP
+        self.canvas.setMapTool(self.tool)
+       
+    def on_picked(self, points, finished):
+        if len(points) >= 2:
+            self.last_geometry = QgsGeometry.fromPolylineXY(points)
+
+        if finished:
+            self.clear_last_line()
+            if len(points) >= 2:
+                self.geometries.append(QgsGeometry.fromPolylineXY(points))
+                self.draw_geometry_list()
+        else:
+            self.change_last_geometry()
+
+    def clear_rubber_bands(self):
+        self.clear_multi_lines()
+        self.clear_last_line()
+        self.canvas.unsetMapTool(self.tool)
+        self.pick_mode = self.PICK_NO
+
+    def draw_geometry_list(self):
+        if len(self.geometries) == 0:
+            return
+
+        #Remove previous items
+        self.canvas.scene().removeItem(self.rubber_bands) 
+
+        self.rubber_bands = QgsRubberBand(
+        self.canvas, QgsWkbTypes.PointGeometry
+        )
+        self.rubber_bands.setColor(RUBBER_BAND_COLOR)
+        self.rubber_bands.setWidth(2)
+        #Create multilinestring
+        mls = QgsMultiLineString()
+        for linestring in self.geometries:
+            linestring = [QgsPoint(x=p.x(), y=p.y()) for p in linestring.asPolyline()]
+            linestring = QgsLineString(linestring)
+            mls.addGeometry(linestring)
+        #Draw
+        self.rubber_bands.setToGeometry(QgsGeometry(mls), None)
+
+    def change_last_geometry(self):
+        if self.last_geometry is None:
+            return
+        
+        self.canvas.scene().removeItem(self.last_rubber_band)
+        self.last_rubber_band = QgsRubberBand(
+        self.canvas, QgsWkbTypes.PointGeometry
+        )
+        self.last_rubber_band.setColor(RUBBER_BAND_COLOR)
+        self.last_rubber_band.setWidth(2)
+        self.last_rubber_band.setToGeometry(self.last_geometry, None)

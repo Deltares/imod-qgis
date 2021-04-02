@@ -5,10 +5,11 @@ from PyQt5.QtWidgets import (
     QPushButton,
 )
 
-from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
-from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex
 
-from ..widgets import RectangleMapTool
+from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox, QgsRubberBand
+from qgis.core import QgsMapLayerProxyModel, QgsMeshDatasetIndex, QgsWkbTypes
+
+from ..widgets import RectangleMapTool, MultipleLineGeometryPickerWidget
 from . import xml_tree
 from .server import Server
 from ..utils.layers import groupby_variable
@@ -26,6 +27,9 @@ class ImodViewerWidget(QWidget):
         #Layer selection
         self.layer_selection = QgsMapLayerComboBox()
         self.layer_selection.setFilters(QgsMapLayerProxyModel.MeshLayer)
+
+        #Draw fence diagram button
+        self.line_picker = MultipleLineGeometryPickerWidget(canvas)
 
         #Draw extent button      
         #TODO: Create seperate widget for extent_button, so that the right click button can be used to unset geometry
@@ -48,6 +52,7 @@ class ImodViewerWidget(QWidget):
         #Define layout
         first_column = QVBoxLayout()
         first_column.addWidget(self.layer_selection)
+        first_column.addWidget(self.line_picker)
         first_column.addWidget(self.extent_button)
 
         third_column = QVBoxLayout()
