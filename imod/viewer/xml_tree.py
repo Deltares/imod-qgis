@@ -43,8 +43,7 @@ def model_load_tree(**xml_dict):
 
 def create_fence_diagram_tree(**xml_dict):
     def _to_string(iterable):
-        ls = [str(p) for p in iterable]
-        return " ".join(ls)
+        return " ".join(str(p) for p in iterable)
 
     guids_grids = xml_dict["guids_grids"]
     model_to_cut = [xmu.ModelToCut(guid=guids_grids[0])]
