@@ -38,8 +38,24 @@ def model_load_tree(**xml_dict):
     guids_grids = xml_dict["guids_grids"]
     return xmu.ImodCommand(
         type="LoadExplorerModel",
-        modeltoload = [xmu.ModelToLoad(guid=guid) for guid in guids_grids]
+        modeltoload = [xmu.ModelToLoad(guid=guids_grids[0])]
         )
+
+def create_fence_diagram_tree(**xml_dict):
+    def _to_string(iterable):
+        ls = [str(p) for p in iterable]
+        return " ".join(ls)
+
+    guids_grids = xml_dict["guids_grids"]
+    model_to_cut = [xmu.ModelToCut(guid=guids_grids[0])]
+    polylines = xmu.PolyLines(PolyLine = [_to_string(polyline) for polyline in xml_dict["polylines"]])
+
+    return xmu.ImodCommand(
+        type="CreateFenceDiagram",
+        modeltocut=model_to_cut,
+        polylines=polylines,
+        Url = None
+    )
 
 def open_file_models_tree(**xml_dict):
     objectguids = create_object_list(**xml_dict)

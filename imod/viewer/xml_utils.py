@@ -94,18 +94,12 @@ class OutputObject(Aggregate):
     guid: Union[Attribute, str] = ""
 
 @dataclass
-class Polyline(Aggregate):
-    polyline: List[float]
+class PolyLines(Aggregate):
+    PolyLine: List[str]
 
 @dataclass
-class Polylines(Aggregate):
-    polyline_list: List[Polyline]
-
-@dataclass
-class CreateFenceDiagram(Aggregate):
-    modelsToCut: List[str]
-    polylines: Polylines
-    outputobject: OutputObject
+class ModelToCut(Aggregate):
+    guid: Union[Attribute, str] = ""
 
 #%% iMOD command
 @dataclass 
@@ -124,7 +118,8 @@ class ImodCommand(Aggregate):
     viewer: Optional[List[Viewer]] = None
     modeltoload: Optional[List[ModelToLoad]] = None #List as a hack to get an aggregate with only attributes in the xml file
     targetmodel: Optional[List[TargetModel]] = None
-    createfencediagram: Optional[CreateFenceDiagram] = None
+    modeltocut: Optional[List[ModelToCut]] = None
+    polylines: Optional[PolyLines] = None
     Url : Optional[str] = None
     boundingbox : Optional[BoundingBox] = None
     objectguids : Optional[ObjectGuids] = None
