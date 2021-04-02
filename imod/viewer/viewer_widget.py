@@ -13,6 +13,7 @@ from ..widgets import RectangleMapTool, MultipleLineGeometryPickerWidget
 from . import xml_tree
 from .server import Server
 from ..utils.layers import groupby_variable
+import itertools
 
 import uuid
 
@@ -49,6 +50,9 @@ class ImodViewerWidget(QWidget):
         self.update_button = QPushButton("update 3D plot")
         self.update_button.clicked.connect(self.update_viewer)
 
+        self.fence_buttion = QPushButton("load fence diagram")
+        self.fence_buttion.clicked.connect(self.load_fence_diagram)
+
         #Define layout
         first_column = QVBoxLayout()
         first_column.addWidget(self.layer_selection)
@@ -58,6 +62,7 @@ class ImodViewerWidget(QWidget):
         third_column = QVBoxLayout()
         third_column.addWidget(self.viewer_button)
         third_column.addWidget(self.update_button)
+        third_column.addWidget(self.fence_buttion)
 
         layout = QHBoxLayout() #Create horizontal layout, define stretch factors as 1 - 2 - 1
         layout.addLayout(first_column, 1)
@@ -155,7 +160,6 @@ class ImodViewerWidget(QWidget):
             xml_tree.model_unload_tree,
             **self.xml_dict
         )
-        print(command)
         self.server.send(command)
 
     def open_file(self):
@@ -165,7 +169,6 @@ class ImodViewerWidget(QWidget):
             xml_tree.open_file_models_tree, 
             **self.xml_dict
             )
-        print(command)
         self.server.send(command)
 
     def update_viewer(self):
@@ -180,3 +183,26 @@ class ImodViewerWidget(QWidget):
         self.update_xml()
         self.open_file()
         self.load_model()
+
+    def fence_diagram_is_active(self):
+        return len(self.line_picker.geometries) > 0
+
+    def prepare_fence_diagram(self):
+        self.xml_dict["polylines"] = []
+        for linestring in self.line_picker.geometries:
+            xyz_points = [(int(p.x()), int(p.y()), 0) for p in linestring.asPolyline()] #TODO: Integer required??
+            self.xml_dict["polylines"].append(itertools.chain(*xyz_points))
+
+    def create_fence_diagram(self):
+        """Open file into viewer explorer
+        """
+        command = xml_tree.command_xml(
+            xml_tree.create_fence_diagram_tree, 
+            **self.xml_dict
+            )
+        self.server.send(command)
+
+    def load_fence_diagram(self):
+        if self.fence_diagram_is_active():
+            self.prepare_fence_diagram()
+            self.create_fence_diagram()
