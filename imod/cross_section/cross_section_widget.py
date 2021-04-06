@@ -386,6 +386,7 @@ class ImodCrossSectionWidget(QWidget):
             self.buffer_rubber_band.setToGeometry(self.line_picker.geometries[0].buffer(buffer_distance, 4), None)
     
     def load_borehole_data(self):
+        variable = self.variable_selection.dataset_variable
         self.x, self.z, paths = select_boreholes(
             self.layer_selection.currentLayer(),
             self.buffer_spinbox.value(),
@@ -395,9 +396,10 @@ class ImodCrossSectionWidget(QWidget):
         self.borehole_data = [read_associated_borehole(p) for p in paths]
         variable_names = set()
         styling_entries = []
+
         for df in self.borehole_data:
             variable_names.update(df.columns)
-            styling_entries.append(df["value"].values)
+            styling_entries.append(df[variable].values)
         self.styling_data = np.concatenate(styling_entries)
 
     def load_raster_data(self):
@@ -497,10 +499,15 @@ class ImodCrossSectionWidget(QWidget):
 
     def draw_boreholes(self):
         column_to_plot = self.variable_selection.dataset_variable
+
+        #First column in IPF associated file indicates vertical coordinates
+        y_plot = [df.iloc[:, 0].values for df in self.borehole_data]
+
+        #Collect values in column to plot
+        z_plot = [df[column_to_plot].values for df in self.borehole_data]
+
         self.plot_item = [BoreholePlotItem(
-            self.x,
-            [df["top"].values for df in self.borehole_data],
-            [df[column_to_plot].values for df in self.borehole_data],
+            self.x, y_plot, z_plot,
             self.relative_width * (self.x.max() - self.x.min()),
             colorshader=self.colorshader(),
         )]
