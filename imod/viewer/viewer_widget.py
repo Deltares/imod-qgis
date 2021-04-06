@@ -120,6 +120,8 @@ class ImodViewerWidget(QWidget):
         self.extent_box.setOutputExtentFromUser(self.bbox, self.crs)
 
     def draw_extent(self):
+        """TODO: check if native draw extent function is better option
+        https://qgis.org/api/classQgsExtentGroupBox.html#ac213324b4796e579303693b375de41ca"""
         print("Please draw extent")
         self.canvas.setMapTool(self.rectangle_tool)
 
@@ -229,7 +231,6 @@ class ImodViewerWidget(QWidget):
             xml_tree.add_borelogs_tree,
             **self.xml_dict
         )
-        print(command)
         self.server.send(command)
 
     def update_viewer(self):
@@ -252,7 +253,6 @@ class ImodViewerWidget(QWidget):
             self.open_mesh_file()
             self.load_model()
         elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
-            print("loading borelog")
             self.update_data_borehole()
             self.open_borelogs()
         else:
@@ -280,35 +280,3 @@ class ImodViewerWidget(QWidget):
         if self.fence_diagram_is_active():
             self.prepare_fence_diagram()
             self.create_fence_diagram()
-
-    def draw(self):
-        """
-        Update plot (e.g. after change in colorramp)
-        """
-        layer = self.layer_selection.currentLayer()
-        if layer is None:
-            return
-        if len(self.line_picker.geometries) == 0:
-            return
-        layer_type = layer.type()
-        
-        if layer_type == QgsMapLayerType.MeshLayer:
-            self.load_mesh_data()
-            if self.as_line_checkbox.isChecked():
-                self.render_style = UNIQUE_COLOR
-                self.unique_color_widget.set_data(self.styling_data)
-                self.draw_cross_section_lines()
-            else:
-                self.render_style = PSEUDOCOLOR
-                self.pseudocolor_widget.set_data(self.styling_data)
-                self.draw_cross_section()
-        elif layer_type == QgsMapLayerType.RasterLayer:
-            self.load_raster_data()
-            self.render_style = UNIQUE_COLOR
-            self.unique_color_widget.set_data(self.styling_data)
-            self.draw_cross_section_lines()
-        elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
-            self.load_borehole_data()
-            self.render_style = UNIQUE_COLOR
-            self.unique_color_widget.set_data(self.styling_data)
-            self.draw_boreholes()
