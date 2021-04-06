@@ -41,6 +41,19 @@ def model_load_tree(**xml_dict):
         modeltoload = [xmu.ModelToLoad(guid=guids_grids[0])]
         )
 
+def add_borelogs_tree(**xml_dict):
+    guids_grids = xml_dict["guids_grids"]
+    name = path = xml_dict['name']
+    path = xml_dict['path']
+    column_mapping = xmu.ColumnMapping(map=[xmu.Map(Purpose = key, Name = value) for key, value in xml_dict["column_mapping"].items()])
+    borehole = xmu.TableGeometryModel(guid = guids_grids[0], Name = name, Url = path, columnmapping=column_mapping)
+    viewer = [xmu.Viewer(explorermodellist=xmu.ExplorerModelList(tablegeometrymodel=[borehole]))]
+
+    return xmu.ImodCommand(
+        type="AddToExplorer",
+        viewer=viewer
+    )
+
 def create_fence_diagram_tree(**xml_dict):
     def _to_string(iterable):
         return " ".join(str(p) for p in iterable)

@@ -20,6 +20,23 @@ class Legend(Aggregate):
     RgbPointData: str = ""
     NanColor: str = "1 1 1"
 
+#%% Borelogs
+@dataclass
+class Map(Aggregate):
+    Purpose : Union[Attribute, str]
+    Name : Union[Attribute, str]
+
+@dataclass
+class ColumnMapping(Aggregate):
+    map : List[Map]
+
+@dataclass
+class TableGeometryModel(Aggregate):
+    guid : Union[Attribute, str]
+    Name : str
+    Url : str
+    columnmapping : ColumnMapping
+
 #%% Data models
 @dataclass
 class DataSet(Aggregate):
@@ -72,7 +89,8 @@ class TargetModel(Aggregate):
 #%% GUI widgets
 @dataclass
 class ExplorerModelList(Aggregate):
-    gridmodel: List[GridModel]
+    tablegeometrymodel : Optional[List[TableGeometryModel]] = None
+    gridmodel: Optional[List[GridModel]] = None
 
 @dataclass
 class Viewer(Aggregate):
