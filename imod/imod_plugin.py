@@ -3,8 +3,15 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.gui import QgsDockWidget
 
+import pyqtgraph as pg
+
 # Import the code for the DockWidget
 from pathlib import Path
+
+# Set plot background color
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
+pg.setConfigOption('antialias', True)
 
 
 class ImodPlugin:
