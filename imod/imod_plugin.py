@@ -84,6 +84,7 @@ class ImodPlugin:
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.viewer_widget)
             widget = ImodViewerWidget(canvas, parent=self.viewer_widget)
             self.viewer_widget.setWidget(widget)
+            self.viewer_widget.closed.connect(widget.on_close)
             self.viewer_widget.hide()
         self.viewer_widget.setVisible(not self.viewer_widget.isVisible())
 

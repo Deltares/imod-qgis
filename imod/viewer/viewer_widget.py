@@ -69,13 +69,13 @@ class ImodViewerWidget(QWidget):
         self.bbox = None
 
         #Start viewer button
-        self.viewer_button = QPushButton("start iMOD 3D viewer")
+        self.viewer_button = QPushButton("Start iMOD 3D viewer")
         self.viewer_button.clicked.connect(self.start_viewer)
 
-        self.update_button = QPushButton("update 3D plot")
+        self.update_button = QPushButton("Update 3D plot")
         self.update_button.clicked.connect(self.update_viewer)
 
-        self.fence_buttion = QPushButton("load fence diagram")
+        self.fence_buttion = QPushButton("Load fence diagram")
         self.fence_buttion.clicked.connect(self.load_fence_diagram)
 
         #Define layout
@@ -113,6 +113,16 @@ class ImodViewerWidget(QWidget):
         extent_box.setOutputCrs(self.crs)
 
         return extent_box
+
+    def on_close(self):
+        """Ensure rubberbands are removed and picking tools are unset when hiding widget.
+        """
+
+        self.rectangle_tool.reset()
+        self.canvas.unsetMapTool(self.rectangle_tool)
+
+        self.line_picker.stop_picking()
+        self.line_picker.clear_rubber_bands()
 
     def set_bbox(self):
         self.bbox = self.rectangle_tool.rectangle()
