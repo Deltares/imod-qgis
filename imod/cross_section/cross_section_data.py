@@ -57,25 +57,14 @@ class AbstractCrossSectionData(abc.ABC):
     def plot(self, plot_widget):
         pass
 
-    def update_legend(self, legend, add_to_legend):
-        first_item = self.plot_item[0]
-        # For lines
-        if isinstance(first_item, pg.PlotDataItem):
-            for item, name in zip(self.plot_item, self.labels().values()):
-                legend.removeItem(item)
-                if add_to_legend:
-                    legend.addItem(item, name)
-        # For polygons of cross sections, boreholes
-        else:
-            for item in self.legend_items:
-                legend.removeItem(item)
-            self.legend_items = []
-            if add_to_legend:
-                for color, name in zip(self.colors().values(), self.labels().values()):
-                    item = pg.BarGraphItem(x=0, y=0, brush=color)
-                    # The name is interpreted as HTML, so literal "<" or ">"" isn't allowed
-                    self.legend.addItem(item, name.replace("<", "&lt;").replace(">", "&gt;"))
-                    self.legend_items.append(item)
+    @abc.abstractmethod
+    def clear(self):
+        pass
+
+    def add_to_legend(self, legend):
+        for color, name in zip(self.colors().values(), self.labels().values()):
+            item = pg.BarGraphItem(x=0, y=0, brush=color)
+            legend.addItem(item, name.replace("<", "&lt;").replace(">", "&gt;"))
 
     def set_color_data(self):
         if self.render_style == PSEUDOCOLOR:
@@ -140,6 +129,15 @@ class AbstractLineData(AbstractCrossSectionData):
             self.plot_item.append(curve)
             plot_widget.addItem(curve)
 
+    def clear(self):
+        self.x = None
+        self.top = None
+        self.plot_item = None
+
+    def add_to_legend(self, legend):
+        for item, name in zip(self.plot_item, self.labels()):
+            legend.addItem(item, name)
+       
 
 class MeshLineData(AbstractLineData):
     def __init__(self, layer, variables_indexes, variable, layer_numbers):
@@ -154,7 +152,7 @@ class MeshLineData(AbstractLineData):
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.legend_items = []
-        self.styling_data = self.variables
+        self.styling_data = np.array(self.variables)
         self.dummy_widget = DummyWidget()
 
     def load(self, geometry, resolution, **_):
@@ -180,7 +178,7 @@ class RasterLineData(AbstractLineData):
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.legend_items = []
-        self.styling_data = variables
+        self.styling_data = np.array(variables)
         self.dummy_widget = DummyWidget()
 
     def load(self, geometry, resolution, **_):
@@ -278,6 +276,12 @@ class BoreholeData(AbstractCrossSectionData):
             )
         ]
         plot_widget.addItem(self.plot_item[0])
+    
+    def clear(self):
+        self.x = None
+        self.boreholes_id = None
+        self.borehole_data = None
+        self.plot_item = None
 
 
 class MeshData(AbstractCrossSectionData):
@@ -291,7 +295,7 @@ class MeshData(AbstractCrossSectionData):
         self.bottom = None
         self.z = None
         self.variables = None
-        self.render_style = UNIQUE_COLOR
+        self.render_style = PSEUDOCOLOR
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.legend_items = []
@@ -337,3 +341,12 @@ class MeshData(AbstractCrossSectionData):
             )
         ]
         plot_widget.addItem(self.plot_item[0])
+
+
+    def clear(self):
+        self.x = None
+        self.top = None
+        self.bottom = None
+        self.z = None
+        self.styling_data = None
+        self.plot_item = None
