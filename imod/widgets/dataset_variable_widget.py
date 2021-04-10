@@ -41,20 +41,26 @@ class DatasetVariableMenu(QMenu):
     def triggered_action_current(self):
         for a in self.actions():
             a.setChecked(a == self.action_current)
-        self.dataset_variable_changed.emit(None)
 
     def on_current_dataset_changed(self):
         if self.action_current.isChecked():
             self.dataset_variable_changed.emit()  # re-emit changed signal
 
-class VariablesWidget(QToolButton):
+    def check_first(self):
+        for a in self.actions():
+            a.setChecked(True)
+            self.dataset_variable_changed.emit(a.variable_name)
+            return
 
+class VariablesWidget(QToolButton):
+    """
+    Allows selection of a single variable.
+    """
     dataset_variable_changed = pyqtSignal(str)
 
     def __init__(self, parent=None, datasetType=None):
         QToolButton.__init__(self, parent)
         self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        # self.setIcon(QIcon(QPixmap(":/plugins/crayfish/images/icon_contours.png")))
         self.menu_datasets = DatasetVariableMenu(datasetType=datasetType)
         self.setPopupMode(QToolButton.InstantPopup)
         self.setMenu(self.menu_datasets)
@@ -68,6 +74,7 @@ class VariablesWidget(QToolButton):
         if name is None:
             self.setText("Variable: ")
         else:
+            print(name)
             self.setText("Variable: " + name)
         self.dataset_variable_changed.emit(name)
 
@@ -113,8 +120,16 @@ class MultipleVariablesMenu(QMenu):
     def checked_variables(self):
         return [v for v, b in zip(self.variables, self.checkboxes) if b.isChecked()]
 
+    def check_first(self):
+        for b in self.checkboxes:
+            b.setChecked(True)
+            return
+
 
 class MultipleVariablesWidget(QToolButton):
+    """
+    Allows selection of multiple variables.
+    """
     def __init__(self, parent=None):
         QToolButton.__init__(self, parent)
         self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
