@@ -3,8 +3,15 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.gui import QgsDockWidget
 
+import pyqtgraph as pg
+
 # Import the code for the DockWidget
 from pathlib import Path
+
+# Set plot background color
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
+pg.setConfigOption('antialias', True)
 
 
 class ImodPlugin:
@@ -77,6 +84,7 @@ class ImodPlugin:
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.viewer_widget)
             widget = ImodViewerWidget(canvas, parent=self.viewer_widget)
             self.viewer_widget.setWidget(widget)
+            self.viewer_widget.closed.connect(widget.on_close)
             self.viewer_widget.hide()
         self.viewer_widget.setVisible(not self.viewer_widget.isVisible())
 

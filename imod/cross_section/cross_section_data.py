@@ -25,7 +25,13 @@ from .plot_util import (
     cross_section_y_data,
     project_points_to_section,
 )
-from ..widgets import ColorsDialog, PSEUDOCOLOR, UNIQUE_COLOR, ImodPseudoColorWidget, ImodUniqueColorWidget
+from ..widgets import (
+    ColorsDialog,
+    PSEUDOCOLOR,
+    UNIQUE_COLOR,
+    ImodPseudoColorWidget,
+    ImodUniqueColorWidget,
+)
 from ..ipf import IpfType, read_associated_borehole
 
 
@@ -38,9 +44,10 @@ class DummyWidget(QWidget):
 
     * Hold the pyqtSignal for changing colors
     * Provide a parent to the color widgets so Qt doesn't garbage collect them
-    
+
     But it's never displayed.
     """
+
     colors_changed = pyqtSignal()
 
 
@@ -52,7 +59,7 @@ class AbstractCrossSectionData(abc.ABC):
     @abc.abstractmethod
     def load(self, geometry, **kwargs):
         pass
-    
+
     @abc.abstractmethod
     def plot(self, plot_widget):
         pass
@@ -91,7 +98,7 @@ class AbstractCrossSectionData(abc.ABC):
             return self.pseudocolor_widget.colors()
         elif self.render_style == UNIQUE_COLOR:
             return self.unique_color_widget.colors()
-    
+
     def color_ramp(self):
         if self.render_style == PSEUDOCOLOR:
             return self.pseudocolor_widget.color_ramp_button.colorRamp()
@@ -137,7 +144,7 @@ class AbstractLineData(AbstractCrossSectionData):
     def add_to_legend(self, legend):
         for item, name in zip(self.plot_item, self.labels()):
             legend.addItem(item, name)
-       
+
 
 class MeshLineData(AbstractLineData):
     def __init__(self, layer, variables_indexes, variable, layer_numbers):
@@ -147,7 +154,9 @@ class MeshLineData(AbstractLineData):
         self.layer_numbers = layer_numbers
         self.x = None
         self.top = None
-        self.variables = np.array([f"{variable} layer {layer}" for layer in layer_numbers])
+        self.variables = np.array(
+            [f"{variable} layer {layer}" for layer in layer_numbers]
+        )
         self.render_style = UNIQUE_COLOR
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
@@ -266,17 +275,23 @@ class BoreholeData(AbstractCrossSectionData):
         self.set_color_data()
 
     def plot(self, plot_widget):
+        # First column in IPF associated file indicates vertical coordinates
+        y_plot = [df.iloc[:, 0].values for df in self.borehole_data]
+
+        # Collect values in column to plot
+        z_plot = [df[self.variable].values for df in self.borehole_data]
+
         self.plot_item = [
             BoreholePlotItem(
                 self.x,
-                [df["top"].values for df in self.borehole_data],
-                [df[self.variable].values for df in self.borehole_data],
+                y_plot,
+                z_plot,
                 self.relative_width * (self.x.max() - self.x.min()),
                 colorshader=self.colorshader(),
             )
         ]
         plot_widget.addItem(self.plot_item[0])
-    
+
     def clear(self):
         self.x = None
         self.boreholes_id = None
@@ -341,7 +356,6 @@ class MeshData(AbstractCrossSectionData):
             )
         ]
         plot_widget.addItem(self.plot_item[0])
-
 
     def clear(self):
         self.x = None
