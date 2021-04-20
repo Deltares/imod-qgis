@@ -126,6 +126,8 @@ class AbstractCrossSectionData(abc.ABC):
 
 class AbstractLineData(AbstractCrossSectionData):
     def plot(self, plot_widget):
+        if self.x is None:
+            return
         colorshader = self.colorshader()
         self.plot_item = []
         for variable, y in zip(self.variables, self.top):
@@ -250,6 +252,10 @@ class BoreholeData(AbstractCrossSectionData):
                 "OUTPUT": "TEMPORARY_OUTPUT",
             },
         )["OUTPUT"]
+        
+        # Check if nothing is selected.
+        if output.featureCount() == 0:
+            return
 
         for feature in output.getFeatures():
             filename = feature.attribute(indexcol)
@@ -264,22 +270,25 @@ class BoreholeData(AbstractCrossSectionData):
 
         self.x = x
         self.boreholes_id = boreholes_id
-        self.borehole_data = [read_associated_borehole(p) for p in paths]
+        self.boreholes_data = [read_associated_borehole(p) for p in paths]
 
         variable_names = set()
         styling_entries = []
-        for df in self.borehole_data:
+        for df in self.boreholes_data:
             variable_names.update(df.columns)
             styling_entries.append(df[self.variable].values)
         self.styling_data = np.concatenate(styling_entries)
         self.set_color_data()
 
     def plot(self, plot_widget):
+        if self.x is None:
+            return
+
         # First column in IPF associated file indicates vertical coordinates
-        y_plot = [df.iloc[:, 0].values for df in self.borehole_data]
+        y_plot = [df.iloc[:, 0].values for df in self.boreholes_data]
 
         # Collect values in column to plot
-        z_plot = [df[self.variable].values for df in self.borehole_data]
+        z_plot = [df[self.variable].values for df in self.boreholes_data]
 
         self.plot_item = [
             BoreholePlotItem(
@@ -295,7 +304,7 @@ class BoreholeData(AbstractCrossSectionData):
     def clear(self):
         self.x = None
         self.boreholes_id = None
-        self.borehole_data = None
+        self.boreholes_data = None
         self.plot_item = None
 
 
@@ -350,6 +359,8 @@ class MeshData(AbstractCrossSectionData):
         self.set_color_data()
 
     def plot(self, plot_widget):
+        if self.x is None:
+            return
         self.plot_item = [
             PColorMeshItem(
                 self.x, self.top, self.bottom, self.z, colorshader=self.colorshader()
