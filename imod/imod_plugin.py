@@ -75,55 +75,49 @@ class ImodPlugin:
         dialog.show()
         dialog.exec_()
 
-    def toggle_viewer(self):
-        if self.viewer_widget is None:
-            canvas = self.iface.mapCanvas()
-            from .viewer import ImodViewerWidget
+    # Note, normally one would be able to simply hide a widget, and make it
+    # visible again. However, due to a Qt Bug:
+    # https://bugreports.qt.io/browse/QTBUG-69922
+    # This will break the docking behavior. To avoid this, currently toggling
+    # simply fully reinitializes the widget.
 
-            self.viewer_widget = QgsDockWidget("iMOD 3D Viewer")
-            self.viewer_widget.setObjectName("ImodViewerDock")
-            self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.viewer_widget)
-            widget = ImodViewerWidget(canvas, parent=self.viewer_widget)
-            self.viewer_widget.setWidget(widget)
-            self.viewer_widget.closed.connect(widget.on_close)
-            self.viewer_widget.hide()
-        self.viewer_widget.setVisible(not self.viewer_widget.isVisible())
+    def toggle_viewer(self):
+        from .viewer import ImodViewerWidget
+
+        canvas = self.iface.mapCanvas()
+        self.viewer_widget = QgsDockWidget("iMOD 3D Viewer")
+        self.viewer_widget.setObjectName("ImodViewerDock")
+        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.viewer_widget)
+        widget = ImodViewerWidget(canvas, parent=self.viewer_widget)
+        self.viewer_widget.setWidget(widget)
+        self.viewer_widget.closed.connect(widget.on_close)
 
     def toggle_timeseries(self):
-        if self.timeseries_widget is None:
-            from .timeseries import ImodTimeSeriesWidget
+        from .timeseries import ImodTimeSeriesWidget
 
-            self.timeseries_widget = ImodDockWidget("iMOD Time Series Plot")
-            self.timeseries_widget.setObjectName("ImodTimeSeriesDock")
-            self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.timeseries_widget)
-            widget = ImodTimeSeriesWidget(self.timeseries_widget, self.iface)
-            self.timeseries_widget.setWidget(widget)
-            self.timeseries_widget.hide()
-        self.timeseries_widget.setVisible(not self.timeseries_widget.isVisible())
+        self.timeseries_widget = ImodDockWidget("iMOD Time Series Plot")
+        self.timeseries_widget.setObjectName("ImodTimeSeriesDock")
+        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.timeseries_widget)
+        widget = ImodTimeSeriesWidget(self.timeseries_widget, self.iface)
+        self.timeseries_widget.setWidget(widget)
 
     def toggle_cross_section(self):
-        if self.cross_section_widget is None:
-            from .cross_section import ImodCrossSectionWidget
+        from .cross_section import ImodCrossSectionWidget
 
-            self.cross_section_widget = ImodDockWidget("iMOD Cross Section Plot")
-            self.cross_section_widget.setObjectName("ImodCrossSectionDock")
-            self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.cross_section_widget)
-            widget = ImodCrossSectionWidget(self.cross_section_widget, self.iface)
-            self.cross_section_widget.setWidget(widget)
-            self.cross_section_widget.hide()
-        self.cross_section_widget.setVisible(not self.cross_section_widget.isVisible())
+        self.cross_section_widget = ImodDockWidget("iMOD Cross Section Plot")
+        self.cross_section_widget.setObjectName("ImodCrossSectionDock")
+        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.cross_section_widget)
+        widget = ImodCrossSectionWidget(self.cross_section_widget, self.iface)
+        self.cross_section_widget.setWidget(widget)
 
     def toggle_netcdf_manager(self):
-        if self.netcdf_manager is None:
-            from .netcdf_manager import ImodNetcdfManagerWidget
+        from .netcdf_manager import ImodNetcdfManagerWidget
 
-            self.netcdf_manager = QgsDockWidget("iMOD NetCDF Manager")
-            self.netcdf_manager.setObjectName("ImodNetcdfDock")
-            self.iface.addDockWidget(Qt.RightDockWidgetArea, self.netcdf_manager)
-            widget = ImodNetcdfManagerWidget(self.netcdf_manager)
-            self.netcdf_manager.setWidget(widget)
-            self.netcdf_manager.hide()
-        self.netcdf_manager.setVisible(not self.netcdf_manager.isVisible())
+        self.netcdf_manager = QgsDockWidget("iMOD NetCDF Manager")
+        self.netcdf_manager.setObjectName("ImodNetcdfDock")
+        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.netcdf_manager)
+        widget = ImodNetcdfManagerWidget(self.netcdf_manager)
+        self.netcdf_manager.setWidget(widget)
 
     def unload(self):
         for action in self.actions:
