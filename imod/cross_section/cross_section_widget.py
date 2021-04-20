@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QFrame,
-    QMainWindow,
 )
 from PyQt5.QtGui import QColor, QDropEvent
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -220,9 +219,6 @@ class ImodCrossSectionWidget(QWidget):
         self.plot_button = QPushButton("Plot")
         self.plot_button.clicked.connect(self.plot)
 
-        self.detach_button = QPushButton("Detach")
-        self.detach_button.clicked.connect(self.detach)
-
         self.plot_widget = pg.PlotWidget()
         self.mouse_proxy = pg.SignalProxy(
             self.plot_widget.scene().sigMouseMoved, rateLimit=25, slot=self.track_mouse
@@ -279,7 +275,6 @@ class ImodCrossSectionWidget(QWidget):
         first_row.addWidget(self.plot_button)
         first_row.addWidget(self.export_button)
         first_row.addStretch()
-        first_row.addWidget(self.detach_button)
 
         selection_row = QHBoxLayout()
         selection_row.addWidget(self.layer_selection)
@@ -501,12 +496,6 @@ class ImodCrossSectionWidget(QWidget):
     def export(self):
         plot_item = self.plot_widget.plotItem
         self.export_dialog.show(plot_item)
-
-    def detach(self):
-        new = QMainWindow()
-        new.setWindowTitle("iMOD Cross Section plot")
-        self.setParent(new)
-        new.show()
 
     def hide_vertex(self):
         self.point_rubber_band.hide()

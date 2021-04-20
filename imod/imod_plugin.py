@@ -2,6 +2,7 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from qgis.gui import QgsDockWidget
+from .widgets import ImodDockWidget
 
 import pyqtgraph as pg
 
@@ -9,9 +10,9 @@ import pyqtgraph as pg
 from pathlib import Path
 
 # Set plot background color
-pg.setConfigOption('background', 'w')
-pg.setConfigOption('foreground', 'k')
-pg.setConfigOption('antialias', True)
+pg.setConfigOption("background", "w")
+pg.setConfigOption("foreground", "k")
+pg.setConfigOption("antialias", True)
 
 
 class ImodPlugin:
@@ -92,7 +93,7 @@ class ImodPlugin:
         if self.timeseries_widget is None:
             from .timeseries import ImodTimeSeriesWidget
 
-            self.timeseries_widget = QgsDockWidget("iMOD Time Series Plot")
+            self.timeseries_widget = ImodDockWidget("iMOD Time Series Plot")
             self.timeseries_widget.setObjectName("ImodTimeSeriesDock")
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.timeseries_widget)
             widget = ImodTimeSeriesWidget(self.timeseries_widget, self.iface)
@@ -104,7 +105,7 @@ class ImodPlugin:
         if self.cross_section_widget is None:
             from .cross_section import ImodCrossSectionWidget
 
-            self.cross_section_widget = QgsDockWidget("iMOD Cross Section Plot")
+            self.cross_section_widget = ImodDockWidget("iMOD Cross Section Plot")
             self.cross_section_widget.setObjectName("ImodCrossSectionDock")
             self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.cross_section_widget)
             widget = ImodCrossSectionWidget(self.cross_section_widget, self.iface)

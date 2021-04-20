@@ -4,3 +4,4 @@ from .dataset_variable_widget import VariablesWidget, MultipleVariablesWidget
 from .maptools import RectangleMapTool, LineGeometryPickerWidget, MultipleLineGeometryPickerWidget
 from .line_separators import QHLine, QVLine
 from .colors_dialog import UNIQUE_COLOR, PSEUDOCOLOR, ColorsDialog
+from .dock_widget import ImodDockWidget
