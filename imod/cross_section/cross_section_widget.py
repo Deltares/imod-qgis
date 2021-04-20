@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QFrame,
+    QGroupBox,
 )
 from PyQt5.QtGui import QColor, QDropEvent
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -282,9 +283,8 @@ class ImodCrossSectionWidget(QWidget):
         selection_row.addWidget(self.multi_variable_selection)
         selection_row.addWidget(self.as_line_checkbox)
         selection_row.addWidget(self.add_button)
-        layer_column_frame = QFrame()
-        layer_column_frame.setFrameShape(QFrame.Box)
-        layer_column = QVBoxLayout(layer_column_frame)
+        layer_column_box = QGroupBox()
+        layer_column = QVBoxLayout(layer_column_box)
         layer_column.addLayout(selection_row)
         layer_column.addWidget(self.style_tree)
         bottom_row = QHBoxLayout()
@@ -294,13 +294,12 @@ class ImodCrossSectionWidget(QWidget):
 
         plot_column = QHBoxLayout()
         plot_column.addWidget(self.plot_widget)
-        plot_frame = QFrame()
-        plot_frame.setFrameShape(QFrame.Box)
-        plot_frame.setLayout(plot_column)
+        plot_box = QGroupBox()
+        plot_box.setLayout(plot_column)
 
         second_row = QSplitter()
-        second_row.addWidget(layer_column_frame)
-        second_row.addWidget(plot_frame)
+        second_row.addWidget(layer_column_box)
+        second_row.addWidget(plot_box)
 
         layout = QVBoxLayout()
         layout.addLayout(first_row)
