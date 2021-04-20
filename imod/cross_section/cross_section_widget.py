@@ -51,8 +51,8 @@ from ..utils.layers import groupby_variable, get_group_names
 from ..ipf import IpfType, read_associated_borehole
 
 
-RUBBER_BAND_COLOR = QColor(Qt.red)
-BUFFER_RUBBER_BAND_COLOR = QColor(Qt.red)
+RUBBER_BAND_COLOR = QColor(Qt.black)
+BUFFER_RUBBER_BAND_COLOR = QColor(Qt.yellow)
 BUFFER_RUBBER_BAND_COLOR.setAlphaF(0.2)
 
 
@@ -263,7 +263,7 @@ class ImodCrossSectionWidget(QWidget):
         self.buffer_rubber_band = None
         self.point_rubber_band = QgsVertexMarker(self.iface.mapCanvas())
         self.point_rubber_band.setColor(RUBBER_BAND_COLOR)
-        self.point_rubber_band.setIconSize(5)
+        self.point_rubber_band.setIconSize(10)
         self.point_rubber_band.setPenWidth(3)
 
         # Setup layout
@@ -385,7 +385,8 @@ class ImodCrossSectionWidget(QWidget):
                 data = item.section_data
                 if data.x is None:
                     data.load(**load_kwargs)
-                    item.colors_view.setEnabled(True)
+                    if data.x is not None:
+                        item.colors_view.setEnabled(True)
                 data.plot(self.plot_widget)
         self.update_legend()
 
@@ -498,3 +499,9 @@ class ImodCrossSectionWidget(QWidget):
 
     def hide_vertex(self):
         self.point_rubber_band.hide()
+
+    def on_close(self):
+        scene = self.iface.mapCanvas().scene()
+        scene.removeItem(self.buffer_rubber_band)
+        scene.removeItem(self.point_rubber_band)
+        scene.removeItem(self.buffer_rubber_band)
