@@ -109,6 +109,7 @@ class ImodPlugin:
         self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.cross_section_widget)
         widget = ImodCrossSectionWidget(self.cross_section_widget, self.iface)
         self.cross_section_widget.setWidget(widget)
+        self.cross_section_widget.closed.connect(widget.on_close)
 
     def toggle_netcdf_manager(self):
         from .netcdf_manager import ImodNetcdfManagerWidget
