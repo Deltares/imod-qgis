@@ -122,7 +122,7 @@ class AbstractLineData(AbstractCrossSectionData):
             return
         colorshader = self.colorshader()
         self.plot_item = []
-        for variable, y in zip(self.variables, self.top):
+        for variable, y in zip(self.variables, self.y):
             to_draw, r, g, b, alpha = colorshader.shade(variable)
             color = QColor(r, g, b, alpha)
             pen = pg.mkPen(color=color, width=WIDTH)
@@ -132,7 +132,7 @@ class AbstractLineData(AbstractCrossSectionData):
 
     def clear(self):
         self.x = None
-        self.top = None
+        self.y = None
         self.plot_item = None
 
     def add_to_legend(self, legend):
@@ -147,7 +147,7 @@ class MeshLineData(AbstractLineData):
         self.variable = variable
         self.layer_numbers = layer_numbers
         self.x = None
-        self.top = None
+        self.y = None
         self.variables = np.array(
             [f"{variable} layer {layer}" for layer in layer_numbers]
         )
@@ -162,12 +162,12 @@ class MeshLineData(AbstractLineData):
     def load(self, geometry, resolution, **_):
         n_lines = len(self.layer_numbers)
         x = cross_section_x_data(self.layer, geometry, resolution)
-        top = np.empty((n_lines, x.size))
+        y = np.empty((n_lines, x.size))
         for i, k in enumerate(self.layer_numbers):
             dataset_index = self.variables_indexes[self.variable][k]
-            top[i, :] = cross_section_y_data(self.layer, geometry, dataset_index, x)
+            y[i, :] = cross_section_y_data(self.layer, geometry, dataset_index, x)
         self.x = x
-        self.top = top
+        self.y = y
         self.set_color_data()
 
 
@@ -190,16 +190,16 @@ class RasterLineData(AbstractLineData):
         provider = self.layer.dataProvider()
         n_lines = len(self.variables)
         x = cross_section_x_data(self.layer, geometry, resolution)
-        top = np.empty((x.size, n_lines))
+        y = np.empty((x.size, n_lines))
         bands = [self.variables_indexes[v] for v in self.variables]
         for i, x_value in enumerate(x):
             pt = geometry.interpolate(x_value).asPoint()
             sampling = provider.identify(pt, QgsRaster.IdentifyFormatValue).results()
             for j, band in enumerate(bands):
-                top[i, j] = sampling[band]
+                y[i, j] = sampling[band]
         # Might wanna test improved memory access versus cost of transpose
         self.x = x
-        self.top = top.transpose().copy()
+        self.y = y.transpose().copy()
         self.set_color_data()
 
 
@@ -310,8 +310,8 @@ class MeshData(AbstractCrossSectionData):
         self.variable = variable
         self.layer_numbers = layer_numbers
         self.x = None
-        self.top = None
-        self.bottom = None
+        self.y_top = None
+        self.y_bottom = None
         self.z = None
         self.variables = None
         self.pseudocolor_widget = ImodPseudoColorWidget()
@@ -348,8 +348,8 @@ class MeshData(AbstractCrossSectionData):
                 )
 
         self.x = x
-        self.top = top
-        self.bottom = bottom
+        self.y_top = top
+        self.y_bottom = bottom
         self.z = z
         self.styling_data = self.z.ravel()
         self.set_color_data()
@@ -359,15 +359,15 @@ class MeshData(AbstractCrossSectionData):
             return
         self.plot_item = [
             PColorMeshItem(
-                self.x, self.top, self.bottom, self.z, colorshader=self.colorshader()
+                self.x, self.y_top, self.y_bottom, self.z, colorshader=self.colorshader()
             )
         ]
         plot_widget.addItem(self.plot_item[0])
 
     def clear(self):
         self.x = None
-        self.top = None
-        self.bottom = None
+        self.y_top = None
+        self.y_bottom = None
         self.z = None
         self.styling_data = None
         self.plot_item = None
