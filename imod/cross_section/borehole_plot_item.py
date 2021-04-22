@@ -1,13 +1,13 @@
-from pyqtgraph.Qt import QtGui, QtCore
+import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-import numpy as np
 from pyqtgraph import functions as fn
+from pyqtgraph import getConfigOption
+from pyqtgraph.colormap import ColorMap
+from pyqtgraph.graphicsItems.GradientEditorItem import Gradients  # List of colormaps
 from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
 from pyqtgraph.Point import Point
-from pyqtgraph import getConfigOption
-from pyqtgraph.graphicsItems.GradientEditorItem import Gradients  # List of colormaps
-from pyqtgraph.colormap import ColorMap
+from pyqtgraph.Qt import QtCore, QtGui
 
 
 class BoreholePlotItem(GraphicsObject):

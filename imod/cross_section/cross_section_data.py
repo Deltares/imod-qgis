@@ -4,36 +4,27 @@ from typing import List, Tuple
 
 import numpy as np
 import pyqtgraph as pg
-
-from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
-
-from qgis.core import (
-    QgsRaster,
-    QgsVectorLayer,
-    QgsGeometry,
-    QgsFeature,
-    QgsProject,
-)
 from qgis import processing
+from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsRaster, QgsVectorLayer
 
-from .pcolormesh import PColorMeshItem
+from ..ipf import IpfType, read_associated_borehole
+from ..widgets import (
+    PSEUDOCOLOR,
+    UNIQUE_COLOR,
+    ColorsDialog,
+    ImodPseudoColorWidget,
+    ImodUniqueColorWidget,
+)
 from .borehole_plot_item import BoreholePlotItem
+from .pcolormesh import PColorMeshItem
 from .plot_util import (
     cross_section_x_data,
     cross_section_y_data,
     project_points_to_section,
 )
-from ..widgets import (
-    ColorsDialog,
-    PSEUDOCOLOR,
-    UNIQUE_COLOR,
-    ImodPseudoColorWidget,
-    ImodUniqueColorWidget,
-)
-from ..ipf import IpfType, read_associated_borehole
-
 
 WIDTH = 2
 
@@ -247,7 +238,7 @@ class BoreholeData(AbstractCrossSectionData):
                 "OUTPUT": "TEMPORARY_OUTPUT",
             },
         )["OUTPUT"]
-        
+
         # Check if nothing is selected.
         if output.featureCount() == 0:
             return
@@ -359,7 +350,11 @@ class MeshData(AbstractCrossSectionData):
             return
         self.plot_item = [
             PColorMeshItem(
-                self.x, self.y_top, self.y_bottom, self.z, colorshader=self.colorshader()
+                self.x,
+                self.y_top,
+                self.y_bottom,
+                self.z,
+                colorshader=self.colorshader(),
             )
         ]
         plot_widget.addItem(self.plot_item[0])

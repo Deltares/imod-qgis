@@ -1,55 +1,53 @@
-from PyQt5.QtWidgets import (
-    QAbstractItemView,
-    QWidget,
-    QStackedLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QPushButton,
-    QGridLayout,
-    QLabel,
-    QDoubleSpinBox,
-    QCheckBox,
-    QComboBox,
-    QDialog,
-    QTreeWidget,
-    QTreeWidgetItem,
-    QSizePolicy,
-    QSplitter,
-    QFrame,
-    QGroupBox,
-)
-from PyQt5.QtGui import QColor, QDropEvent
-from PyQt5.QtCore import Qt, pyqtSignal
-from qgis.gui import (
-    QgsMapLayerComboBox,
-    QgsRubberBand,
-    QgsColorRampButton,
-    QgsVertexMarker,
-)
-from qgis.core import (
-    QgsGeometry,
-    QgsWkbTypes,
-    QgsProject,
-    QgsVectorLayer,
-    QgsFeature,
-    QgsMapLayerType,
-    QgsRaster,
-)
-from qgis import processing
-
 import pathlib
 from typing import List, Tuple
 
 import numpy as np
 import pyqtgraph as pg
-from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QColor, QDropEvent
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFrame,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QSplitter,
+    QStackedLayout,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 from pyqtgraph.graphicsItems.GraphicsWidget import GraphicsWidget
+from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
+from qgis import processing
+from qgis.core import (
+    QgsFeature,
+    QgsGeometry,
+    QgsMapLayerType,
+    QgsProject,
+    QgsRaster,
+    QgsVectorLayer,
+    QgsWkbTypes,
+)
+from qgis.gui import (
+    QgsColorRampButton,
+    QgsMapLayerComboBox,
+    QgsRubberBand,
+    QgsVertexMarker,
+)
 
-from .cross_section_data import MeshData, MeshLineData, RasterLineData, BoreholeData
-from ..widgets import MultipleVariablesWidget, VariablesWidget, LineGeometryPickerWidget
-from ..utils.layers import groupby_variable, get_group_names
 from ..ipf import IpfType, read_associated_borehole
-
+from ..utils.layers import get_group_names, groupby_variable
+from ..widgets import LineGeometryPickerWidget, MultipleVariablesWidget, VariablesWidget
+from .cross_section_data import BoreholeData, MeshData, MeshLineData, RasterLineData
 
 RUBBER_BAND_COLOR = QColor(Qt.black)
 BUFFER_RUBBER_BAND_COLOR = QColor(Qt.yellow)

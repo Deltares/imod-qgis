@@ -2,11 +2,10 @@
 
 import math
 from typing import List
-from qgis.core import QgsMeshDatasetIndex, QgsGeometry, QgsPoint
 
 import numpy as np
-
 from PyQt5.Qt import PYQT_VERSION_STR
+from qgis.core import QgsGeometry, QgsMeshDatasetIndex, QgsPoint
 
 
 def check_if_PyQt_version_is_before(M, m, r):
@@ -56,7 +55,9 @@ def cross_section_y_data(layer, geometry, dataset_index, x):
     return y
 
 
-def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> np.ndarray:
+def project_points_to_section(
+    points: List[QgsPoint], geometry: QgsGeometry
+) -> np.ndarray:
     # vectors are denoted by upper case: U, V
     # scalar variables are lower case: a, p, s, x
     # arrays of scalars are repeated lower case: pp, aa, bb, tt
@@ -89,7 +90,7 @@ def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> 
     bb = vertices[1:]
     nsegment = len(aa)
     npoint = len(pp)
-  
+
     # This array holds the distance from p to x
     distances = np.empty((nsegment, npoint), dtype=np.float)
     # x is the accumulating distance along the geometry
@@ -103,7 +104,7 @@ def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> 
         tt = np.dot(UU, V) / s
         # Correct points that fall outside of V's domain
         tt[tt < 0.0] = 0.0
-        tt[tt > s] = s 
+        tt[tt > s] = s
         xx[i] = x + tt
         # Compute x, y locations of projection
         pp_projected = a + ((tt / s)[:, np.newaxis] * V)
