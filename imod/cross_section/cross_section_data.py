@@ -150,13 +150,15 @@ class MeshLineData(AbstractLineData):
         self.styling_data = np.array(self.variables)
         self.dummy_widget = DummyWidget()
 
-    def load(self, geometry, resolution, **_):
+    def load(self, geometry, resolution, datetime_range, **_):
         n_lines = len(self.layer_numbers)
         x = cross_section_x_data(self.layer, geometry, resolution)
         y = np.empty((n_lines, x.size))
         for i, k in enumerate(self.layer_numbers):
             dataset_index = self.variables_indexes[self.variable][k]
-            y[i, :] = cross_section_y_data(self.layer, geometry, dataset_index, x)
+            y[i, :] = cross_section_y_data(
+                self.layer, geometry, dataset_index, x, datetime_range
+            )
         self.x = x
         self.y = y
         self.set_color_data()
@@ -313,7 +315,7 @@ class MeshData(AbstractCrossSectionData):
         self.styling_data = None
         self.dummy_widget = DummyWidget()
 
-    def load(self, geometry, resolution, **_):
+    def load(self, geometry, resolution, datetime_range, **_):
         n_layer = len(self.layer_numbers)
         x = cross_section_x_data(self.layer, geometry, resolution)
         n_x = x.size
@@ -335,7 +337,7 @@ class MeshData(AbstractCrossSectionData):
             for i, k in enumerate(self.layer_numbers):
                 dataset_index = self.variables_indexes[self.variable][k]
                 z[i, :] = cross_section_y_data(
-                    self.layer, geometry, dataset_index, x_mids
+                    self.layer, geometry, dataset_index, x_mids, datetime_range
                 )
 
         self.x = x

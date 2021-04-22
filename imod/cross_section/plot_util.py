@@ -40,11 +40,16 @@ def cross_section_x_data(layer, geometry, resolution=1.0):
     return np.array(x)
 
 
-def cross_section_y_data(layer, geometry, dataset_index, x):
+def cross_section_y_data(layer, geometry, group_index, x, datetime_range=None):
     """ return array defining Y points for plot """
     y = np.zeros(x.shape)
     if not layer:
         return y
+
+    if datetime_range is None:  # Just take the first one in such a case
+        dataset_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
+    else:
+        dataset_index = layer.datasetIndexAtTime(datetime_range, group_index)
 
     for i, x_value in enumerate(x):
         pt = geometry.interpolate(x_value).asPoint()

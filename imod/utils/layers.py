@@ -22,9 +22,8 @@ def natural_sort_key(pair, _nsre=re.compile('([0-9]+)')):
 
 def get_group_names(layer):
     indexes = layer.datasetGroupsIndexes()
-    #TODO: Include time index as dataset argument during QgsMeshDatasetIndex construction
-    indexes = [QgsMeshDatasetIndex(group=i, dataset=0) for i in indexes]
-    group_names = [layer.datasetGroupMetadata(i).name() for i in indexes]
+    qgs_indexes = [QgsMeshDatasetIndex(group=i, dataset=0) for i in indexes]
+    group_names = [layer.datasetGroupMetadata(i).name() for i in qgs_indexes]
     # Sort the entries by name
     sorted_pairs = sorted(zip(group_names, indexes), key=natural_sort_key)
     group_names, indexes = [list(tup) for tup in zip(*sorted_pairs)]
