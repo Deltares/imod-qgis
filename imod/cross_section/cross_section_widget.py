@@ -211,7 +211,6 @@ class ImodCrossSectionWidget(QWidget):
 
         self.line_picker = LineGeometryPickerWidget(iface)
         self.line_picker.geometries_changed.connect(self.on_geometries_changed)
-        self.line_picker.button.clicked.connect(self.clear_plot)
         self.line_picker.button.clicked.connect(self.hide_vertex)
 
         self.as_line_checkbox = QCheckBox("As line(s)")
