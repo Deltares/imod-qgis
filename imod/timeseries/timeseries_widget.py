@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QToolButton,
     QMenu,
     QComboBox,
+    QGroupBox,
 )
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QColor
@@ -154,6 +155,11 @@ class ImodTimeSeriesWidget(QWidget):
         self.plot_widget.addLegend()
         self.legend = self.plot_widget.getPlotItem().legend
 
+        plot_box = QGroupBox()
+        plot_layout = QVBoxLayout()
+        plot_layout.addWidget(self.plot_widget)
+        plot_box.setLayout(plot_layout)
+
         self.colors_button = QPushButton("Colors")
         self.colors_button.clicked.connect(self.colors)
         self.color_widget = ImodUniqueColorWidget()
@@ -173,7 +179,7 @@ class ImodTimeSeriesWidget(QWidget):
         first_row.addStretch()
 
         second_row = QHBoxLayout()
-        second_row.addWidget(self.plot_widget)
+        second_row.addWidget(plot_box)
 
         third_row = QHBoxLayout()
         third_row.addWidget(QLabel("Line Color:"))

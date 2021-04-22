@@ -2,11 +2,10 @@
 
 import math
 from typing import List
-from qgis.core import QgsMeshDatasetIndex, QgsGeometry, QgsPoint
 
 import numpy as np
-
 from PyQt5.Qt import PYQT_VERSION_STR
+from qgis.core import QgsGeometry, QgsMeshDatasetIndex, QgsPoint
 
 
 def check_if_PyQt_version_is_before(M, m, r):
@@ -47,7 +46,6 @@ def cross_section_y_data(layer, geometry, dataset_index, x):
     if not layer:
         return y
 
-    # TODO: This seems quite brute force. Is there a faster way to do this? Some raytracing algorithm?
     for i, x_value in enumerate(x):
         pt = geometry.interpolate(x_value).asPoint()
         y[i] = layer.datasetValue(dataset_index, pt).scalar()
@@ -57,10 +55,13 @@ def cross_section_y_data(layer, geometry, dataset_index, x):
     return y
 
 
-def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> np.ndarray:
+def project_points_to_section(
+    points: List[QgsPoint], geometry: QgsGeometry
+) -> np.ndarray:
     # vectors are denoted by upper case: U, V
     # scalar variables are lower case: a, p, s, x
     # arrays of scalars are repeated lower case: pp, aa, bb, tt
+    # arrays of vectors are repeated upper case: UU
     #
     #   q              r
     #     \           /
@@ -89,22 +90,28 @@ def project_points_to_section(points: List[QgsPoint], geometry: QgsGeometry) -> 
     bb = vertices[1:]
     nsegment = len(aa)
     npoint = len(pp)
-  
+
     # This array holds the distance from p to x
     distances = np.empty((nsegment, npoint), dtype=np.float)
     # x is the accumulating distance along the geometry
     xx = np.empty((nsegment, npoint), dtype=np.float)
     x = 0.0
     for i, (a, b) in enumerate(zip(aa, bb)):
-        U = pp - a
+        UU = pp - a
         V = b - a
         s = np.linalg.norm(V)
-        tt = np.dot(U, V) / s
+        # Project U on to V
+        tt = np.dot(UU, V) / s
+        # Correct points that fall outside of V's domain
         tt[tt < 0.0] = 0.0
-        tt[tt > s] = s 
+        tt[tt > s] = s
         xx[i] = x + tt
-        distances[i] = np.sqrt(s ** 2 - tt ** 2)
+        # Compute x, y locations of projection
+        pp_projected = a + ((tt / s)[:, np.newaxis] * V)
+        # Compute distance between point and its projection
+        distances[i] = np.linalg.norm(pp - pp_projected, axis=1)
         x += s
-    # Find the intersection point with the minimum distance
+    # Find the intersection point with the minimum distance:
+    # this is where we want to draw the borehole.
     closest = np.argmin(distances, axis=0)
     return xx[closest, np.arange(npoint)]

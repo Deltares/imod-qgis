@@ -1,12 +1,12 @@
 from __future__ import division
 
-from PyQt5.QtGui import QColor
-from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
+from PyQt5.QtGui import QColor
 from pyqtgraph import functions as fn
+from pyqtgraph import getConfigOption
 from pyqtgraph.graphicsItems.GraphicsObject import GraphicsObject
 from pyqtgraph.Point import Point
-from pyqtgraph import getConfigOption
+from pyqtgraph.Qt import QtCore, QtGui
 
 
 class PColorMeshItem(GraphicsObject):
@@ -50,25 +50,25 @@ class PColorMeshItem(GraphicsObject):
 
         GraphicsObject.__init__(self)
         self.qpicture = None  ## rendered picture for display
-        self.axisOrder = getConfigOption('imageAxisOrder')
+        self.axisOrder = getConfigOption("imageAxisOrder")
 
-        if 'edgecolors' in kwargs.keys():
-            self.edgecolors = kwargs['edgecolors']
+        if "edgecolors" in kwargs.keys():
+            self.edgecolors = kwargs["edgecolors"]
         else:
             self.edgecolors = None
 
-        if 'antialiasing' in kwargs.keys():
-            self.antialiasing = kwargs['antialiasing']
+        if "antialiasing" in kwargs.keys():
+            self.antialiasing = kwargs["antialiasing"]
         else:
             self.antialiasing = False
 
-        if 'colorshader' not in kwargs.keys():
+        if "colorshader" not in kwargs.keys():
             raise ValueError("colorshader not provided")
         else:
-            self.colorshader = kwargs['colorshader']
+            self.colorshader = kwargs["colorshader"]
 
         # If some data have been sent we directly display it
-        if len(args)>0:
+        if len(args) > 0:
             self.setData(*args)
 
     def _prepareData(self, x, top, bottom, z):
@@ -144,7 +144,9 @@ class PColorMeshItem(GraphicsObject):
                 lower = self.bottom[yi, xi]
                 value = self.z[yi, xi]
                 to_draw, r, g, b, alpha = self.colorshader.shade(value)
-                to_draw = to_draw and not any(np.isnan(e) for e in (left, right, upper, lower, value))
+                to_draw = to_draw and not any(
+                    np.isnan(e) for e in (left, right, upper, lower, value)
+                )
                 if not to_draw:
                     continue
                 color = QColor(r, g, b, alpha)
@@ -155,7 +157,7 @@ class PColorMeshItem(GraphicsObject):
                         QtCore.QPointF(right, lower),
                         QtCore.QPointF(right, upper),
                         QtCore.QPointF(left, upper),
-                     ],
+                    ],
                 )
                 painter.drawConvexPolygon(polygon)
 
@@ -185,5 +187,5 @@ class PColorMeshItem(GraphicsObject):
 
     def boundingRect(self):
         if self.qpicture is None:
-            return QtCore.QRectF(0., 0., 0., 0.)
+            return QtCore.QRectF(0.0, 0.0, 0.0, 0.0)
         return QtCore.QRectF(self.qpicture.boundingRect())
