@@ -45,6 +45,12 @@ class DummyWidget(QWidget):
     * Hold the pyqtSignal for changing colors
     * Provide a parent to the color widgets so Qt doesn't garbage collect them
 
+    This is necessary because:
+
+    * Only Qt Widgets can contain pyqtSignals
+    * Closing a dialog (in this case the symbology Dialog) results in the
+      deletion of children widgets (in this case a color widget).
+
     But it's never displayed.
     """
 
@@ -52,10 +58,6 @@ class DummyWidget(QWidget):
 
 
 class AbstractCrossSectionData(abc.ABC):
-    @abc.abstractmethod
-    def load(self):
-        pass
-
     @abc.abstractmethod
     def load(self, geometry, **kwargs):
         pass
@@ -74,36 +76,20 @@ class AbstractCrossSectionData(abc.ABC):
             legend.addItem(item, name.replace("<", "&lt;").replace(">", "&gt;"))
 
     def set_color_data(self):
-        if self.render_style == PSEUDOCOLOR:
-            color_widget = self.pseudocolor_widget
-        elif self.render_style == UNIQUE_COLOR:
-            color_widget = self.unique_color_widget
-        if color_widget.data is None and self.styling_data is not None:
-            color_widget.set_data(self.styling_data)
+        if self.color_widget.data is None and self.styling_data is not None:
+            self.color_widget.set_data(self.styling_data)
 
     def colorshader(self):
-        if self.render_style == PSEUDOCOLOR:
-            return self.pseudocolor_widget.shader()
-        elif self.render_style == UNIQUE_COLOR:
-            return self.unique_color_widget.shader()
+        return self.color_widget.shader()
 
     def labels(self):
-        if self.render_style == PSEUDOCOLOR:
-            return self.pseudocolor_widget.labels()
-        elif self.render_style == UNIQUE_COLOR:
-            return self.unique_color_widget.labels()
+        return self.color_widget.labels()
 
     def colors(self):
-        if self.render_style == PSEUDOCOLOR:
-            return self.pseudocolor_widget.colors()
-        elif self.render_style == UNIQUE_COLOR:
-            return self.unique_color_widget.colors()
+        return self.color_widget.colors()
 
     def color_ramp(self):
-        if self.render_style == PSEUDOCOLOR:
-            return self.pseudocolor_widget.color_ramp_button.colorRamp()
-        elif self.render_style == UNIQUE_COLOR:
-            return self.unique_color_widget.color_ramp_button.colorRamp()
+        return self.color_widget.color_ramp_button.colorRamp()
 
     @property
     def colors_changed(self):
@@ -121,6 +107,12 @@ class AbstractCrossSectionData(abc.ABC):
         ok = dialog.exec_()
         if ok:
             self.render_style = dialog.render_type_box.currentIndex()
+            if self.render_style == UNIQUE_COLOR:
+                self.color_widget = self.unique_color_widget
+            elif self.render_style == PSEUDOCOLOR:
+                self.color_widget = self.pseudocolor_widget
+            else:
+                raise ValueError("Invalid render style")
             self.colors_changed.emit()
 
 
@@ -159,9 +151,10 @@ class MeshLineData(AbstractLineData):
         self.variables = np.array(
             [f"{variable} layer {layer}" for layer in layer_numbers]
         )
-        self.render_style = UNIQUE_COLOR
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = UNIQUE_COLOR
+        self.color_widget = self.unique_color_widget
         self.legend_items = []
         self.styling_data = np.array(self.variables)
         self.dummy_widget = DummyWidget()
@@ -185,9 +178,10 @@ class RasterLineData(AbstractLineData):
         self.variables_indexes = variables_indexes
         self.x = None
         self.z = None
-        self.render_style = UNIQUE_COLOR
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = UNIQUE_COLOR
+        self.color_widget = self.unique_color_widget
         self.legend_items = []
         self.styling_data = np.array(variables)
         self.dummy_widget = DummyWidget()
@@ -217,9 +211,10 @@ class BoreholeData(AbstractCrossSectionData):
         self.boreholes_id = None
         self.boreholes_data = None
         self.relative_width = 0.01
-        self.render_style = UNIQUE_COLOR
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = UNIQUE_COLOR
+        self.color_widget = self.unique_color_widget
         self.legend_items = []
         self.styling_data = None
         self.dummy_widget = DummyWidget()
@@ -319,9 +314,10 @@ class MeshData(AbstractCrossSectionData):
         self.bottom = None
         self.z = None
         self.variables = None
-        self.render_style = PSEUDOCOLOR
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = PSEUDOCOLOR
+        self.color_widget = self.pseudocolor_widget
         self.legend_items = []
         self.styling_data = None
         self.dummy_widget = DummyWidget()
