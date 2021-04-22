@@ -1,13 +1,14 @@
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, Qt
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
-from qgis.gui import QgsDockWidget
-from .widgets import ImodDockWidget
-
-import pyqtgraph as pg
-
 # Import the code for the DockWidget
 from pathlib import Path
+
+import pyqtgraph as pg
+from qgis.gui import QgsDockWidget
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction
+
+from .ipf import ImodIpfDialog
+from .widgets import ImodDockWidget
 
 # Set plot background color
 pg.setConfigOption("background", "w")
@@ -62,8 +63,6 @@ class ImodPlugin:
         )
 
     def ipf_dialog(self):
-        from .ipf import ImodIpfDialog
-
         dialog = ImodIpfDialog()
         dialog.show()
         dialog.exec_()
