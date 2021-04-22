@@ -74,7 +74,6 @@ class VariablesWidget(QToolButton):
         if name is None:
             self.setText("Variable: ")
         else:
-            print(name)
             self.setText("Variable: " + name)
         self.dataset_variable_changed.emit(name)
 
