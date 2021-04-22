@@ -192,6 +192,8 @@ class ImodCrossSectionWidget(QWidget):
     def __init__(self, parent, iface):
         QWidget.__init__(self, parent)
         self.iface = iface
+        self.temporal_controller = self.iface.mapCanvas().temporalController()
+        self.temporal_controller.updateTemporalRange.connect(self.plot)
 
         self.layer_selection = UpdatingQgsMapLayerComboBox()
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
@@ -344,6 +346,7 @@ class ImodCrossSectionWidget(QWidget):
             else:
                 data = MeshData(layer, self.variables_indexes, variable, layers)
                 layer_item = StyleTreeItem(f"{name}: {variable}", "mesh", data)
+            self.temporal_controller.updateTemporalRange.connect(data.clear)
         elif layer_type == QgsMapLayerType.RasterLayer:
             variables = self.multi_variable_selection.checked_variables()
             data = RasterLineData(layer, variables, self.variables_indexes)
@@ -370,10 +373,19 @@ class ImodCrossSectionWidget(QWidget):
             return
         self.clear_plot()
         nrow = self.style_tree.topLevelItemCount()
+
+        # Only take temporal data into account of the Temporal Controller is active.
+        if self.temporal_controller.navigationMode() != 0:
+            frame = self.temporal_controller.currentFrameNumber()
+            datetime_range = self.temporal_controller.dateTimeRangeForFrameNumber(frame)
+        else:
+            datetime_range = None
+
         load_kwargs = {
             "geometry": self.line_picker.geometries[0],
             "resolution": self.resolution_spinbox.value(),
             "buffer_distance": self.buffer_spinbox.value(),
+            "datetime_range": datetime_range,
         }
         for i in range(nrow):
             item = self.style_tree.topLevelItem(i)
