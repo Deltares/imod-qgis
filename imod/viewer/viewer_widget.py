@@ -24,6 +24,74 @@ from ..ipf import IpfType
 
 import uuid
 
+from typing import List
+from dataclasses import dataclass, asdict
+
+
+@dataclass
+class MeshViewerData:
+    path: str = None
+    group_names: List[str] = None
+    variable_names: List[str] = None
+    rgb_point_data: str = None
+    bbox_rectangle: tuple = None
+    guids_grids: List[str] = None
+
+    def open(self, server):
+        c = xml_tree.command_xml(xml_tree.open_file_models_tree, **asdict(self))
+        server.send(c)
+
+    def load(self, server):
+        c = xml_tree.command_xml(xml_tree.model_load_tree, **asdict(self))
+        server.send(c)
+
+    def unload(self, server):
+        c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
+        server.send(c)
+
+
+@dataclass
+class FenceViewerData:
+    path: str = None
+    group_names: List[str] = None
+    variable_names: List[str] = None
+    rgb_point_data: str = None
+    bbox_rectangle: tuple = None
+    guids_grids: List[str] = None
+    polylines: List[str] = None
+
+    def open(self, server):
+        c = xml_tree.command_xml(xml_tree.create_fence_diagram_tree, **asdict(self))
+        server.send(c)
+
+    def load(self, server):
+        c = xml_tree.command_xml(xml_tree.model_load_tree, **asdict(self))
+        server.send(c)
+
+    def unload(self, server):
+        c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
+        server.send(c)
+
+
+@dataclass
+class BoreholeViewerData:
+    path: str = None
+    name: str = None
+    guids_grids: List[str] = None
+    column_mapping: dict = None
+
+    def open(self, server):
+        c = xml_tree.command_xml(xml_tree.add_borelogs_tree, **asdict(self))
+        server.send(c)
+
+    def load(self, server):
+        c = xml_tree.command_xml(xml_tree.model_load_tree, **asdict(self))
+        server.send(c)
+
+    def unload(self, server):
+        c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
+        server.send(c)
+
 
 class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
     def enterEvent(self, e):
@@ -99,8 +167,10 @@ class ImodViewerWidget(QWidget):
 
         self.setLayout(layout)
 
-        # Initiate dictionary for xml commands
-        self.xml_dict = {}
+        # Initiate data for xml commands
+        self.mesh_data = MeshViewerData()
+        self.fence_data = FenceViewerData()
+        self.borehole_data = BoreholeViewerData()
 
     def _init_extent_box(self):
         extent_box = QgsExtentGroupBox()
@@ -143,41 +213,53 @@ class ImodViewerWidget(QWidget):
         """
         return uri.split("?")[0].split("file:///")[-1]
 
-    def update_data_borehole(self):
+    def update_borehole_data(self):
         """Update data for xml command to render boreholes"""
-        self.xml_dict = {}
-
         current_layer = self.layer_selection.currentLayer()
         uri = current_layer.dataProvider().dataSourceUri()
         path = self.path_from_vector_uri(uri)
-        self.xml_dict["path"] = path
-        self.xml_dict["name"] = "test"
+        self.borehole_data.path = path
+        self.borehole_data.name = "boreholes_from_qgis"
 
-        self.xml_dict["guids_grids"] = [uuid.uuid4()]
+        self.borehole_data.guids_grids = [uuid.uuid4()]
 
         columnmapping = {}
         columnmapping["X"] = current_layer.fields().toList()[0].alias()
         columnmapping["Y"] = current_layer.fields().toList()[1].alias()
 
-        self.xml_dict["column_mapping"] = columnmapping
+        self.borehole_data.column_mapping = columnmapping
 
-    def update_data_mesh(self):
-        """Update data for xml command to render meshes."""
-        self.xml_dict = {}
+    def update_mesh_data(self):
+        self.mesh_data = MeshViewerData(**self._collect_data_mesh())
 
+    def update_fence_data(self):
+        # Data nearly equal to mesh data (except different guids that will be assigned)
+        d = self._collect_data_mesh()
+
+        # Add polylines
+        d["polylines"] = []
+        for linestring in self.line_picker.geometries:
+            xyz_points = [
+                (int(p.x()), int(p.y()), 0) for p in linestring.asPolyline()
+            ]  # TODO: Integer required??
+            d["polylines"].append(itertools.chain(*xyz_points))
+
+        self.fence_data = FenceViewerData(**d)
+
+    def _collect_data_mesh(self):
+        """Collect data for xml command to render meshes."""
+        d = {}
         current_layer = self.layer_selection.currentLayer()
-        self.xml_dict["path"] = current_layer.dataProvider().dataSourceUri()
+        d["path"] = current_layer.dataProvider().dataSourceUri()
 
         idx = current_layer.datasetGroupsIndexes()
-        self.xml_dict["group_names"] = [
+        d["group_names"] = [
             current_layer.datasetGroupMetadata(QgsMeshDatasetIndex(group=i)).name()
             for i in idx
         ]
 
-        self.xml_dict["variable_names"] = list(
-            groupby_variable(self.xml_dict["group_names"], idx).keys()
-        )
-        self.xml_dict["variable_names"].append(
+        d["variable_names"] = list(groupby_variable(d["group_names"], idx).keys())
+        d["variable_names"].append(
             "Elevation (cell centre)"
         )  # computed by the viewer itsself from 'top' and 'bot'
 
@@ -191,13 +273,19 @@ class ImodViewerWidget(QWidget):
             .colorRampItemList()
         )
 
-        self.xml_dict["rgb_point_data"] = self.create_rgb_array(colorramp)
+        d["rgb_point_data"] = self.create_rgb_array(colorramp)
 
-        self.xml_dict["bbox_rectangle"] = self.extent_box.outputExtent()
+        bbox_rectangle = self.extent_box.outputExtent()
+        xmin = str(bbox_rectangle.xMinimum())
+        xmax = str(bbox_rectangle.xMaximum())
+        ymin = str(bbox_rectangle.yMinimum())
+        ymax = str(bbox_rectangle.yMaximum())
+        d["bbox_rectangle"] = xmin, xmax, ymin, ymax
 
-        n_vars = len(self.xml_dict["variable_names"])
+        n_vars = len(d["variable_names"])
+        d["guids_grids"] = [uuid.uuid4() for i in range(n_vars + 1)]
 
-        self.xml_dict["guids_grids"] = [uuid.uuid4() for i in range(n_vars + 1)]
+        return d
 
     def rgb_components_to_float(self, components):
         return [comp / 256 for comp in components]
@@ -214,27 +302,6 @@ class ImodViewerWidget(QWidget):
         self.server.start_imod()
         self.server.accept_client()
 
-        self.update_viewer()
-
-    def load_model(self):
-        """Load model from explorer into the renderer"""
-        command = xml_tree.command_xml(xml_tree.model_load_tree, **self.xml_dict)
-        self.server.send(command)
-
-    def unload_model(self):
-        """Unload model, removing it from the explorer as well"""
-        command = xml_tree.command_xml(xml_tree.model_unload_tree, **self.xml_dict)
-        self.server.send(command)
-
-    def open_mesh_file(self):
-        """Open file into viewer explorer"""
-        command = xml_tree.command_xml(xml_tree.open_file_models_tree, **self.xml_dict)
-        self.server.send(command)
-
-    def open_borelogs(self):
-        command = xml_tree.command_xml(xml_tree.add_borelogs_tree, **self.xml_dict)
-        self.server.send(command)
-
     def update_viewer(self):
         """Update viewer.
         First, if created, unload previous model in viewer, also removing it from its explorer.
@@ -249,14 +316,17 @@ class ImodViewerWidget(QWidget):
         layer_type = layer.type()
 
         if layer_type == QgsMapLayerType.MeshLayer:
-            if "guids_grids" in self.xml_dict.keys():
-                self.unload_model()
-            self.update_data_mesh()
-            self.open_mesh_file()
-            self.load_model()
+            if self.mesh_data.guids_grids is not None:
+                self.mesh_data.unload(self.server)
+            self.update_mesh_data()
+            self.mesh_data.open(self.server)
+            self.mesh_data.load(self.server)
         elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
-            self.update_data_borehole()
-            self.open_borelogs()
+            if self.borehole_data.guids_grids is not None:
+                self.borehole_data.unload(self.server)
+            self.update_borehole_data()
+            self.borehole_data.open(self.server)
+            self.borehole_data.load(self.server)
         else:
             raise ValueError(
                 "File could not be interpreted as borelog ipf or Qgs.MeshLayer"
@@ -265,22 +335,10 @@ class ImodViewerWidget(QWidget):
     def fence_diagram_is_active(self):
         return len(self.line_picker.geometries) > 0
 
-    def prepare_fence_diagram(self):
-        self.xml_dict["polylines"] = []
-        for linestring in self.line_picker.geometries:
-            xyz_points = [
-                (int(p.x()), int(p.y()), 0) for p in linestring.asPolyline()
-            ]  # TODO: Integer required??
-            self.xml_dict["polylines"].append(itertools.chain(*xyz_points))
-
-    def create_fence_diagram(self):
-        """Open file into viewer explorer"""
-        command = xml_tree.command_xml(
-            xml_tree.create_fence_diagram_tree, **self.xml_dict
-        )
-        self.server.send(command)
-
     def load_fence_diagram(self):
+        if self.fence_data.guids_grids is not None:
+            self.fence_data.unload(self.server)
+
         if self.fence_diagram_is_active():
-            self.prepare_fence_diagram()
-            self.create_fence_diagram()
+            self.update_fence_data()
+            self.fence_data.open(self.server)
