@@ -74,17 +74,18 @@ def create_fence_diagram_tree(**xml_dict):
     def _to_string(iterable):
         return " ".join(str(p) for p in iterable)
 
-    guids_grids = xml_dict["guids_grids"]
-    target_model = [xmu.TargetModel(guid=guids_grids[0])]
+    path = xml_dict["path"]
+    boundingbox = create_boundingbox(xml_dict["bbox_rectangle"])
+
     polylines = xmu.PolyLines(
         PolyLine=[_to_string(polyline) for polyline in xml_dict["polylines"]]
     )
 
     return xmu.ImodCommand(
         type="CreateFenceDiagram",
-        targetmodel=target_model,
         polylines=polylines,
-        Url=None,
+        Url=path,
+        boundingbox=boundingbox,
     )
 
 
