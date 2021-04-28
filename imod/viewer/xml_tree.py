@@ -96,7 +96,7 @@ def open_file_models_tree(**xml_dict):
     boundingbox = create_boundingbox(xml_dict["bbox_rectangle"])
 
     return xmu.ImodCommand(
-        type="OpenFileLoadModels",
+        type="AddLayeredGridToExplorer",
         objectguids=objectguids,
         viewer=viewer,
         Url=path,

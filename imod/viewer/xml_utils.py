@@ -137,7 +137,7 @@ class ImodCommand(Aggregate):
     "AddToExplorer",
     "LoadExplorerModel",
     "CreateFenceDiagram",
-    "OpenFileLoadModels",
+    "AddLayeredGridToExplorer",
     "UnloadModel"
     ]
     """
