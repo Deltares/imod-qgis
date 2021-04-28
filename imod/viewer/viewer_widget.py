@@ -337,6 +337,10 @@ class ImodViewerWidget(QWidget):
 
     def load_fence_diagram(self):
         if self.fence_data.guids_grids is not None:
+            # Currently does nothing (no errors thrown as well), as no guids are sent to the iMOD GUI
+            # Currently the CreateFenceDiagram command for the iMOD GUI
+            # is unable to assign a guid to a fencediagram object.
+            # Requires some work at the iMOD GUI side.
             self.fence_data.unload(self.server)
 
         if self.fence_diagram_is_active():
