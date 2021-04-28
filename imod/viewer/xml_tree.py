@@ -44,7 +44,7 @@ def model_unload_tree(**xml_dict):
 def model_load_tree(**xml_dict):
     guids_grids = xml_dict["guids_grids"]
     return xmu.ImodCommand(
-        type="LoadExplorerModel", modeltoload=[xmu.ModelToLoad(guid=guids_grids[0])]
+        type="LoadExplorerModel", targetmodel=[xmu.TargetModel(guid=guids_grids[0])]
     )
 
 
