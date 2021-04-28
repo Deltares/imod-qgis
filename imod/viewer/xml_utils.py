@@ -142,7 +142,7 @@ class ImodCommand(Aggregate):
     ]
     """
 
-    Version: Union[Attribute, str] = "8"
+    Version: Union[Attribute, str] = "9"
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
     viewer: Optional[List[Viewer]] = None
