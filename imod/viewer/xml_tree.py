@@ -13,10 +13,7 @@ def create_legend(rgb_point_data):
 
 def create_boundingbox(bbox_rectangle):
     # TODO implement support for ZMin and ZMax as well
-    xmin = str(bbox_rectangle.xMinimum())
-    xmax = str(bbox_rectangle.xMaximum())
-    ymin = str(bbox_rectangle.yMinimum())
-    ymax = str(bbox_rectangle.yMaximum())
+    xmin, xmax, ymin, ymax = bbox_rectangle
     return xmu.BoundingBox(XMin=xmin, XMax=xmax, YMin=ymin, YMax=ymax)
 
 
