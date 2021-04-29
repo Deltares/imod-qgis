@@ -48,8 +48,12 @@ If you cannot find the folder, follow [these instructions](https://gis.stackexch
 To be able to use the iMOD 3D viewer from the iMOD QGIS plugin, 
 you still need to :
 
-1. Download the viewer [here](https://dpcbuild.deltares.nl/project/iMOD6_IModGui?mode=builds). It currently is only available to Deltares employees. 
+1. Download the viewer [here](https://dpcbuild.deltares.nl/project/iMOD6_IModGui?mode=builds). 
+It currently is only available to Deltares employees. 
 
-2. Let the plugin know where the viewer is located. `cd` to the iMOD QGIS plugin folder and run: 
+2. Let the plugin know where the viewer is located. 
+If you ran the iMOD GUI installer, the viewer is probably installed here: 
+`c:\Progam Files\Deltares\IMOD6 GUI`. 
+To configure the QGIS pulgin, `cd` to the its' folder and run: 
 
-```python setup.py /path/to/viewer/location/imod.exe```
+```python configure_plugin.py /path/to/viewer/location/imod.exe```
