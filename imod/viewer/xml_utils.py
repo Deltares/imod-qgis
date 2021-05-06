@@ -5,11 +5,14 @@ from typing import Union, List, Optional
 
 import declxml as xml
 
+
 class Aggregate(abc.ABC):
     pass
 
+
 class Attribute(abc.ABC):
     pass
+
 
 #%% Styling
 @dataclass
@@ -20,22 +23,26 @@ class Legend(Aggregate):
     RgbPointData: str = ""
     NanColor: str = "1 1 1"
 
+
 #%% Borelogs
 @dataclass
 class Map(Aggregate):
-    Purpose : Union[Attribute, str]
-    Name : Union[Attribute, str]
+    Purpose: Union[Attribute, str]
+    Name: Union[Attribute, str]
+
 
 @dataclass
 class ColumnMapping(Aggregate):
-    map : List[Map]
+    map: List[Map]
+
 
 @dataclass
 class TableGeometryModel(Aggregate):
-    guid : Union[Attribute, str]
-    Name : str
-    Url : str
-    columnmapping : ColumnMapping
+    guid: Union[Attribute, str]
+    Name: str
+    Url: str
+    columnmapping: ColumnMapping
+
 
 #%% Data models
 @dataclass
@@ -47,18 +54,21 @@ class DataSet(Aggregate):
     DataType: str = "ScalarDouble"
     Origin: str = "fromFile"
 
+
 @dataclass
 class DataSetList(Aggregate):
     dataset: List[DataSet]
 
+
 @dataclass
 class BoundingBox(Aggregate):
-    XMin : Union[Attribute, str] = "-1e9"
-    XMax : Union[Attribute, str] = "1e9"
-    YMin : Union[Attribute, str] = "-1e9"
-    YMax : Union[Attribute, str] = "1e9"
-    ZMin : Union[Attribute, str] = "-1e9"
-    ZMax : Union[Attribute, str] = "1e9"
+    XMin: Union[Attribute, str] = "-1e9"
+    XMax: Union[Attribute, str] = "1e9"
+    YMin: Union[Attribute, str] = "-1e9"
+    YMax: Union[Attribute, str] = "1e9"
+    ZMin: Union[Attribute, str] = "-1e9"
+    ZMax: Union[Attribute, str] = "1e9"
+
 
 @dataclass
 class GridModel(Aggregate):
@@ -72,76 +82,77 @@ class GridModel(Aggregate):
     Type: str = "Layered Ugrid"
     GridIndex: int = 0
 
+
 @dataclass
 class Object(Aggregate):
-    type : Union[Attribute, str]
-    guid : Union[Attribute, str]
-    name : Optional[Union[Attribute, str]] = None
+    type: Union[Attribute, str]
+    guid: Union[Attribute, str]
+    name: Optional[Union[Attribute, str]] = None
+
 
 @dataclass
 class ObjectGuids(Aggregate):
     object: List[Object]
 
+
 @dataclass
 class TargetModel(Aggregate):
-    guid : Union[Attribute, str]
+    guid: Union[Attribute, str]
+
 
 #%% GUI widgets
 @dataclass
 class ExplorerModelList(Aggregate):
-    tablegeometrymodel : Optional[List[TableGeometryModel]] = None
+    tablegeometrymodel: Optional[List[TableGeometryModel]] = None
     gridmodel: Optional[List[GridModel]] = None
+
 
 @dataclass
 class Viewer(Aggregate):
     type: Union[Attribute, str] = "3D"
     explorermodellist: Optional[ExplorerModelList] = None
 
+
 @dataclass
 class IMOD6(Aggregate):
     Version: Union[Attribute, str] = "8"
     viewer: List[Viewer] = None
 
-@dataclass
-class ModelToLoad(Aggregate):
-    guid: Union[Attribute, str] = ""
 
 #%% Fence diagrams
 @dataclass
 class OutputObject(Aggregate):
     guid: Union[Attribute, str] = ""
 
+
 @dataclass
 class PolyLines(Aggregate):
     PolyLine: List[str]
 
-@dataclass
-class ModelToCut(Aggregate):
-    guid: Union[Attribute, str] = ""
 
 #%% iMOD command
-@dataclass 
+@dataclass
 class ImodCommand(Aggregate):
     """type: [
-        "AddToExplorer", 
-        "LoadExplorerModel", 
-        "CreateFenceDiagram", 
-        "OpenFileLoadModels",
-        "UnloadModel"
-        ]
+    "AddToExplorer",
+    "LoadExplorerModel",
+    "CreateFenceDiagram",
+    "AddLayeredGridToExplorer",
+    "UnloadModel"
+    ]
     """
-    Version: Union[Attribute, str] = "8"
+
+    Version: Union[Attribute, str] = "9"
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
     viewer: Optional[List[Viewer]] = None
-    modeltoload: Optional[List[ModelToLoad]] = None #List as a hack to get an aggregate with only attributes in the xml file
-    targetmodel: Optional[List[TargetModel]] = None
-    modeltocut: Optional[List[ModelToCut]] = None
+    targetmodel: Optional[
+        List[TargetModel]
+    ] = None  # List as a hack to get an aggregate with only attributes in the xml file
     polylines: Optional[PolyLines] = None
-    Url : Optional[str] = None
-    boundingbox : Optional[BoundingBox] = None
-    objectguids : Optional[ObjectGuids] = None
-
+    Url: Optional[str] = None
+    boundingbox: Optional[BoundingBox] = None
+    objectguids: Optional[ObjectGuids] = None
 
 
 #%%Mappings
@@ -152,8 +163,8 @@ type_mapping = {
     str: xml.string,
 }
 
-#Name mapping, can be used to force different names if necessary
-# e.g.: 
+# Name mapping, can be used to force different names if necessary
+# e.g.:
 # name_mapping = {
 #     NoData: "noData",
 # }
@@ -212,6 +223,7 @@ def is_attribute(vartype):
 def is_list(vartype):
     return hasattr(vartype, "__origin__") and (vartype.__origin__ is list)
 
+
 def process_primitive(name, vartype, datacls, required):
     field_kwargs = {
         "element_name": ".",
@@ -231,6 +243,7 @@ def process_primitive(name, vartype, datacls, required):
 
     field = xml_type(**field_kwargs)
     return field
+
 
 def make_processor(datacls: type, element_required: bool = True):
     """
