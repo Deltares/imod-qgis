@@ -36,7 +36,7 @@ class MeshViewerData:
     rgb_point_data: str = None
     bbox_rectangle: tuple = None
     guids_grids: List[str] = None
-    target_guid: str = None
+    legend_guid: str = None
 
     def open(self, server):
         c = xml_tree.command_xml(xml_tree.open_file_models_tree, **asdict(self))
@@ -63,6 +63,7 @@ class FenceViewerData:
     rgb_point_data: str = None
     bbox_rectangle: tuple = None
     guids_grids: List[str] = None
+    legend_guid: str = None
     polylines: List[str] = None
 
     def open(self, server):
@@ -153,8 +154,11 @@ class ImodViewerWidget(QWidget):
         self.update_button = QPushButton("Update 3D plot")
         self.update_button.clicked.connect(self.update_viewer)
 
-        self.fence_buttion = QPushButton("Load fence diagram")
-        self.fence_buttion.clicked.connect(self.load_fence_diagram)
+        self.fence_button = QPushButton("Load fence diagram")
+        self.fence_button.clicked.connect(self.load_fence_diagram)
+
+        self.legend_button = QPushButton("Load legend")
+        self.legend_button.clicked.connect(self.load_legend)
 
         # Define layout
         first_column = QVBoxLayout()
@@ -165,7 +169,8 @@ class ImodViewerWidget(QWidget):
         third_column = QVBoxLayout()
         third_column.addWidget(self.viewer_button)
         third_column.addWidget(self.update_button)
-        third_column.addWidget(self.fence_buttion)
+        third_column.addWidget(self.fence_button)
+        third_column.addWidget(self.legend_button)
 
         layout = (
             QHBoxLayout()
@@ -304,7 +309,9 @@ class ImodViewerWidget(QWidget):
     def _get_legend_guid(self, style_group_name, d):
         if "_layer_" in style_group_name:
             style_variable_name = style_group_name.split("_layer_")[0]
-            idx_guid = d["variable_names"].index[style_variable_name]
+            idx_guid = (
+                d["variable_names"].index(style_variable_name) + 1
+            )  # Add one because first guid is the LayeredGrid itsself
             return d["guids_grids"][idx_guid]
         else:
             return None
@@ -365,5 +372,17 @@ class ImodViewerWidget(QWidget):
             self.update_fence_data()
             self.fence_data.open(self.server)
             self.fence_data.load(self.server)
+
+    def load_legend(self):
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
+        layer_type = layer.type()
+
+        if layer_type == QgsMapLayerType.MeshLayer:
+            if self.mesh_data.legend_guid is not None:
+                self.mesh_data.set_legend(self.server)
+
+        if self.fence_diagram_is_active():
             if self.fence_data.legend_guid is not None:
                 self.fence_data.set_legend(self.server)
