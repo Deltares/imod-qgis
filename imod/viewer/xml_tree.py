@@ -50,9 +50,10 @@ def model_unload_tree(**xml_dict):
 
 
 def model_load_tree(**xml_dict):
-    guids_grids = xml_dict["guids_grids"]
+    target_guid = xml_dict["guids_grids"][0]
+
     return xmu.ImodCommand(
-        type="LoadExplorerModel", targetmodel=[xmu.TargetModel(guid=guids_grids[0])]
+        type="LoadExplorerModel", targetmodel=[xmu.TargetModel(guid=target_guid)]
     )
 
 
@@ -61,7 +62,9 @@ def set_legend_tree(legend_guid=None, **xml_dict):
 
     legend = create_legend(rgb_point_data)
     return xmu.ImodCommand(
-        type="SetLegend", legend=legend, targetmodel=[xmu.TargetModel(guid=legend_guid)]
+        type="SetLegendCommand",
+        legend=legend,
+        targetmodel=[xmu.TargetModel(guid=legend_guid)],
     )
 
 
