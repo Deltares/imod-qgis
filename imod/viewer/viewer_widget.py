@@ -36,6 +36,7 @@ class MeshViewerData:
     rgb_point_data: str = None
     bbox_rectangle: tuple = None
     guids_grids: List[str] = None
+    target_guid: str = None
 
     def open(self, server):
         c = xml_tree.command_xml(xml_tree.open_file_models_tree, **asdict(self))
@@ -47,6 +48,10 @@ class MeshViewerData:
 
     def unload(self, server):
         c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
+        server.send(c)
+
+    def set_legend(self, server):
+        c = xml_tree.command_xml(xml_tree.set_legend_tree, **asdict(self))
         server.send(c)
 
 
@@ -70,6 +75,10 @@ class FenceViewerData:
 
     def unload(self, server):
         c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
+        server.send(c)
+
+    def set_legend(self, server):
+        c = xml_tree.command_xml(xml_tree.set_legend_tree, **asdict(self))
         server.send(c)
 
 
@@ -263,8 +272,7 @@ class ImodViewerWidget(QWidget):
             "Elevation (cell centre)"
         )  # computed by the viewer itsself from 'top' and 'bot'
 
-        style_group_index = idx[0]  # Same style used for all groups in QGIS 3.16
-        # FUTURE: Check if this remains
+        style_group_index = current_layer.rendererSettings().activeScalarDatasetGroup()
 
         colorramp = (
             current_layer.rendererSettings()
@@ -285,7 +293,21 @@ class ImodViewerWidget(QWidget):
         n_vars = len(d["variable_names"])
         d["guids_grids"] = [uuid.uuid4() for i in range(n_vars + 1)]
 
+        style_group_name = current_layer.datasetGroupMetadata(
+            QgsMeshDatasetIndex(group=style_group_index)
+        ).name()
+
+        d["legend_guid"] = self._get_legend_guid(style_group_name, d)
+
         return d
+
+    def _get_legend_guid(self, style_group_name, d):
+        if "_layer_" in style_group_name:
+            style_variable_name = style_group_name.split("_layer_")[0]
+            idx_guid = d["variable_names"].index[style_variable_name]
+            return d["guids_grids"][idx_guid]
+        else:
+            return None
 
     def rgb_components_to_float(self, components):
         return [comp / 256 for comp in components]
@@ -337,12 +359,11 @@ class ImodViewerWidget(QWidget):
 
     def load_fence_diagram(self):
         if self.fence_data.guids_grids is not None:
-            # Currently does nothing (no errors thrown as well), as no guids are sent to the iMOD GUI
-            # Currently the CreateFenceDiagram command for the iMOD GUI
-            # is unable to assign a guid to a fencediagram object.
-            # Requires some work at the iMOD GUI side.
             self.fence_data.unload(self.server)
 
         if self.fence_diagram_is_active():
             self.update_fence_data()
             self.fence_data.open(self.server)
+            self.fence_data.load(self.server)
+            if self.fence_data.legend_guid is not None:
+                self.fence_data.set_legend(self.server)
