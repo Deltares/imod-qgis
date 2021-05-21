@@ -1,3 +1,13 @@
+"""
+This module roughly follows the writeup here:
+https://github.com/gatkin/declxml/issues/28
+
+In short: 
+We use dataclasses to create xml processors by checking the type of each class' attribute, in this case ImodCommand.
+Each dataclass inherits from either two abstract base classes, Aggregate or Attribute, to denote their role in the xml file.
+The functions at the end of the script process these dataclasses to an xml processor for declxml.
+"""
+
 #%%Importing
 import abc
 from dataclasses import dataclass
@@ -138,13 +148,15 @@ class ImodCommand(Aggregate):
     "LoadExplorerModel",
     "CreateFenceDiagram",
     "AddLayeredGridToExplorer",
-    "UnloadModel"
+    "UnloadModel",
+    "SetLegend"
     ]
     """
 
     Version: Union[Attribute, str] = "9"
     type: Union[Attribute, str] = ""
     guid: Union[Attribute, str] = ""
+    legend: Optional[Legend] = None
     viewer: Optional[List[Viewer]] = None
     targetmodel: Optional[
         List[TargetModel]
