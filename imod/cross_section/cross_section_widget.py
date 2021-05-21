@@ -194,6 +194,7 @@ class ImodCrossSectionWidget(QWidget):
         self.iface = iface
         self.temporal_controller = self.iface.mapCanvas().temporalController()
         self.temporal_controller.updateTemporalRange.connect(self.plot)
+        self.temporal_frame = None
 
         self.layer_selection = UpdatingQgsMapLayerComboBox()
         self.layer_selection.layerChanged.connect(self.on_layer_changed)
@@ -346,15 +347,17 @@ class ImodCrossSectionWidget(QWidget):
             else:
                 data = MeshData(layer, self.variables_indexes, variable, layers)
                 layer_item = StyleTreeItem(f"{name}: {variable}", "mesh", data)
-            self.temporal_controller.updateTemporalRange.connect(data.clear)
+            self.resolution_spinbox.valueChanged.connect(data.clear)
         elif layer_type == QgsMapLayerType.RasterLayer:
             variables = self.multi_variable_selection.checked_variables()
             data = RasterLineData(layer, variables, self.variables_indexes)
             layer_item = StyleTreeItem(f"{name}", "raster: lines", data)
+            self.resolution_spinbox.valueChanged.connect(data.clear)
         elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
             variable = self.variable_selection.dataset_variable
             data = BoreholeData(layer, variable)
             layer_item = StyleTreeItem(f"{name}: {variable}", "IPF", data)
+            self.buffer_spinbox.valueChanged.connect(data.clear)
         else:
             raise ValueError(
                 "Inappropriate layer type: only meshes, rasters, and IPFs are allowed"
@@ -390,9 +393,8 @@ class ImodCrossSectionWidget(QWidget):
         for i in range(nrow):
             item = self.style_tree.topLevelItem(i)
             if item.show_checkbox.isChecked():
-                # Load data if is hasn't been loaded yet
                 data = item.section_data
-                if data.x is None:
+                if data.requires_loading(datetime_range=datetime_range):
                     data.load(**load_kwargs)
                     if data.x is not None:
                         item.colors_view.setEnabled(True)

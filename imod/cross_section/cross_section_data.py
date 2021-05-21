@@ -8,7 +8,14 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
 from qgis import processing
-from qgis.core import QgsFeature, QgsGeometry, QgsProject, QgsRaster, QgsVectorLayer
+from qgis.core import (
+    QgsFeature,
+    QgsGeometry,
+    QgsMeshDatasetIndex,
+    QgsProject,
+    QgsRaster,
+    QgsVectorLayer,
+)
 
 from ..ipf import IpfType, read_associated_borehole
 from ..widgets import (
@@ -60,6 +67,9 @@ class AbstractCrossSectionData(abc.ABC):
     @abc.abstractmethod
     def clear(self):
         pass
+
+    def requires_loading(self, **kwargs):
+        return self.x is not None
 
     def add_to_legend(self, legend):
         for color, name in zip(self.colors().values(), self.labels().values()):
@@ -293,6 +303,7 @@ class BoreholeData(AbstractCrossSectionData):
         self.x = None
         self.boreholes_id = None
         self.boreholes_data = None
+        self.styling_data = None
         self.plot_item = None
 
 
@@ -313,32 +324,61 @@ class MeshData(AbstractCrossSectionData):
         self.color_widget = self.pseudocolor_widget
         self.legend_items = []
         self.styling_data = None
+        self.cache = {}
+        self.sample_index = (None, None)
         self.dummy_widget = DummyWidget()
 
-    def load(self, geometry, resolution, datetime_range, **_):
-        n_layer = len(self.layer_numbers)
-        x = cross_section_x_data(self.layer, geometry, resolution)
-        n_x = x.size
-        top = np.empty((n_layer, n_x))
-        bottom = np.empty((n_layer, n_x))
-
-        # FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
-        for i, k in enumerate(self.layer_numbers):
-            top_index = self.variables_indexes["top"][k]
-            bottom_index = self.variables_indexes["bottom"][k]
-            top[i, :] = cross_section_y_data(self.layer, geometry, top_index, x)
-            bottom[i, :] = cross_section_y_data(self.layer, geometry, bottom_index, x)
-
-        if self.variable == "layer number":
-            z = np.repeat(self.layer_numbers, n_x - 1).reshape(n_layer, n_x - 1)
+    def requires_loading(self, datetime_range):
+        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
+        if datetime_range is None:  # Just take the first one in such a case
+            sample_index = (group_index, 0)
         else:
-            x_mids = (x[1:] + x[:-1]) / 2
-            z = np.full((n_layer, x_mids.size), np.nan)
+            index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+            sample_index = (index.group(), index.dataset())
+
+        if sample_index == self.sample_index:
+            return False
+        else:
+            return True
+
+    def load(self, geometry, resolution, datetime_range, **_):
+        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
+        if datetime_range is None:  # Just take the first one in such a case
+            sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
+        else:
+            sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+        index = (sample_index.dataset(), sample_index.group())
+
+        # Get result from cache if available.
+        result = self.cache.get(index, None)
+        if result is not None:
+            x, top, bottom, z = result
+        else:
+            n_layer = len(self.layer_numbers)
+            x = cross_section_x_data(self.layer, geometry, resolution)
+            n_x = x.size
+            top = np.empty((n_layer, n_x))
+            bottom = np.empty((n_layer, n_x))
+
+            # FUTURE: When MDAL supports UGRID layer, looping over layers not necessary.
             for i, k in enumerate(self.layer_numbers):
-                dataset_index = self.variables_indexes[self.variable][k]
-                z[i, :] = cross_section_y_data(
-                    self.layer, geometry, dataset_index, x_mids, datetime_range
+                top_index = self.variables_indexes["top"][k]
+                bottom_index = self.variables_indexes["bottom"][k]
+                top[i, :] = cross_section_y_data(self.layer, geometry, top_index, x)
+                bottom[i, :] = cross_section_y_data(
+                    self.layer, geometry, bottom_index, x
                 )
+
+                x_mids = (x[1:] + x[:-1]) / 2
+                z = np.full((n_layer, x_mids.size), np.nan)
+                for i, k in enumerate(self.layer_numbers):
+                    group_index = self.variables_indexes[self.variable][k]
+                    z[i, :] = cross_section_y_data(
+                        self.layer, geometry, group_index, x_mids, datetime_range
+                    )
+            # Store in cache
+            self.cache[index] = (x, top, bottom, z)
+            self.sample_index = index
 
         self.x = x
         self.y_top = top
@@ -367,4 +407,6 @@ class MeshData(AbstractCrossSectionData):
         self.y_bottom = None
         self.z = None
         self.styling_data = None
+        self.cache = {}
         self.plot_item = None
+

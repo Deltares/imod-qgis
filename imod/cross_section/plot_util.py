@@ -22,7 +22,7 @@ pyqtGraphAcceptNaN = check_if_PyQt_version_is_before(5, 13, 1)
 
 
 def cross_section_x_data(layer, geometry, resolution=1.0):
-    """return list defining X points for plot """
+    """return list defining X points for plot"""
     x = []
     if not layer:
         return x
@@ -41,7 +41,7 @@ def cross_section_x_data(layer, geometry, resolution=1.0):
 
 
 def cross_section_y_data(layer, geometry, group_index, x, datetime_range=None):
-    """ return array defining Y points for plot """
+    """return array defining Y points for plot"""
     y = np.zeros(x.shape)
     if not layer:
         return y
