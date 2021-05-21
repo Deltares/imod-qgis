@@ -13,11 +13,10 @@ from collections import defaultdict
 import re
 
 
-def natural_sort_key(pair, _nsre=re.compile('([0-9]+)')):
+def natural_sort_key(pair, _nsre=re.compile("([0-9]+)")):
     # From: https://stackoverflow.com/questions/4836710/is-there-a-built-in-function-for-string-natural-sort
     s = pair[0]
-    return [int(text) if text.isdigit() else text.lower()
-            for text in _nsre.split(s)]   
+    return [int(text) if text.isdigit() else text.lower() for text in _nsre.split(s)]
 
 
 def get_group_names(layer):
@@ -43,27 +42,27 @@ def groupby_variable(group_names, dataset_indexes):
 def groupby_layer(group_names):
     """
     Groupby layer, provided by a list variable names ("group names", in MDAL terms).
-    
+
     Parameters
     ----------
     group_names : list of str
         list with dataset group names
-    
+
 
     Returns
     -------
     gb : dict
-        A dictionary with "layer_{\d+}" as key and 
+        A dictionary with "layer_{\d+}" as key and
         a list with all full dataset names
-        as value 
+        as value
     """
     prog = re.compile("(.+)_(layer_\d+)")
     groups = [prog.match(group_name) for group_name in group_names]
-    #Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
+    # Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
     groups = list(filter(None.__ne__, groups))
-    #Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
-    #the .group confusingly is a regex method here.
-    groups = [(g.group(2), g.group(0)) for g in groups] 
+    # Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
+    # the .group confusingly is a regex method here.
+    groups = [(g.group(2), g.group(0)) for g in groups]
     gb = defaultdict(list)
     for key, group in groups:
         gb[key].append(group)
