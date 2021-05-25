@@ -408,7 +408,8 @@ class ImodCrossSectionWidget(QWidget):
             item = self.style_tree.topLevelItem(i)
             if item.legend_checkbox.isChecked() and item.show_checkbox.isChecked():
                 data = item.section_data
-                data.add_to_legend(self.legend)
+                if data.x is not None:
+                    data.add_to_legend(self.legend)
 
     def set_variable_names(self):
         layer = self.layer_selection.currentLayer()
