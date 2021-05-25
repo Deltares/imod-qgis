@@ -240,6 +240,10 @@ class ImodViewerWidget(QWidget):
         columnmapping = {}
         columnmapping["X"] = current_layer.fields().toList()[0].alias()
         columnmapping["Y"] = current_layer.fields().toList()[1].alias()
+        # Hardcoded commands to tell the viewer to use the first column
+        # of the associated file to plot tops and bottoms.
+        columnmapping["Z0"] = "tops 1dBoreholes"
+        columnmapping["Z1"] = "bottoms 1dBoreholes"
 
         self.borehole_data.column_mapping = columnmapping
 
