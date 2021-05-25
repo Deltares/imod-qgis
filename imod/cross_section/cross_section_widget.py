@@ -406,7 +406,7 @@ class ImodCrossSectionWidget(QWidget):
         nrow = self.style_tree.topLevelItemCount()
         for i in range(nrow):
             item = self.style_tree.topLevelItem(i)
-            if item.legend_checkbox.isChecked():
+            if item.legend_checkbox.isChecked() and item.show_checkbox.isChecked():
                 data = item.section_data
                 data.add_to_legend(self.legend)
 
