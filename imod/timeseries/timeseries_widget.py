@@ -187,6 +187,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.multi_variable_selection = MultipleVariablesWidget()
 
         self.point_picker = PointGeometryPickerWidget(iface.mapCanvas())
+        self.point_picker.geometries_changed.connect(self.on_select)
 
         self.plot_button = QPushButton("Plot")
         self.plot_button.clicked.connect(self.draw_plot)
@@ -295,7 +296,6 @@ class ImodTimeSeriesWidget(QWidget):
         layer = self.layer_selection.currentLayer()
         if layer is None:
             return
-        updating = self.update_on_select.isChecked()
         if layer.type() == QgsMapLayerType.MeshLayer:
             self.point_picker.picker_clicked()
         else:
@@ -311,23 +311,11 @@ class ImodTimeSeriesWidget(QWidget):
         For mesh layers, this means hovering on the map will cause the plot to update.
         In this case, the plot will NOT be cleaned.
         """
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
         updating = self.update_on_select.isChecked()
         self.plot_button.setEnabled(not updating)
-        layer = self.layer_selection.currentLayer()
-        if layer.type() == QgsMapLayerType.MeshLayer:
-            print("mesh layer")
-            signal = self.point_picker.geometries_changed
-        else:
-            signal = layer.selectionChanged
-
-        if updating:
-            signal.connect(self.on_select)
-        else:
-            try:
-                signal.disconnect()
-            except TypeError:
-                # In case nothing is connected yet.
-                pass
         self.point_picker.updating = updating
 
     def set_variable_layernumbers(self):
@@ -349,9 +337,6 @@ class ImodTimeSeriesWidget(QWidget):
         self.variables_indexes = None
         self.variable_selection.setVisible(False)
         self.id_selection_box.clear()
-        # Set active layer so the Selection Toolbar will work as expected
-        # (since it works on the currently active layer)
-        self.iface.setActiveLayer(layer)
         if layer.type() == QgsMapLayerType.MeshLayer:
             indexes, names = get_group_names(layer)
             self.variables_indexes = groupby_variable(names, indexes)
@@ -361,26 +346,29 @@ class ImodTimeSeriesWidget(QWidget):
             self.variable_selection.menu_datasets.populate_actions(
                 self.variables_indexes.keys()
             )
+            self.variable_selection.menu_datasets.check_first()
             self.set_variable_layernumbers()
-        elif layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
-            index = int(layer.customProperty("ipf_indexcolumn"))
-            self.id_selection_box.insertItem(0, layer.attributeAlias(index))
-            self.id_selection_box.setEnabled(False)
-            variables = layer.customProperty("ipf_assoc_columns").split("␞")
-            self.multi_variable_selection.menu_datasets.populate_actions(variables)
-        else:
-            datetime_column = layer.temporalProperties().startField()
-            variables = [f.name() for f in layer.fields()]
-            try:
-                variables.remove(datetime_column)
-            except ValueError:
-                pass
-            self.id_selection_box.insertItems(0, variables)
-            self.id_selection_box.setEnabled(True)
-            self.multi_variable_selection.menu_datasets.populate_actions(variables)
-        # In case we went from e.g. mesh layer to table layer, update the
-        # signals:
-        self.toggle_update()
+        elif layer.type() == QgsMapLayerType.VectorLayer:
+            layer.selectionChanged.connect(self.on_select)
+            # Set active layer so the Selection Toolbar will work as expected
+            # (since it works on the currently active layer)
+            self.iface.setActiveLayer(layer)
+            if layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
+                index = int(layer.customProperty("ipf_indexcolumn"))
+                self.id_selection_box.insertItem(0, layer.attributeAlias(index))
+                self.id_selection_box.setEnabled(False)
+                variables = layer.customProperty("ipf_assoc_columns").split("␞")
+                self.multi_variable_selection.menu_datasets.populate_actions(variables)
+            else:
+                datetime_column = layer.temporalProperties().startField()
+                variables = [f.name() for f in layer.fields()]
+                try:
+                    variables.remove(datetime_column)
+                except ValueError:
+                    pass
+                self.id_selection_box.insertItems(0, variables)
+                self.id_selection_box.setEnabled(True)
+                self.multi_variable_selection.menu_datasets.populate_actions(variables)
 
     def load_mesh_data(self, layer):
         """Load timeseries data from a Mesh dataset"""
@@ -428,7 +416,7 @@ class ImodTimeSeriesWidget(QWidget):
 
         for name in names:
             dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
-        self.dataframes[name] = dataframe
+            self.dataframes[name] = dataframe
         # Store feature_ids for future comparison
         self.feature_ids = feature_ids
 
@@ -498,6 +486,8 @@ class ImodTimeSeriesWidget(QWidget):
             c.curve.setPen(pen)
 
     def on_select(self):
+        if not self.update_on_select.isChecked():
+            return
         self.clear_plot()
         self.draw_plot()
 
