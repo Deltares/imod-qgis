@@ -71,8 +71,8 @@ class FenceViewerData:
         server.send(c)
 
     def load(self, server):
-        c = xml_tree.command_xml(xml_tree.model_load_tree, **asdict(self))
-        server.send(c)
+        # Fence data does not need to be loaded with a command.
+        pass
 
     def unload(self, server):
         c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
@@ -375,7 +375,6 @@ class ImodViewerWidget(QWidget):
         if self.fence_diagram_is_active():
             self.update_fence_data()
             self.fence_data.open(self.server)
-            self.fence_data.load(self.server)
 
     def load_legend(self):
         layer = self.layer_selection.currentLayer()
