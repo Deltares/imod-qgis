@@ -5,6 +5,7 @@ from .maptools import (
     RectangleMapTool,
     LineGeometryPickerWidget,
     MultipleLineGeometryPickerWidget,
+    PointGeometryPickerWidget,
 )
 from .colors_dialog import UNIQUE_COLOR, PSEUDOCOLOR, ColorsDialog
 from .dock_widget import ImodDockWidget

@@ -12,17 +12,15 @@ from qgis.core import (
     QgsPoint,
     QgsLineString,
     QgsMultiLineString,
-    QgsRectangle, 
-    QgsWkbTypes, 
+    QgsRectangle,
+    QgsWkbTypes,
     QgsGeometry,
+    QgsMesh,
 )
-from qgis.gui import (
-    QgsMapTool, 
-    QgsMapToolEmitPoint, 
-    QgsRubberBand
-)
+from qgis.gui import QgsMapTool, QgsMapToolEmitPoint, QgsRubberBand, QgsVertexMarker
 
 RUBBER_BAND_COLOR = QColor(Qt.red)
+
 
 class RectangleMapTool(QgsMapToolEmitPoint):
     rectangleCreated = pyqtSignal()
@@ -51,7 +49,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
             self.endPoint = self.startPoint
             self.isEmittingPoint = True
             self.showRect(self.startPoint, self.endPoint)
-        
+
         if e.button() == Qt.RightButton:
             self.reset()
             self.deactivate()
@@ -88,8 +86,10 @@ class RectangleMapTool(QgsMapToolEmitPoint):
     def rectangle(self):
         if self.startPoint is None or self.endPoint is None:
             return None
-        elif self.startPoint.x() == self.endPoint.x() or \
-                self.startPoint.y() == self.endPoint.y():
+        elif (
+            self.startPoint.x() == self.endPoint.x()
+            or self.startPoint.y() == self.endPoint.y()
+        ):
             return None
 
         return QgsRectangle(self.startPoint, self.endPoint)
@@ -109,6 +109,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
     def deactivate(self):
         QgsMapTool.deactivate(self)
         self.deactivated.emit()
+
 
 class PickGeometryTool(QgsMapTool):
     picked = pyqtSignal(
@@ -194,6 +195,7 @@ class LineGeometryPickerWidget(QWidget):
         if finished:  # no more updates
             self.stop_picking()
 
+
 class MultipleLineGeometryPickerWidget(QWidget):
     PICK_NO, PICK_MAP, PICK_LAYER = range(3)
 
@@ -231,12 +233,12 @@ class MultipleLineGeometryPickerWidget(QWidget):
         self.geometries = []
         self.canvas.scene().removeItem(self.rubber_bands)
         self.rubber_bands = None
-        
+
     def clear_last_line(self):
         self.last_geometry = None
         self.canvas.scene().removeItem(self.last_rubber_band)
         self.last_rubber_band = None
-        
+
     def picker_clicked(self):
         was_active = self.pick_mode == self.PICK_MAP
         if not was_active:
@@ -245,7 +247,7 @@ class MultipleLineGeometryPickerWidget(QWidget):
     def start_picking_map(self):
         self.pick_mode = self.PICK_MAP
         self.canvas.setMapTool(self.tool)
-       
+
     def on_picked(self, points, finished):
         if len(points) >= 2:
             self.last_geometry = QgsGeometry.fromPolylineXY(points)
@@ -270,31 +272,107 @@ class MultipleLineGeometryPickerWidget(QWidget):
         if len(self.geometries) == 0:
             return
 
-        #Remove previous items
-        self.canvas.scene().removeItem(self.rubber_bands) 
+        # Remove previous items
+        self.canvas.scene().removeItem(self.rubber_bands)
 
-        self.rubber_bands = QgsRubberBand(
-        self.canvas, QgsWkbTypes.PointGeometry
-        )
+        self.rubber_bands = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
         self.rubber_bands.setColor(RUBBER_BAND_COLOR)
         self.rubber_bands.setWidth(2)
-        #Create multilinestring
+        # Create multilinestring
         mls = QgsMultiLineString()
         for linestring in self.geometries:
             linestring = [QgsPoint(x=p.x(), y=p.y()) for p in linestring.asPolyline()]
             linestring = QgsLineString(linestring)
             mls.addGeometry(linestring)
-        #Draw
+        # Draw
         self.rubber_bands.setToGeometry(QgsGeometry(mls), None)
 
     def change_last_geometry(self):
         if self.last_geometry is None:
             return
-        
+
         self.canvas.scene().removeItem(self.last_rubber_band)
-        self.last_rubber_band = QgsRubberBand(
-        self.canvas, QgsWkbTypes.PointGeometry
-        )
+        self.last_rubber_band = QgsRubberBand(self.canvas, QgsWkbTypes.PointGeometry)
         self.last_rubber_band.setColor(RUBBER_BAND_COLOR)
         self.last_rubber_band.setWidth(2)
         self.last_rubber_band.setToGeometry(self.last_geometry, None)
+
+
+class PickPointGeometryTool(QgsMapTool):
+    picked = pyqtSignal(QgsPointXY, bool, bool)   # point, whether clicked or just moving, whether clicked with Ctrl
+
+    def __init__(self, canvas):
+        QgsMapTool.__init__(self, canvas)
+
+    def canvasMoveEvent(self, e):
+        self.picked.emit(e.mapPoint(), False, False)
+
+    def canvasPressEvent(self, e):
+        if e.button() == Qt.LeftButton:
+            self.picked.emit(e.mapPoint(), True, e.modifiers() & Qt.ControlModifier)
+
+    def canvasReleaseEvent(self, e):
+        pass
+
+
+class PointGeometryPickerWidget(QWidget):
+    geometries_changed = pyqtSignal()
+    PICK_NO = 0
+    PICK_MAP = 1
+
+    def __init__(self, canvas, parent=None):
+        QWidget.__init__(self, parent)
+        self.canvas = canvas
+        self.pick_mode = self.PICK_NO
+        self.geometries = []
+        self.markers = []
+        self.temp_geometry_index = -1
+        self.tool = PickPointGeometryTool(self.canvas)
+        self.tool.picked.connect(self.on_picked)
+        self.updating = True
+
+    def clear_geometries(self):
+        self.geometries = []
+        for marker in self.markers:
+            self.canvas.scene().removeItem(marker)
+        self.markers = []
+        self.temp_geometry_index = -1
+        self.geometries_changed.emit()
+
+    def picker_clicked(self):
+        was_active = self.pick_mode == self.PICK_MAP
+        self.stop_picking()
+        if not was_active:
+            self.start_picking_map()
+
+    def start_picking_map(self):
+        self.pick_mode = self.PICK_MAP
+        self.canvas.setMapTool(self.tool)
+        self.clear_geometries()
+
+    def stop_picking(self):
+        if self.pick_mode == self.PICK_MAP:
+            self.canvas.unsetMapTool(self.tool)
+        self.pick_mode = self.PICK_NO
+
+    def on_picked(self, geom, clicked, with_ctrl):
+        if clicked:
+            if self.temp_geometry_index == -1:
+                self.geometries.append(geom)
+            else:
+                self.geometries[self.temp_geometry_index] = geom
+                self.temp_geometry_index = -1
+            marker = QgsVertexMarker(self.canvas)
+            marker.setPenWidth(2)
+            marker.setCenter(geom)
+            self.markers.append(marker)
+        else:  # just doing mouse move
+            if self.temp_geometry_index == -1:
+                self.temp_geometry_index = len(self.geometries)
+                self.geometries.append(geom)
+            else:
+                self.geometries[self.temp_geometry_index] = geom
+
+        self.geometries_changed.emit()
+        if clicked and (self.updating and not with_ctrl):  # no more updates
+            self.stop_picking()
