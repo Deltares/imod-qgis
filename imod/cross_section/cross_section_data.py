@@ -69,7 +69,7 @@ class AbstractCrossSectionData(abc.ABC):
         pass
 
     def requires_loading(self, **kwargs):
-        return self.x is not None
+        return self.x is None
 
     def add_to_legend(self, legend):
         for color, name in zip(self.colors().values(), self.labels().values()):
@@ -409,4 +409,3 @@ class MeshData(AbstractCrossSectionData):
         self.styling_data = None
         self.cache = {}
         self.plot_item = None
-
