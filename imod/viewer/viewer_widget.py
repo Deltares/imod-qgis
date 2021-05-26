@@ -151,7 +151,7 @@ class ImodViewerWidget(QWidget):
         self.viewer_button = QPushButton("Start iMOD 3D viewer")
         self.viewer_button.clicked.connect(self.start_viewer)
 
-        self.update_button = QPushButton("Update 3D plot")
+        self.update_button = QPushButton("Load mesh data")
         self.update_button.clicked.connect(self.update_viewer)
 
         self.fence_button = QPushButton("Load fence diagram")
@@ -216,7 +216,6 @@ class ImodViewerWidget(QWidget):
     def draw_extent(self):
         """TODO: check if native draw extent function is better option
         https://qgis.org/api/classQgsExtentGroupBox.html#ac213324b4796e579303693b375de41ca"""
-        print("Please draw extent")
         self.canvas.setMapTool(self.rectangle_tool)
 
     def path_from_vector_uri(self, uri):
