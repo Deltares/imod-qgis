@@ -244,6 +244,8 @@ class ImodViewerWidget(QWidget):
         # of the associated file to plot tops and bottoms.
         columnmapping["Z0"] = "tops 1dBoreholes"
         columnmapping["Z1"] = "bottoms 1dBoreholes"
+        # Explicitly tell the viewer to ignore the labels
+        columnmapping["Label"] = "*Not Set*"
 
         self.borehole_data.column_mapping = columnmapping
 
