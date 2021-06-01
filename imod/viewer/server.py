@@ -14,9 +14,10 @@ import subprocess
 from contextlib import closing
 from pathlib import Path
 
+
 class Server:
     def __init__(self):
-        self.HOST = "127.0.0.1" # = localhost in IPv4 protocol
+        self.HOST = "127.0.0.1"  # = localhost in IPv4 protocol
         self.PORT = None
         self.socket = None
 
@@ -65,9 +66,12 @@ class Server:
         Starts imod, based on the settings in the
         configuration directory.
         """
-        
+
         configdir = self.get_configdir()
 
+        # Overwrite command log
+        with open(configdir / "xml_commands.log", "w") as f:
+            f.write("")
 
         with open(configdir / "viewer_exe.txt") as f:
             viewer_exe = f.read().strip()
@@ -77,9 +81,7 @@ class Server:
 
         hostAddress = f"{self.HOST}:{self.PORT}"
 
-        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress], 
-                env = env_vars)
-
+        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress], env=env_vars)
 
     def send(self, data) -> str:
         """
@@ -95,14 +97,15 @@ class Server:
         received: str
             Value depends on the requested operation
         """
-        
+
         configdir = self.get_configdir()
-        with open(configdir / "last_command.xml", "w") as f:
+        with open(configdir / "xml_commands.log", "a") as f:
             f.write(data)
+            f.write("\n\n")
 
         self.client.sendall(bytes(data, "utf-8"))
-        #Receive data from viewer, serves as a blocking call, so that sent requests are not piled up
-        received = str(self.client.recv(1024), "utf-8") 
+        # Receive data from viewer, serves as a blocking call, so that sent requests are not piled up
+        received = str(self.client.recv(1024), "utf-8")
         return received
 
     def kill(self) -> None:

@@ -36,6 +36,7 @@ class MeshViewerData:
     rgb_point_data: str = None
     bbox_rectangle: tuple = None
     guids_grids: List[str] = None
+    legend_guid: str = None
 
     def open(self, server):
         c = xml_tree.command_xml(xml_tree.open_file_models_tree, **asdict(self))
@@ -49,6 +50,10 @@ class MeshViewerData:
         c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
         server.send(c)
 
+    def set_legend(self, server):
+        c = xml_tree.command_xml(xml_tree.set_legend_tree, **asdict(self))
+        server.send(c)
+
 
 @dataclass
 class FenceViewerData:
@@ -58,6 +63,7 @@ class FenceViewerData:
     rgb_point_data: str = None
     bbox_rectangle: tuple = None
     guids_grids: List[str] = None
+    legend_guid: str = None
     polylines: List[str] = None
 
     def open(self, server):
@@ -65,11 +71,16 @@ class FenceViewerData:
         server.send(c)
 
     def load(self, server):
-        c = xml_tree.command_xml(xml_tree.model_load_tree, **asdict(self))
-        server.send(c)
+        # Fence data does not need to be loaded with a command,
+        # because the CreateFenceDiagram command automatically loads.
+        pass
 
     def unload(self, server):
         c = xml_tree.command_xml(xml_tree.model_unload_tree, **asdict(self))
+        server.send(c)
+
+    def set_legend(self, server):
+        c = xml_tree.command_xml(xml_tree.set_legend_tree, **asdict(self))
         server.send(c)
 
 
@@ -141,11 +152,14 @@ class ImodViewerWidget(QWidget):
         self.viewer_button = QPushButton("Start iMOD 3D viewer")
         self.viewer_button.clicked.connect(self.start_viewer)
 
-        self.update_button = QPushButton("Update 3D plot")
+        self.update_button = QPushButton("Load mesh data")
         self.update_button.clicked.connect(self.update_viewer)
 
-        self.fence_buttion = QPushButton("Load fence diagram")
-        self.fence_buttion.clicked.connect(self.load_fence_diagram)
+        self.fence_button = QPushButton("Load fence diagram")
+        self.fence_button.clicked.connect(self.load_fence_diagram)
+
+        self.legend_button = QPushButton("Load legend")
+        self.legend_button.clicked.connect(self.load_legend)
 
         # Define layout
         first_column = QVBoxLayout()
@@ -156,7 +170,8 @@ class ImodViewerWidget(QWidget):
         third_column = QVBoxLayout()
         third_column.addWidget(self.viewer_button)
         third_column.addWidget(self.update_button)
-        third_column.addWidget(self.fence_buttion)
+        third_column.addWidget(self.fence_button)
+        third_column.addWidget(self.legend_button)
 
         layout = (
             QHBoxLayout()
@@ -202,7 +217,6 @@ class ImodViewerWidget(QWidget):
     def draw_extent(self):
         """TODO: check if native draw extent function is better option
         https://qgis.org/api/classQgsExtentGroupBox.html#ac213324b4796e579303693b375de41ca"""
-        print("Please draw extent")
         self.canvas.setMapTool(self.rectangle_tool)
 
     def path_from_vector_uri(self, uri):
@@ -226,6 +240,12 @@ class ImodViewerWidget(QWidget):
         columnmapping = {}
         columnmapping["X"] = current_layer.fields().toList()[0].alias()
         columnmapping["Y"] = current_layer.fields().toList()[1].alias()
+        # Hardcoded commands to tell the viewer to use the first column
+        # of the associated file to plot tops and bottoms.
+        columnmapping["Z0"] = "tops 1dBoreholes"
+        columnmapping["Z1"] = "bottoms 1dBoreholes"
+        # Explicitly tell the viewer to ignore the labels
+        columnmapping["Label"] = "*Not Set*"
 
         self.borehole_data.column_mapping = columnmapping
 
@@ -263,8 +283,7 @@ class ImodViewerWidget(QWidget):
             "Elevation (cell centre)"
         )  # computed by the viewer itsself from 'top' and 'bot'
 
-        style_group_index = idx[0]  # Same style used for all groups in QGIS 3.16
-        # FUTURE: Check if this remains
+        style_group_index = current_layer.rendererSettings().activeScalarDatasetGroup()
 
         colorramp = (
             current_layer.rendererSettings()
@@ -285,7 +304,23 @@ class ImodViewerWidget(QWidget):
         n_vars = len(d["variable_names"])
         d["guids_grids"] = [uuid.uuid4() for i in range(n_vars + 1)]
 
+        style_group_name = current_layer.datasetGroupMetadata(
+            QgsMeshDatasetIndex(group=style_group_index)
+        ).name()
+
+        d["legend_guid"] = self._get_legend_guid(style_group_name, d)
+
         return d
+
+    def _get_legend_guid(self, style_group_name, d):
+        if "_layer_" in style_group_name:
+            style_variable_name = style_group_name.split("_layer_")[0]
+            idx_guid = (
+                d["variable_names"].index(style_variable_name) + 1
+            )  # Add one because first guid is the LayeredGrid itsself
+            return d["guids_grids"][idx_guid]
+        else:
+            return None
 
     def rgb_components_to_float(self, components):
         return [comp / 256 for comp in components]
@@ -337,12 +372,22 @@ class ImodViewerWidget(QWidget):
 
     def load_fence_diagram(self):
         if self.fence_data.guids_grids is not None:
-            # Currently does nothing (no errors thrown as well), as no guids are sent to the iMOD GUI
-            # Currently the CreateFenceDiagram command for the iMOD GUI
-            # is unable to assign a guid to a fencediagram object.
-            # Requires some work at the iMOD GUI side.
             self.fence_data.unload(self.server)
 
         if self.fence_diagram_is_active():
             self.update_fence_data()
             self.fence_data.open(self.server)
+
+    def load_legend(self):
+        layer = self.layer_selection.currentLayer()
+        if layer is None:
+            return
+        layer_type = layer.type()
+
+        if layer_type == QgsMapLayerType.MeshLayer:
+            if self.mesh_data.legend_guid is not None:
+                self.mesh_data.set_legend(self.server)
+
+        if self.fence_diagram_is_active():
+            if self.fence_data.legend_guid is not None:
+                self.fence_data.set_legend(self.server)

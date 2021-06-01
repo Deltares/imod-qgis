@@ -17,11 +17,22 @@ def create_boundingbox(bbox_rectangle):
     return xmu.BoundingBox(XMin=xmin, XMax=xmax, YMin=ymin, YMax=ymax)
 
 
-def create_object_list(guids_grids=None, variable_names=None, **xml_dict):
+def create_object_list(
+    type_object_list, guids_grids=None, variable_names=None, **xml_dict
+):
+    """
+    Create list of object guids for layered grids and fence diagrams
+
+    Parameters
+    ----------
+    type_object_list : str
+        Should be either "LayeredGrid" or "FenceDiagram"
+
+    """
     if guids_grids is None:
         raise ValueError("guids_grids is not specified")
 
-    objects = [xmu.Object(type="LayeredGrid", guid=guids_grids[0])]
+    objects = [xmu.Object(type=type_object_list, guid=guids_grids[0])]
     for i, name in enumerate(variable_names):
         objects.append(
             xmu.Object(name=name, type="LayeredDataSet", guid=guids_grids[i + 1])
@@ -39,9 +50,21 @@ def model_unload_tree(**xml_dict):
 
 
 def model_load_tree(**xml_dict):
-    guids_grids = xml_dict["guids_grids"]
+    target_guid = xml_dict["guids_grids"][0]
+
     return xmu.ImodCommand(
-        type="LoadExplorerModel", targetmodel=[xmu.TargetModel(guid=guids_grids[0])]
+        type="LoadExplorerModel", targetmodel=[xmu.TargetModel(guid=target_guid)]
+    )
+
+
+def set_legend_tree(legend_guid=None, **xml_dict):
+    rgb_point_data = xml_dict["rgb_point_data"]
+
+    legend = create_legend(rgb_point_data)
+    return xmu.ImodCommand(
+        type="SetLegendCommand",
+        legend=legend,
+        targetmodel=[xmu.TargetModel(guid=legend_guid)],
     )
 
 
@@ -71,6 +94,8 @@ def create_fence_diagram_tree(**xml_dict):
     def _to_string(iterable):
         return " ".join(str(p) for p in iterable)
 
+    objectguids = create_object_list(type_object_list="FenceDiagram", **xml_dict)
+
     path = xml_dict["path"]
     boundingbox = create_boundingbox(xml_dict["bbox_rectangle"])
 
@@ -80,6 +105,7 @@ def create_fence_diagram_tree(**xml_dict):
 
     return xmu.ImodCommand(
         type="CreateFenceDiagram",
+        objectguids=objectguids,
         polylines=polylines,
         Url=path,
         boundingbox=boundingbox,
@@ -87,7 +113,7 @@ def create_fence_diagram_tree(**xml_dict):
 
 
 def open_file_models_tree(**xml_dict):
-    objectguids = create_object_list(**xml_dict)
+    objectguids = create_object_list(type_object_list="LayeredGrid", **xml_dict)
 
     viewer = [xmu.Viewer(type="3D")]
     path = xml_dict["path"]
