@@ -71,7 +71,8 @@ class FenceViewerData:
         server.send(c)
 
     def load(self, server):
-        # Fence data does not need to be loaded with a command.
+        # Fence data does not need to be loaded with a command,
+        # because the CreateFenceDiagram command automatically loads.
         pass
 
     def unload(self, server):
