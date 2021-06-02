@@ -420,6 +420,7 @@ class ImodCrossSectionWidget(QWidget):
             )
             self.variable_selection.menu_datasets.check_first()
             self.set_variable_layernumbers()
+            self.multi_variable_selection.setText("Layers: ")
         elif layer.type() == QgsMapLayerType.RasterLayer:
             variables = []
             self.variables_indexes = {}
@@ -429,6 +430,7 @@ class ImodCrossSectionWidget(QWidget):
                 self.variables_indexes[name] = i
             self.multi_variable_selection.menu_datasets.populate_actions(variables)
             self.multi_variable_selection.menu_datasets.check_first()
+            self.multi_variable_selection.setText("Variable: ")
         elif layer.customProperty("ipf_type") == IpfType.BOREHOLE.name:
             variables = layer.customProperty("ipf_assoc_columns").split("␞")
             self.variable_selection.set_layer(variables)

@@ -348,6 +348,7 @@ class ImodTimeSeriesWidget(QWidget):
             )
             self.variable_selection.menu_datasets.check_first()
             self.set_variable_layernumbers()
+            self.multi_variable_selection.setText("Layers: ")
         elif layer.type() == QgsMapLayerType.VectorLayer:
             layer.selectionChanged.connect(self.on_select)
             # Set active layer so the Selection Toolbar will work as expected
@@ -358,7 +359,6 @@ class ImodTimeSeriesWidget(QWidget):
                 self.id_selection_box.insertItem(0, layer.attributeAlias(index))
                 self.id_selection_box.setEnabled(False)
                 variables = layer.customProperty("ipf_assoc_columns").split("␞")
-                self.multi_variable_selection.menu_datasets.populate_actions(variables)
             else:
                 datetime_column = layer.temporalProperties().startField()
                 variables = [f.name() for f in layer.fields()]
@@ -368,7 +368,8 @@ class ImodTimeSeriesWidget(QWidget):
                     pass
                 self.id_selection_box.insertItems(0, variables)
                 self.id_selection_box.setEnabled(True)
-                self.multi_variable_selection.menu_datasets.populate_actions(variables)
+            self.multi_variable_selection.menu_datasets.populate_actions(variables)
+            self.multi_variable_selection.setText("Variable: ")
 
     def load_mesh_data(self, layer):
         """Load timeseries data from a Mesh dataset"""
