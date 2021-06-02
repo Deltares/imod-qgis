@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 # Modified from https://github.com/lutraconsulting/qgis-crayfish-plugin/blob/54fa4691eab5adbe0ba419d907544760000fc9a5/crayfish/plot.py#L101
 
 import math

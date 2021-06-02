@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor

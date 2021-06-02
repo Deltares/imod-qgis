@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 #!/usr/bin/env python
 # coding=utf-8
 """This script uploads a plugin package to the plugin repository.

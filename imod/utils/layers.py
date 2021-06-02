@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 """
 Layer utilities, different layers are currently stored 
 in datasets as individual variables ("group_names").

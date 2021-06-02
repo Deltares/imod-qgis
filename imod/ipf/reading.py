@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 from enum import IntEnum
 import pathlib
 from typing import List, Tuple, Union, TextIO, Any
