@@ -46,7 +46,7 @@ class ImodNetcdfManagerWidget(QWidget):
 
         self.subset_button = QPushButton("Subset Raster")
         self.subset_button.clicked.connect(self.subset_raster)
-    
+
         first_row = QHBoxLayout()
         first_row.addWidget(self.dataset_line_edit)
         first_row.addWidget(self.open_button)
@@ -58,7 +58,7 @@ class ImodNetcdfManagerWidget(QWidget):
         self.dimension_handler = DimensionHandler()
 
         third_row = QHBoxLayout()
-        third_row.addWidget(self.layer_selection) 
+        third_row.addWidget(self.layer_selection)
         third_row.addWidget(self.subset_button)
 
         column = QVBoxLayout()
@@ -115,7 +115,7 @@ class ImodNetcdfManagerWidget(QWidget):
             bottom = float(da[ydim][-1])
             dx = (right - left) / (ncol - 1)
             dy = (bottom - top) / (nrow - 1)
-        
+
         # Just dump it in the current working dir:
         dst_path = f"temporary-raster-{uuid.uuid4()}.tif"
         driver = gdal.GetDriverByName("GTiff")

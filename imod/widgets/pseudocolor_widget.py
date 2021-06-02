@@ -56,7 +56,7 @@ def format_number(number, precision):
 class ImodPseudoColorWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        self.data = None 
+        self.data = None
 
         # Create widgets
         self.min_edit = QLineEdit()
@@ -194,7 +194,9 @@ class ImodPseudoColorWidget(QWidget):
             if shader_mode == QgsColorRampShader.Continuous:
                 n_class = ramp.count()
             if shader_type == QgsColorRampShader.Discrete:
-                boundaries = np.linspace(self.minimum(), self.maximum(), n_class + 1)[1:]
+                boundaries = np.linspace(self.minimum(), self.maximum(), n_class + 1)[
+                    1:
+                ]
             else:
                 boundaries = np.linspace(self.minimum(), self.maximum(), n_class)
 
@@ -204,7 +206,9 @@ class ImodPseudoColorWidget(QWidget):
             new_item.setData(0, Qt.ItemDataRole.DisplayRole, float(boundary))
             new_item.setData(1, Qt.ItemDataRole.EditRole, color)
             new_item.setText(2, "")
-            new_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable)
+            new_item.setFlags(
+                Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+            )
             new_item.itemEdited.connect(self.item_edited)
         self.format_labels()
 
@@ -220,7 +224,9 @@ class ImodPseudoColorWidget(QWidget):
             item.setText(2, f"<= {start}{suffix}")
             for i in range(1, nrow - 1):
                 item = self.table.topLevelItem(i)
-                end = format_number(item.data(0, Qt.ItemDataRole.DisplayRole), precision)
+                end = format_number(
+                    item.data(0, Qt.ItemDataRole.DisplayRole), precision
+                )
                 item.setText(2, f"{start} - {end}{suffix}")
                 start = end
             item = self.table.topLevelItem(nrow - 1)
@@ -228,7 +234,9 @@ class ImodPseudoColorWidget(QWidget):
         else:
             for i in range(nrow):
                 item = self.table.topLevelItem(i)
-                value = format_number(item.data(0, Qt.ItemDataRole.DisplayRole), precision)
+                value = format_number(
+                    item.data(0, Qt.ItemDataRole.DisplayRole), precision
+                )
                 item.setText(2, f"{value}{suffix}")
 
     def item_edited(self, item, column):

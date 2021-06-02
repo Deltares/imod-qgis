@@ -302,7 +302,9 @@ class MultipleLineGeometryPickerWidget(QWidget):
 
 
 class PickPointGeometryTool(QgsMapTool):
-    picked = pyqtSignal(QgsPointXY, bool, bool)   # point, whether clicked or just moving, whether clicked with Ctrl
+    picked = pyqtSignal(
+        QgsPointXY, bool, bool
+    )  # point, whether clicked or just moving, whether clicked with Ctrl
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)

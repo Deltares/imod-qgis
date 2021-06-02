@@ -1,7 +1,16 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from PyQt5.QtWidgets import QWidget, QSlider, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSpinBox, QLineEdit
+from PyQt5.QtWidgets import (
+    QWidget,
+    QSlider,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSpinBox,
+    QLineEdit,
+)
 from PyQt5.QtCore import Qt
 import numpy as np
 from typing import List
@@ -53,26 +62,26 @@ class DimensionSlider(QWidget):
         value = int(self.label.text())
         if not np.isin(value, self.values):
             raise ValueError(f"Value {value} does not occur in dimension {self.dim}")
-    
+
     def set_value(self, i: int):
         self.label.setText(str(self.values[i]))
-    
+
     def _first(self):
         self.slider.setValue(0)
-    
+
     def _next(self):
         self.slider.setValue(self.slider.value() + 1)
 
     def _previous(self):
         self.slider.setValue(self.slider.value() - 1)
-    
+
     def _last(self):
         self.slider.setValue(self.maximum)
 
     def value(self):
         return self.slider.value()
 
- 
+
 class DimensionHandler(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
@@ -80,16 +89,15 @@ class DimensionHandler(QWidget):
         self.dims = []
         self.sliders = []
         self.setLayout(self.column)
-    
+
     def populate_sliders(self, dims: List[str], values: List[np.ndarray]):
         # Remove from layout:
         for slider in self.sliders:
             slider.setParent(None)
-        self.dims = [] 
+        self.dims = []
         self.sliders = []
         for dim, dim_values in zip(dims, values):
             self.dims.append(dim)
             slider = DimensionSlider(dim, dim_values)
             self.sliders.append(slider)
             self.column.addWidget(slider)
- 

@@ -32,7 +32,7 @@ from typing import Dict
 class ImodUniqueColorShader:
     def __init__(self, values, colors):
         self.color_lookup = {v: c.getRgb() for v, c in zip(values, colors)}
-    
+
     def shade(self, value):
         try:
             return (True, *self.color_lookup[value])
@@ -43,7 +43,7 @@ class ImodUniqueColorShader:
 class ImodUniqueColorWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-        self.data = None 
+        self.data = None
 
         self.color_ramp_button = QgsColorRampButton()
         self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
@@ -106,7 +106,9 @@ class ImodUniqueColorWidget(QWidget):
             new_item.setData(0, Qt.ItemDataRole.DisplayRole, python_value)
             new_item.setData(1, Qt.ItemDataRole.EditRole, color)
             new_item.setText(2, str(value))
-            new_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable)
+            new_item.setFlags(
+                Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+            )
 
     def add_class(self) -> None:
         new_item = QgsTreeWidgetItemObject(self.table)
@@ -130,7 +132,7 @@ class ImodUniqueColorWidget(QWidget):
             item = self.table.topLevelItem(i)
             value = item.data(0, Qt.ItemDataRole.DisplayRole)
             color = item.data(1, Qt.ItemDataRole.EditRole)
-            color_dict[value] = color 
+            color_dict[value] = color
         return color_dict
 
     def set_color(self, value, color):

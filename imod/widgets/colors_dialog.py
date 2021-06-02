@@ -17,7 +17,9 @@ UNIQUE_COLOR = 1
 
 
 class ColorsDialog(QDialog):
-    def __init__(self, pseudocolor_widget, unique_color_widget, default_to, data, parent):
+    def __init__(
+        self, pseudocolor_widget, unique_color_widget, default_to, data, parent
+    ):
         QDialog.__init__(self, parent)
         self.pseudocolor_widget = pseudocolor_widget
         self.unique_color_widget = unique_color_widget
@@ -55,7 +57,7 @@ class ColorsDialog(QDialog):
         layout.addLayout(second_row)
         self.setLayout(layout)
         self.on_render_type_changed()
-    
+
     def on_render_type_changed(self):
         if self.render_type_box.currentIndex() == PSEUDOCOLOR:
             self.pseudocolor_widget.setVisible(True)

@@ -55,10 +55,12 @@ class DatasetVariableMenu(QMenu):
             self.dataset_variable_changed.emit(a.variable_name)
             return
 
+
 class VariablesWidget(QToolButton):
     """
     Allows selection of a single variable.
     """
+
     dataset_variable_changed = pyqtSignal(str)
 
     def __init__(self, parent=None, datasetType=None):
@@ -110,7 +112,7 @@ class MultipleVariablesMenu(QMenu):
             self.variables.append(variable)
 
     def add_checkbox(self, checkbox):
-        a = QWidgetAction(self) 
+        a = QWidgetAction(self)
         a.setDefaultWidget(checkbox)
         self.addAction(a)
 
@@ -132,6 +134,7 @@ class MultipleVariablesWidget(QToolButton):
     """
     Allows selection of multiple variables.
     """
+
     def __init__(self, parent=None):
         QToolButton.__init__(self, parent)
         self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)

@@ -17,7 +17,7 @@ env_vars = {key: value for key, value in os.environ.items()}
 with open(configdir / "environmental-variables.json", "w") as f:
     f.write(json.dumps(env_vars))
 
-#TODO: Ensure setup.py can find iMOD6.exe somewhere. Probably requires iMOD6 installer.
+# TODO: Ensure setup.py can find iMOD6.exe somewhere. Probably requires iMOD6 installer.
 viewer_exe = sys.argv[1]
 
 with open(configdir / "viewer_exe.txt", "w") as f:
