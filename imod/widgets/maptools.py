@@ -227,10 +227,22 @@ class MultipleLineGeometryPickerWidget(QWidget):
         self.last_rubber_band = None
         self.rubber_bands = None
 
+    def create_layout(self):
+        """
+        Create new layout for widget, as a vertical column.
+        Adding this layout to another layout creates a nested
+        layout.
+        """
         layout = QVBoxLayout()
+
         layout.addWidget(self.draw_button)
         layout.addWidget(self.clear_button)
         self.setLayout(layout)
+
+    def add_to_layout(self, layout):
+        """Add widget to existing layout"""
+        layout.addWidget(self.draw_button)
+        layout.addWidget(self.clear_button)
 
     def clear_multi_lines(self):
         self.geometries = []
