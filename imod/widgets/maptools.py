@@ -213,8 +213,6 @@ class MultipleLineGeometryPickerWidget(QWidget):
 
         self.draw_button = QPushButton("Draw fence diagram")
         self.draw_button.clicked.connect(self.picker_clicked)
-        self.draw_button.clicked.connect(self.clear_multi_lines)
-        self.draw_button.clicked.connect(self.clear_last_line)
 
         self.clear_button = QPushButton("Clear fence diagram")
         self.clear_button.clicked.connect(self.clear_rubber_bands)

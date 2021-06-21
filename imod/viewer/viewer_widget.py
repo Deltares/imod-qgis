@@ -140,6 +140,7 @@ class ImodViewerWidget(QWidget):
 
         # Draw fence diagram button
         self.line_picker = MultipleLineGeometryPickerWidget(canvas)
+        self.line_picker.draw_button.clicked.connect(self.unset_rectangle_tool)
 
         # Draw extent button
         # TODO: Create seperate widget for extent_button, so that the right click button can be used to unset geometry
@@ -218,11 +219,13 @@ class ImodViewerWidget(QWidget):
 
         return extent_box
 
+    def unset_rectangle_tool(self):
+        self.canvas.unsetMapTool(self.rectangle_tool)
+
     def on_close(self):
         """Ensure rubberbands are removed and picking tools are unset when hiding widget."""
-
         self.rectangle_tool.reset()
-        self.canvas.unsetMapTool(self.rectangle_tool)
+        self.unset_rectangle_tool()
 
         self.line_picker.stop_picking()
         self.line_picker.clear_rubber_bands()
@@ -236,6 +239,8 @@ class ImodViewerWidget(QWidget):
         """TODO: check if native draw extent function is better option
         https://qgis.org/api/classQgsExtentGroupBox.html#ac213324b4796e579303693b375de41ca"""
         self.canvas.setMapTool(self.rectangle_tool)
+        # Ensure line picker also internally knows it is not picking at the moment.
+        self.line_picker.pick_mode = self.line_picker.PICK_NO
 
     def path_from_vector_uri(self, uri):
         """Extract path from vector uri
