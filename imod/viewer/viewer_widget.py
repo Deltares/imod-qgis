@@ -120,7 +120,7 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
         # * Point data with associated IPF borehole data
         # * Mesh layers
         excepted_layers = []
-        for layer in QgsProject.instance().mapLayers().values():
+        for layer in self.project.mapLayers().values():
             if not (
                 (layer.type() == QgsMapLayerType.MeshLayer)
                 or (layer.customProperty("ipf_type") == IpfType.BOREHOLE.name)
