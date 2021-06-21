@@ -16,6 +16,8 @@ from qgis.core import (
     QgsMapLayerProxyModel,
     QgsMeshDatasetIndex,
     QgsMapLayerType,
+    QgsCoordinateTransform,
+    QgsGeometry,
 )
 
 from ..widgets import RectangleMapTool, MultipleLineGeometryPickerWidget
@@ -134,6 +136,7 @@ class ImodViewerWidget(QWidget):
         self.canvas = canvas
         self.crs = self.canvas.mapSettings().destinationCrs()
         self.server = Server()
+        self.project = QgsProject.instance()
 
         # Layer selection
         self.layer_selection = UpdatingQgsMapLayerComboBox()
@@ -275,13 +278,48 @@ class ImodViewerWidget(QWidget):
     def update_mesh_data(self):
         self.mesh_data = MeshViewerData(**self._collect_data_mesh())
 
+    def _transform_linestrings(self, linestrings):
+        """Reproject list of linestrings from project crs to layer crs"""
+        layer_crs = self.layer_selection.currentLayer().crs()
+        viewer_transform = QgsCoordinateTransform(
+            self.project.crs(), layer_crs, self.project
+        )
+
+        # By providing the QgsGeometry constructor with a QgsGeometry object,
+        # a deepcopy is performed on linestring
+        # We do this, because QgsGeometry.transform performs an inplace transformation.
+        # This is problematic, as transforms would repeatedly be performed each time
+        # "Load fence diagram" is pressed
+        linestrings_transformed = [
+            QgsGeometry(linestring) for linestring in linestrings
+        ]
+
+        for linestring in linestrings_transformed:
+            # Transform does nothing if no layer crs is set
+            linestring.transform(viewer_transform)
+
+        return linestrings_transformed
+
+    def _transform_bbox(self, bbox):
+        """Reproject bbox from project crs to layer crs"""
+        layer_crs = self.layer_selection.currentLayer().crs()
+        viewer_transform = QgsCoordinateTransform(
+            self.project.crs(), layer_crs, self.project
+        )
+        # Returns original bbox if no layer crs is set
+        return viewer_transform.transformBoundingBox(bbox)
+
     def update_fence_data(self):
         # Data nearly equal to mesh data (except different guids that will be assigned)
         d = self._collect_data_mesh()
 
+        linestrings_transformed = self._transform_linestrings(
+            self.line_picker.geometries
+        )
+
         # Add polylines
         d["polylines"] = []
-        for linestring in self.line_picker.geometries:
+        for linestring in linestrings_transformed:
             xyz_points = [
                 (int(p.x()), int(p.y()), 0) for p in linestring.asPolyline()
             ]  # TODO: Integer required??
@@ -317,7 +355,7 @@ class ImodViewerWidget(QWidget):
 
         d["rgb_point_data"] = self.create_rgb_array(colorramp)
 
-        bbox_rectangle = self.extent_box.outputExtent()
+        bbox_rectangle = self._transform_bbox(self.extent_box.outputExtent())
         xmin = str(bbox_rectangle.xMinimum())
         xmax = str(bbox_rectangle.xMaximum())
         ymin = str(bbox_rectangle.yMinimum())
