@@ -1,0 +1,46 @@
+# Modified from https://github.com/GispoCoding/qaava-qgis-plugin/blob/master/.github/workflows/tests.yml
+# workflow name
+name: Tests
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the wanted branches
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Pull qgis image
+        run: docker pull qgis/qgis:release-3_18
+
+      # Runs all tests
+      - name: Install qgis image
+        # run: docker run --rm --net=host --volume `pwd`/Qaava:/app -w=/app -e QGIS_PLUGIN_IN_CI=1 qgis/qgis:3_18 sh -c "pip3 install -q pytest && xvfb-run -s '+extension GLX -screen 0 1024x768x24' pytest -v"
+        run: docker run -d --name qgis-testing-environment -v ${{ github.workspace }}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18
+      - run: sleep 10 # This is required to allow xvfb to start
+      - run: docker exec -it qgis-testing-environment sh -c "qgis_setup.sh imod"    # Setup qgis and enables the plugin
+
+        # Additional steps (for example make or paver setup) here
+        # Fix the symlink created by qgis_setup.sh
+      - run: docker exec -it qgis-testing-environment sh -c "rm -f  /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
+      - run: docker exec -it qgis-testing-environment sh -c "ln -s /tests_directory/ /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
+        
+        # Pip install dependencies 
+      - run: docker exec -it qgis-testing-environment sh -c "pip3 install -q pandas pyqtgraph==0.11.1 pytest declxml"
+
+      - run: docker exec -it qgis-testing-environment sh -c "xvfb-run -s '+extension GLX -screen 0 1024x768x24' pytest -v"
