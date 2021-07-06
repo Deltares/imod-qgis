@@ -39,17 +39,23 @@ jobs:
 
       # Runs all tests
       - name: Install qgis image
-        #run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18
-        run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18
+        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18 #Run on Github
+        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18 #Run locally
       - run: sleep 10 # This is required to allow xvfb to start
       - run: docker exec -it qgis-testing-environment sh -c "qgis_setup.sh imod"    # Setup qgis and enables the plugin
 
         # Additional steps (for example make or paver setup) here
         # Fix the symlink created by qgis_setup.sh
       - run: docker exec -it qgis-testing-environment sh -c "rm -f  /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
-      - run: docker exec -it qgis-testing-environment sh -c "ln -s /tests_directory/ /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
+      - run: docker exec -it qgis-testing-environment sh -c "ln -s /tests_directory/imod /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
         
-        # Pip install dependencies 
-      - run: docker exec -it qgis-testing-environment sh -c "pip3 install -q pandas pyqtgraph==0.11.1 pytest declxml"
+      - name: pip install plugin dependencies
+        run: docker exec -it qgis-testing-environment sh -c "pip3 install -q pandas pyqtgraph==0.11.1 pytest declxml"
 
-      - run: docker exec -it qgis-testing-environment sh -c "cd /tests_directory && pytest -v"
+      - name: test using pytest
+        run: docker exec -it qgis-testing-environment sh -c "cd /tests_directory && pytest -v"
+        
+      - name: test using qgis unittesting
+        run: docker exec -it qgis-testing-environment sh -c "export PYTHONPATH=${PYTHONPATH}:/tests_directory/tests/unittests/"
+        
+      - run: docker exec -it qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_qgis"
