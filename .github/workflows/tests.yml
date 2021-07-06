@@ -22,16 +22,25 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-        with:
-          submodules: true
+      - name: echo-default-env-variables
+        run: |
+            echo "Home: ${HOME}"
+            echo "GITHUB_WORKFLOW: ${GITHUB_WORKFLOW}"
+            echo "GITHUB_ACTIONS: ${GITHUB_ACTIONS}"
+            echo "GITHUB_ACTOR: ${GITHUB_ACTOR}"
+            echo "GITHUB_REPOSITORY: ${GITHUB_REPOSITORY}"
+            echo "GITHUB_EVENT_NAME: ${GITHUB_EVENT_NAME}"
+            echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}"
+            echo "GITHUB_SHA: ${GITHUB_SHA}"
+            echo "GITHUB_REF: ${GITHUB_REF}"
 
       - name: Pull qgis image
         run: docker pull qgis/qgis:release-3_18
 
       # Runs all tests
       - name: Install qgis image
-        # run: docker run --rm --net=host --volume `pwd`/Qaava:/app -w=/app -e QGIS_PLUGIN_IN_CI=1 qgis/qgis:3_18 sh -c "pip3 install -q pytest && xvfb-run -s '+extension GLX -screen 0 1024x768x24' pytest -v"
-        run: docker run -d --name qgis-testing-environment -v ${{ github.workspace }}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18
+        #run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18
+        run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18
       - run: sleep 10 # This is required to allow xvfb to start
       - run: docker exec -it qgis-testing-environment sh -c "qgis_setup.sh imod"    # Setup qgis and enables the plugin
 
@@ -43,4 +52,4 @@ jobs:
         # Pip install dependencies 
       - run: docker exec -it qgis-testing-environment sh -c "pip3 install -q pandas pyqtgraph==0.11.1 pytest declxml"
 
-      - run: docker exec -it qgis-testing-environment sh -c "xvfb-run -s '+extension GLX -screen 0 1024x768x24' pytest -v"
+      - run: docker exec -it qgis-testing-environment sh -c "cd /tests_directory && pytest -v"
