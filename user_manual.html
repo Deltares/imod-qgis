@@ -1,0 +1,433 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Manual &#8212; iMOD-QGIS Plugin  documentation</title>
+    
+  <link href="_static/css/theme.css" rel="stylesheet" />
+  <link href="_static/css/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet" />
+
+    
+  <link rel="stylesheet"
+    href="_static/vendor/fontawesome/5.13.0/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    
+      
+
+    
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css" />
+    <link rel="stylesheet" type="text/css" href="_static/theme-deltares.css" />
+    
+  <link rel="preload" as="script" href="_static/js/index.1c5a1a01449ed65a7b51.js">
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Manual installation" href="install.html" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="docsearch:language" content="en" />
+    
+  </head>
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80">
+    
+    <div class="container-fluid" id="banner"></div>
+
+    
+  <nav class="navbar navbar-dark navbar-expand-lg bg-deltares fixed-top bd-navbar shadow" id="navbar-main"><div class="container-xl">
+
+    <a class="navbar-brand" href="index.html">
+    <p style="color:#fff;font-size:25px;" class="title">iMOD-QGIS Plugin</p>
+    </a>
+  
+    <div id="navbar-menu" class="collapse navbar-collapse">
+      <ul id="navbar-main-elements" class="navbar-nav mr-auto">
+        
+        
+        <li class="nav-item ">
+            <a class="nav-link" href="install.html">Manual installation</a>
+        </li>
+        
+        <li class="nav-item active">
+            <a class="nav-link" href="#">User Manual</a>
+        </li>
+        
+      </ul>
+    </div>
+
+    <a class="navbar-brand" href="https://www.deltares.nl/en/">
+    <img src="_static/deltares-white.svg" class="logo" alt="logo" />
+    </a>
+
+</div>
+  </nav>
+
+
+    <div class="container-xl">
+      <div class="row">
+          
+            
+            <!-- Only show if we have sidebars configured, else just a small margin  -->
+            <div class="col-12 col-md-3 bd-sidebar"><form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" >
+</form><nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+  <div class="bd-toc-item active">
+    
+  </div>
+</nav>
+            </div>
+            
+          
+
+          
+          <div class="d-none d-xl-block col-xl-2 bd-toc">
+            
+              
+              <div class="toc-item">
+                
+<div class="tocsection onthispage pt-5 pb-3">
+    <i class="fas fa-list"></i> On this page
+</div>
+
+<nav id="bd-toc-nav">
+    <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#configuration">
+   Configuration
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#functionality">
+   Functionality
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#open-ipf">
+     Open IPF
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#d-viewer">
+     3D Viewer
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#time-series">
+     Time Series
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#cross-section">
+     Cross-section
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#add-nhi-data">
+     Add NHI-data
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+</nav>
+              </div>
+              
+              <div class="toc-item">
+                
+              </div>
+              
+            
+          </div>
+          
+
+          
+          
+            
+          
+          <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+              
+              <div>
+                
+  <div class="toctree-wrapper compound">
+</div>
+<div class="section" id="user-manual">
+<h1>User Manual<a class="headerlink" href="#user-manual" title="Permalink to this headline">¶</a></h1>
+<p>This is a preliminary user manual of the functionality of the iMOD6 plugin.
+As the plugin is still in development, significant changes might be made
+to the described functionality here.</p>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li><p>You probably want to change the language settings in QGIS,
+if it defaults to Dutch, it’s “Extra &gt; Opties &gt; Algemeen”.
+Change it to to US settings (that’s generally the safest default).
+You will need to restart QGIS before this has effect.</p></li>
+</ol>
+<blockquote>
+<div><img alt="_images/qgis-language-settings.png" src="_images/qgis-language-settings.png" />
+</div></blockquote>
+<ol class="arabic" start="2">
+<li><p>Start up QGIS, go to “Plugins &gt; Manage and Install plugins &gt; Installed”.
+Make sure the iMOD plugin is ticked.</p>
+<img alt="_images/qgis-installed-plugins.png" src="_images/qgis-installed-plugins.png" />
+</li>
+</ol>
+</div>
+<div class="section" id="functionality">
+<h2>Functionality<a class="headerlink" href="#functionality" title="Permalink to this headline">¶</a></h2>
+<p>The QGIS plugin currently consists of six widgets, of which the functionality
+will be described in the next section:</p>
+<ul class="simple">
+<li><p>Open IPF</p></li>
+<li><p>3D Viewer</p></li>
+<li><p>Time Series</p></li>
+<li><p>Cross section</p></li>
+<li><p>NetCDF Manager</p></li>
+<li><p>Add NHI data</p></li>
+</ul>
+<div class="section" id="open-ipf">
+<h3>Open IPF<a class="headerlink" href="#open-ipf" title="Permalink to this headline">¶</a></h3>
+<p>Open IPF file and lets QGIS interpret it as a regular shapefile with points.
+Required to interpret timeseries in the Time Series widget,
+as well as to visualize borelogs in Cross section and 3D Viewer widget.
+To an IPF timeseries file it attaches two columns to the attribute table of the vector
+layer, namely a “start time” and “end time”.
+This allows using the Qgis Temporal Controller Panel to browse through time,
+and see which points have data defined within a certain time frame.</p>
+<ul class="simple">
+<li><p>Press the “…” button to select a path to a file (as you would in other Qgis windows).</p></li>
+<li><p>Press “Add” to load the file into the Qgis explorer.</p></li>
+</ul>
+<div class="figure align-default" id="id1">
+<img alt="_images/ipf-reader.png" src="_images/ipf-reader.png" />
+<p class="caption"><span class="caption-text">The Open IPF widget.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<div class="figure align-default" id="id2">
+<img alt="_images/temporal-controller.png" src="_images/temporal-controller.png" />
+<p class="caption"><span class="caption-text">The temporal controller panel and map canvas of Qgis.
+The temporal controller panel is opened by clicking the clock in the “map navigation” toolbar.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="d-viewer">
+<h3>3D Viewer<a class="headerlink" href="#d-viewer" title="Permalink to this headline">¶</a></h3>
+<p>The 3D viewer widget creates a connection between Qgis and the iMOD 3D viewer.
+It allows you to make selections in Qgis and forward them to the 3D viewer.
+Note that there are two perquisites for the iMOD viewer to correctly render mesh data:</p>
+<ol class="arabic simple">
+<li><p>The mesh data needs to be stored in a UGRID file</p></li>
+<li><p>Vertical axis is stored as variables <code class="code docutils literal notranslate"><span class="pre">top_layer_*</span></code> and <code class="code docutils literal notranslate"><span class="pre">bottom_layer_*</span></code>.
+The data belonging to each layer follows the following format <code class="code docutils literal notranslate"><span class="pre">head_layer_*</span></code>,
+e.g. for a variable <code class="code docutils literal notranslate"><span class="pre">head</span></code>.</p></li>
+</ol>
+<p>This means that not all data that can be loaded in Qgis as mesh can be viewed in the 3D viewer.
+Currently only UGRID meshes and IPF borelog files are supported.</p>
+<ul class="simple">
+<li><p>Use the top left box to select the mesh layer/ipf file you want to inspect in the 3D viewer.</p></li>
+<li><p>“Draw fence diagram” allows to draw lines on the map canvas which can be forwared to the 3D viewer to draw a fence diagram.
+Press the button to start drawing mode. Left-click to start drawing a line; right-click to stop drawing the line.</p></li>
+<li><p>“Clear fence diagram” clears all lines from the map canvas</p></li>
+<li><p>“Draw extent” allows you to click and drag a box that allows you to set a bounding box.
+The iMOD viewer will only load the data within this boundary box,
+which can be useful when exploring specific areas in large datasets.
+Drawing an bounding box will update the “Extent” widget.</p></li>
+<li><p>The “Extent” widget allows the user to manually set the bounding box by
+editing the numbers under “North”, “East”, “South”, and “West”,
+and more:</p>
+<ul>
+<li><p>The “Current Layer Extent” button sets the bounding box to the extent of the layer
+selected in the Qgis explorer.</p></li>
+<li><p>The “Calculate from Layer” box allows you to select a dataset loaded in the Qgis explorer
+to calculate the extent from.</p></li>
+<li><p>“Map canvas extent” sets the bounding box to the map canvas</p></li>
+</ul>
+</li>
+<li><p>“Start iMOD viewer” starts the iMOD viewer and immediately loads the data selected in the widget.</p></li>
+<li><p>“Load mesh data” remove previous data from viewer and load new mesh data in it.</p></li>
+<li><p>“Load fence diagram” loads the lines drawn with “Draw fence diagram” to the viewer
+and renders a fence diagram.</p></li>
+<li><p>“Load legend” transfer legend in Qgis map layer to fence diagram and/or mesh data in the 3D viewer
+for the selected variable in the Qgis map canvas.</p></li>
+</ul>
+<img alt="_images/3d-viewer.png" src="_images/3d-viewer.png" />
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The 3D Viewer widget does not forward any data to the iMOD 3D viewer,
+it only forwards the path to the data to load, and a command how to load it.
+As of now, the widget does not understand changes made by the user in the 3D viewer.
+It only supports “one-way traffic” towards the viewer.</p>
+</div>
+</div>
+<div class="section" id="time-series">
+<h3>Time Series<a class="headerlink" href="#time-series" title="Permalink to this headline">¶</a></h3>
+<p>The Time Series widget visualizes time series stored in IPF files or mesh data
+in a graph window. You can freely zoom and drag the graph in this window.
+Sometimes you lose your view of the lines by dragging too fast;
+so to reset your view, you can click on the small “A” in the
+bottom left corner of the graph window.
+The buttons in the widget change, depending on which data type is being selected.</p>
+<ul class="simple">
+<li><p>Use the box on the top left of the widget to select the ipf file or mesh data to plot.</p></li>
+<li><p>“ID column” box allows you to select the column of the attribute table
+that sets the point ID’s to be plotted in the legend.</p></li>
+<li><p>The “Variable” box sets the variable (or variables in case of IPFs) to be plotted.</p></li>
+<li><p>The “Layer” box sets the layers of a mesh to be plotted. Multiple layers can be selected.</p></li>
+<li><p>The “From map” box allows to draw a box to select points to plot in case of point data (IPF),
+or plot data at a point in case of mesh data.</p></li>
+<li><p>The “update on selection checkbox”: when checked on,
+the widget automatically plots newly selected points for point data
+or plots data at the location of the cursor for mesh data.</p></li>
+<li><p>The “Line Color” box allows you to set a color of a selected line.
+You can select a plotted line by clicking on it.</p></li>
+<li><p>The “Draw markers” check box enables the drawing of markers on each data point.
+Recommended when there are not many datapoints to show and/or
+when the intervals between data points are not constant.</p></li>
+<li><p>The “Colors” button opens up a new window that lets you select different colorramps.</p></li>
+<li><p>The “Export” button allows you to export your plot to an image file (.png, .jpg etc.),
+a vector file (.svg for Inkscape), or a .csv to allow for plotting in different software.</p></li>
+</ul>
+<div class="figure align-default" id="id3">
+<img alt="_images/time-series-points.png" src="_images/time-series-points.png" />
+<p class="caption"><span class="caption-text">The Time series widget and map canvas for points. Notice that the widget can handle irregular time series filled with gaps.
+The yellow points on the map canvas indicate the selected points.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</div>
+<div class="figure align-default" id="id4">
+<img alt="_images/time-series-mesh.png" src="_images/time-series-mesh.png" />
+<p class="caption"><span class="caption-text">The Time series widget and map canvas for a mesh.</span><a class="headerlink" href="#id4" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="cross-section">
+<h3>Cross-section<a class="headerlink" href="#cross-section" title="Permalink to this headline">¶</a></h3>
+<p>The cross-section widget allows you to draw cross-sections of both mesh and raster data.
+Note that the widget expects that the vertical axis is stored as variables
+<code class="code docutils literal notranslate"><span class="pre">top_layer_*</span></code> and <code class="code docutils literal notranslate"><span class="pre">bottom_layer_*</span></code>.
+The data belonging to each layer follows the following format <code class="code docutils literal notranslate"><span class="pre">head_layer_*</span></code>,
+e.g. for a variable <code class="code docutils literal notranslate"><span class="pre">head</span></code>.
+For time dependent data, when the Temporal Controller Panel is turned on,
+the cross-section plot is automatically updated when a different moment in time is selected.</p>
+<p>The cross-section widget consists of three component:</p>
+<ol class="arabic simple">
+<li><p>The top bar</p></li>
+<li><p>A styling table, specifying the styling and order of elements to plot.</p></li>
+<li><p>A graph window, in which the cross-section is plotted.</p></li>
+</ol>
+<p>The functionality of each component is explained below.</p>
+<ol class="arabic simple">
+<li><dl class="simple">
+<dt>The top bar</dt><dd><ul class="simple">
+<li><p>“From map” lets you draw a line on the map, along which a cross-section will be drawn.</p></li>
+<li><p>When the “Dynamic resolution” checkbox option is switched on,
+the amount of points along which data is sampled for the plot is set to a fixed number
+and resolution varies.
+Turning this off and setting a very small resolution size might improve precision,
+but will definitely result in a performance loss.</p></li>
+<li><p>The “Search buffer” box sets the tangential distance from which boreholes will
+will be selected.</p></li>
+<li><p>The “Plot” button plots the data and styling selected in the styling table to the
+graph window.</p></li>
+<li><p>The “Export” button allows you to export your plot to an image file (.png, .jpg etc.),
+a vector file (.svg for Inkscape), or a .csv to allow for plotting in different software.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>The styling table</dt><dd><ul class="simple">
+<li><p>The top left selection box allows you to choose the dataset to plot.</p></li>
+<li><p>The “Variable” box, you can select the variable to plot.</p></li>
+<li><p>The “Layer” box lets you select individual layers to plot. By default all are plotted.</p></li>
+<li><p>The “As line(s)” checkbox turns on an option to plot data as lines.
+Useful to plot layer tops or bottoms to show interfaces.</p></li>
+<li><p>The “Add” button adds a dataset to the table.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>The plot window</dt><dd><ul class="simple">
+<li><p>Right-click the plotting window to set zoom options.</p></li>
+<li><p>You can click the small “A” in the bottom left corner to reset zoom.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ol>
+<div class="figure align-default" id="id5">
+<img alt="_images/cross-section.png" src="_images/cross-section.png" />
+<p class="caption"><span class="caption-text">The “Cross-section” widget and map canvas.
+An example is shown in which layer ids are plotted as colors,
+and borelogs are plotted as bars.</span><a class="headerlink" href="#id5" title="Permalink to this image">¶</a></p>
+</div>
+</div>
+<div class="section" id="add-nhi-data">
+<h3>Add NHI-data<a class="headerlink" href="#add-nhi-data" title="Permalink to this headline">¶</a></h3>
+<p>Opens up a window to select data from the NHI portal to load directly in QGIS.
+The NHI is the <a class="reference external" href="https://www.nhi.nu/">Netherlands Hydrological Instrument</a> .
+The NHI data provides datasets with different kinds of services:</p>
+<ul class="simple">
+<li><p>a “Web Map Service” (WMS), which provides a map with a (fixed) legend.</p></li>
+<li><p>a “Web Feature Service” (WFS), which provides features from vector data via the internet.</p></li>
+<li><p>a “Web Coverage Service” (WCS), which provides raster data via the internet.</p></li>
+</ul>
+<p>You can use the search bar to search for datasets of your liking.</p>
+<div class="figure align-default" id="id6">
+<img alt="_images/add-nhi-data.png" src="_images/add-nhi-data.png" />
+<p class="caption"><span class="caption-text">The “Add NHI window”</span><a class="headerlink" href="#id6" title="Permalink to this image">¶</a></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Experience has shown that sometimes these services
+are hard to reach and data cannot be loaded.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+              </div>
+              
+              
+              <div class='prev-next-bottom'>
+                
+    <a class='left-prev' id="prev-link" href="install.html" title="previous page">Manual installation</a>
+
+              </div>
+              
+          </main>
+          
+
+      </div>
+    </div>
+  
+  <script src="_static/js/index.1c5a1a01449ed65a7b51.js"></script>
+
+  <footer class="footer mt-5 mt-md-0">
+  <div class="container">
+    
+    <div class="footer-item">
+      <p class="copyright">
+    &copy; Copyright Deltares.<br/>
+</p>
+    </div>
+    
+    <div class="footer-item">
+      <p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.1.2.<br/>
+</p>
+    </div>
+    
+  </div>
+</footer>
+  </body>
+</html>
