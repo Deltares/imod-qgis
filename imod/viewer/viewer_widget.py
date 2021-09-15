@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 from PyQt5.QtWidgets import (
+    QBoxLayout,
+    QGroupBox,
     QLabel,
     QWidget,
     QHBoxLayout,
@@ -170,37 +172,26 @@ class ImodViewerWidget(QWidget):
         self.legend_button.clicked.connect(self.load_legend)
 
         # Define layout
+        layout = QVBoxLayout()
+        select_group = QGroupBox("Select")
         first_column = QVBoxLayout()
-        first_label = QLabel("Select")
-        first_label.setStyleSheet("font-weight: bold")
-        first_column.addWidget(first_label)
         first_column.addWidget(self.layer_selection)
         self.line_picker.add_to_layout(first_column)
         first_column.addWidget(self.extent_button)
-        first_column.addStretch()
-        first_column.setSpacing(12)
+        select_group.setLayout(first_column)
+        layout.addWidget(select_group)
 
-        second_column = QVBoxLayout()
-        second_column.addWidget(self.extent_box)
-        second_column.addStretch()
+        layout.addWidget(self.extent_box)
 
+        view_group = QGroupBox("View")
         third_column = QVBoxLayout()
-        third_label = QLabel("View")
-        third_label.setStyleSheet("font-weight: bold")
-        third_column.addWidget(third_label)
         third_column.addWidget(self.viewer_button)
         third_column.addWidget(self.update_button)
         third_column.addWidget(self.fence_button)
         third_column.addWidget(self.legend_button)
-        third_column.addStretch()
-        third_column.setSpacing(12)
-
-        layout = (
-            QHBoxLayout()
-        )  # Create horizontal layout, define stretch factors as 1 - 2 - 1
-        layout.addLayout(first_column, 3)
-        layout.addLayout(second_column, 5)
-        layout.addLayout(third_column, 3)
+        view_group.setLayout(third_column)
+        layout.addWidget(view_group)
+        layout.addStretch()
 
         self.setLayout(layout)
 
