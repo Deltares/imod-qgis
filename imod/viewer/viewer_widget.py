@@ -173,24 +173,29 @@ class ImodViewerWidget(QWidget):
 
         # Define layout
         layout = QVBoxLayout()
-        select_group = QGroupBox("Select")
-        first_column = QVBoxLayout()
-        first_column.addWidget(self.layer_selection)
-        self.line_picker.add_to_layout(first_column)
-        first_column.addWidget(self.extent_button)
-        select_group.setLayout(first_column)
-        layout.addWidget(select_group)
-
+        layout.addWidget(self.layer_selection)
         layout.addWidget(self.extent_box)
 
+        select_group = QGroupBox("Select")
+        first_column = QVBoxLayout()
+        self.line_picker.add_to_layout(first_column)
+        first_column.addWidget(self.extent_button)
+        # Dummy label, causes buttons to align nicely
+        first_column.addWidget(QLabel())
+        select_group.setLayout(first_column)
+
         view_group = QGroupBox("View")
-        third_column = QVBoxLayout()
-        third_column.addWidget(self.viewer_button)
-        third_column.addWidget(self.update_button)
-        third_column.addWidget(self.fence_button)
-        third_column.addWidget(self.legend_button)
-        view_group.setLayout(third_column)
-        layout.addWidget(view_group)
+        second_column = QVBoxLayout()
+        second_column.addWidget(self.viewer_button)
+        second_column.addWidget(self.update_button)
+        second_column.addWidget(self.fence_button)
+        second_column.addWidget(self.legend_button)
+        view_group.setLayout(second_column)
+        
+        button_groups = QHBoxLayout()
+        button_groups.addWidget(select_group)
+        button_groups.addWidget(view_group)
+        layout.addLayout(button_groups)
         layout.addStretch()
 
         self.setLayout(layout)
