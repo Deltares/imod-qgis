@@ -1,0 +1,13 @@
+
+Step 1: Enable WSL2
+https://docs.microsoft.com/en-us/windows/wsl/install-win10#manual-installation-steps
+
+Step 2: Install Docker
+https://docs.docker.com/docker-for-windows/install/
+
+Step 3: Install act
+https://github.com/nektos/act
+
+Step 4: 
+Change the line under of code in tests.yml, for the step: "Install qgis image"
+Change the absolute path if necessary!
