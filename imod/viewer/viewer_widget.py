@@ -111,6 +111,10 @@ class BoreholeViewerData:
 
 
 class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
+    def __init__(self, mapLayers):
+        super(UpdatingQgsMapLayerComboBox, self).__init__()
+        self.mapLayers = mapLayers
+
     def enterEvent(self, e):
         self.update_layers()
         super(UpdatingQgsMapLayerComboBox, self).enterEvent(e)
@@ -120,7 +124,7 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
         # * Point data with associated IPF borehole data
         # * Mesh layers
         excepted_layers = []
-        for layer in self.project.mapLayers().values():
+        for layer in self.mapLayers().values():
             if not (
                 (layer.type() == QgsMapLayerType.MeshLayer)
                 or (layer.customProperty("ipf_type") == IpfType.BOREHOLE.name)
@@ -139,7 +143,7 @@ class ImodViewerWidget(QWidget):
         self.project = QgsProject.instance()
 
         # Layer selection
-        self.layer_selection = UpdatingQgsMapLayerComboBox()
+        self.layer_selection = UpdatingQgsMapLayerComboBox(self.project.mapLayers)
 
         # Draw fence diagram button
         self.line_picker = MultipleLineGeometryPickerWidget(canvas)
