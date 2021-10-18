@@ -6,7 +6,7 @@ import pathlib
 from typing import List, Tuple
 
 import numpy as np
-import pyqtgraph as pg
+from ..dependencies import pyqtgraph_0_12_2 as pg
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
