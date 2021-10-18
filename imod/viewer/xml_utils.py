@@ -16,7 +16,7 @@ import abc
 from dataclasses import dataclass
 from typing import Union, List, Optional
 
-import declxml as xml
+from ..dependencies import declxml as xml
 
 
 class Aggregate(abc.ABC):

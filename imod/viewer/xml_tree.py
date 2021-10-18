@@ -3,7 +3,7 @@
 #
 import os
 
-import declxml as xml
+from ..dependencies import declxml as xml
 from . import xml_utils as xmu
 
 

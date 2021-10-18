@@ -39,8 +39,8 @@ from qgis.core import (
     QgsMapLayerType,
 )
 import pandas as pd
-import pyqtgraph as pg
-from pyqtgraph.GraphicsScene.exportDialog import ExportDialog
+from ..dependencies import pyqtgraph_0_12_2 as pg
+from ..dependencies.pyqtgraph_0_12_2.GraphicsScene.exportDialog import ExportDialog
 from ..ipf import read_associated_timeseries, IpfType
 from ..widgets import (
     ImodUniqueColorWidget,
