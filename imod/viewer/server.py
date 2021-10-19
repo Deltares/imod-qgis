@@ -79,8 +79,10 @@ class Server:
         with open(configdir / "viewer_exe.txt") as f:
             viewer_exe = f.read().strip()
 
-        with open(configdir / "environmental-variables.json", "r") as f:
-            env_vars = json.loads(f.read())
+        # Copy environmental variables
+        # These are provided to the Popen, to ensure the right environmental
+        # variables are used.
+        env_vars = {key: value for key, value in os.environ.items()}
 
         hostAddress = f"{self.HOST}:{self.PORT}"
 
