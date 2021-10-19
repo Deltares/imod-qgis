@@ -43,6 +43,8 @@ import platform, os
 from ..utils.pathing import get_configdir
 from pathlib import Path
 
+VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D executable, please specify by clicking the 'select viewer exe' button"
+
 
 @dataclass
 class MeshViewerData:
@@ -470,6 +472,10 @@ class ImodViewerWidget(QWidget):
             self.viewer_exe = viewer_exe
         else:
             self.set_viewer_exe()
+
+        if self.viewer is None or not self.viewer_exe.exists():
+            raise FileNotFoundError(VIEWER_NOT_FOUND_MESSAGE)
+
         self.server.start_imod(self.viewer_exe)
         self.server.accept_client()
 
