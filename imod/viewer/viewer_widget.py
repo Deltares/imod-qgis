@@ -41,6 +41,7 @@ from dataclasses import dataclass, asdict
 
 import platform, os
 from ..utils.pathing import get_configdir
+from pathlib import Path
 
 
 @dataclass
@@ -162,7 +163,6 @@ class ImodViewerExeSelectionWidget(QDialog):
 
         # Set layout
         layout = QVBoxLayout()
-        layout.addWidget()
         layout.addWidget(self.exe_selection_widget)
         layout.addWidget(button_box)
         self.setLayout(layout)
@@ -281,13 +281,27 @@ class ImodViewerWidget(QWidget):
         self.line_picker.stop_picking()
         self.line_picker.clear_rubber_bands()
 
-    def check_viewer_exe_known(self):
-        pass
+    def find_viewer_exe(self):
+        """
+        Check if viewer executable can be found
+        """
+        configdir = get_configdir()
+        viewer_textfile = configdir / "viewer_exe.txt"
+        if viewer_textfile.exists():
+            with open(configdir / "viewer_exe.txt") as f:
+                viewer_exe = Path(f.read().strip())
+            if viewer_exe.exists():
+                return viewer_exe
+            else:
+                return None
+        else:
+            return None
 
     def set_viewer_exe(self):
         selection_widget = ImodViewerExeSelectionWidget(self)
         selection_widget.exec()
         self.viewer_exe = selection_widget.viewer_exe
+        # TODO: Save to viewer_exe.txt file!
 
     def set_bbox(self):
         self.bbox = self.rectangle_tool.rectangle()
@@ -451,7 +465,11 @@ class ImodViewerWidget(QWidget):
 
     def start_viewer(self):
         self.server.start_server()
-        self.set_viewer_exe()
+        viewer_exe = self.find_viewer_exe()
+        if viewer_exe is not None:
+            self.viewer_exe = viewer_exe
+        else:
+            self.set_viewer_exe()
         self.server.start_imod(self.viewer_exe)
         self.server.accept_client()
 
