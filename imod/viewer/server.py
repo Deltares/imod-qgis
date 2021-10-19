@@ -81,7 +81,7 @@ class Server:
             Value depends on the requested operation
         """
 
-        configdir = self.get_configdir()
+        configdir = get_configdir()
         with open(configdir / "xml_commands.log", "a") as f:
             f.write(data)
             f.write("\n\n")
