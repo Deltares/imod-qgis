@@ -1,18 +1,22 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
+
 from PyQt5.QtWidgets import (
     QBoxLayout,
+    QDialogButtonBox,
     QGroupBox,
     QLabel,
     QWidget,
+    QDialog,
     QHBoxLayout,
     QVBoxLayout,
     QPushButton,
+    QDialogButtonBox,
 )
 
 
-from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox
+from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox, QgsFileWidget
 from qgis.core import (
     QgsProject,
     QgsMapLayerProxyModel,
@@ -34,6 +38,9 @@ import uuid
 
 from typing import List
 from dataclasses import dataclass, asdict
+
+import platform, os
+from ..utils.pathing import get_configdir
 
 
 @dataclass
@@ -135,6 +142,46 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
         self.setExceptedLayerList(excepted_layers)
 
 
+class ImodViewerExeSelectionWidget(QDialog):
+    def __init__(self, parent):
+        QDialog.__init__(self, parent)
+
+        defaultdir = self.get_defaultdir()
+
+        # Create QgsFileWidget
+        self.exe_selection_widget = QgsFileWidget(
+            parent=self,
+            filter="*.exe",
+        )
+        self.exe_selection_widget.setDefaultRoot(defaultdir)
+
+        # Create simple OK/Cancel button box
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+
+        # Set layout
+        layout = QVBoxLayout()
+        layout.addWidget()
+        layout.addWidget(self.exe_selection_widget)
+        layout.addWidget(button_box)
+        self.setLayout(layout)
+        self.setWindowTitle("Select iMOD Viewer .exe")
+
+        self.viewer_exe = None
+
+    def accept(self):
+        self.viewer_exe = self.exe_selection_widget.filePath()
+        return QDialog.accept(self)
+
+    def get_defaultdir(self):
+        if platform.system() == "Windows":
+            defaultdir = os.environ["PROGRAMFILES"]
+        else:
+            defaultdir = os.environ["HOME"]
+        return defaultdir
+
+
 class ImodViewerWidget(QWidget):
     def __init__(self, canvas, parent=None):
         QWidget.__init__(self, parent)
@@ -165,6 +212,7 @@ class ImodViewerWidget(QWidget):
         # Start viewer button
         self.viewer_button = QPushButton("Start iMOD 3D viewer")
         self.viewer_button.clicked.connect(self.start_viewer)
+        self.viewer_exe = None
 
         self.update_button = QPushButton("Load mesh data")
         self.update_button.clicked.connect(self.update_viewer)
@@ -195,7 +243,7 @@ class ImodViewerWidget(QWidget):
         second_column.addWidget(self.fence_button)
         second_column.addWidget(self.legend_button)
         view_group.setLayout(second_column)
-        
+
         button_groups = QHBoxLayout()
         button_groups.addWidget(select_group)
         button_groups.addWidget(view_group)
@@ -232,6 +280,14 @@ class ImodViewerWidget(QWidget):
 
         self.line_picker.stop_picking()
         self.line_picker.clear_rubber_bands()
+
+    def check_viewer_exe_known(self):
+        pass
+
+    def set_viewer_exe(self):
+        selection_widget = ImodViewerExeSelectionWidget(self)
+        selection_widget.exec()
+        self.viewer_exe = selection_widget.viewer_exe
 
     def set_bbox(self):
         self.bbox = self.rectangle_tool.rectangle()
@@ -395,7 +451,8 @@ class ImodViewerWidget(QWidget):
 
     def start_viewer(self):
         self.server.start_server()
-        self.server.start_imod()
+        self.set_viewer_exe()
+        self.server.start_imod(self.viewer_exe)
         self.server.accept_client()
 
     def update_viewer(self):

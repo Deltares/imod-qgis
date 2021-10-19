@@ -17,6 +17,8 @@ import subprocess
 from contextlib import closing
 from pathlib import Path
 
+from ..utils.pathing import get_configdir
+
 
 class Server:
     def __init__(self):
@@ -38,22 +40,6 @@ class Server:
             sock.bind(("localhost", 0))
             return sock.getsockname()[1]
 
-    def get_configdir(self) -> Path:
-        """
-        Get the location of the imod-qgis plugin settings.
-
-        The location differs per OS.
-
-        Returns
-        -------
-        configdir: pathlib.Path
-        """
-        if platform.system() == "Windows":
-            configdir = Path(os.environ["APPDATA"]) / "imod-qgis"
-        else:
-            configdir = Path(os.environ["HOME"]) / ".imod-qgis"
-        return configdir
-
     def start_server(self) -> None:
         self.PORT = self.find_free_port()
 
@@ -64,13 +50,13 @@ class Server:
     def accept_client(self):
         self.client, address = self.socket.accept()
 
-    def start_imod(self) -> None:
+    def start_imod(self, viewer_exe) -> None:
         """
         Starts imod, based on the settings in the
         configuration directory.
         """
 
-        configdir = self.get_configdir()
+        configdir = get_configdir()
 
         # Overwrite command log
         with open(configdir / "xml_commands.log", "w") as f:
