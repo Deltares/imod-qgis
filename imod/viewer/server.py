@@ -62,17 +62,9 @@ class Server:
         with open(configdir / "xml_commands.log", "w") as f:
             f.write("")
 
-        with open(configdir / "viewer_exe.txt") as f:
-            viewer_exe = f.read().strip()
-
-        # Copy environmental variables
-        # These are provided to the Popen, to ensure the right environmental
-        # variables are used.
-        env_vars = {key: value for key, value in os.environ.items()}
-
         hostAddress = f"{self.HOST}:{self.PORT}"
 
-        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress], env=env_vars)
+        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress])
 
     def send(self, data) -> str:
         """
