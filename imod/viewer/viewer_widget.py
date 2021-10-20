@@ -43,7 +43,7 @@ import platform, os
 from ..utils.pathing import get_configdir
 from pathlib import Path
 
-VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D executable, please specify by clicking the 'select viewer exe' button"
+VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D viewer executable, please specify by clicking the 'select viewer exe' button"
 
 
 @dataclass
@@ -168,7 +168,7 @@ class ImodViewerExeSelectionWidget(QDialog):
         layout.addWidget(self.exe_selection_widget)
         layout.addWidget(button_box)
         self.setLayout(layout)
-        self.setWindowTitle("Select iMOD Viewer .exe")
+        self.setWindowTitle("Select iMOD 3D viewer .exe")
 
         self.viewer_exe = None
 
