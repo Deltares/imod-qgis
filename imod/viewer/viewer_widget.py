@@ -173,7 +173,7 @@ class ImodViewerExeSelectionWidget(QDialog):
         self.viewer_exe = None
 
     def accept(self):
-        self.viewer_exe = self.exe_selection_widget.filePath()
+        self.viewer_exe = Path(self.exe_selection_widget.filePath())
         return QDialog.accept(self)
 
     def get_defaultdir(self):
@@ -299,11 +299,23 @@ class ImodViewerWidget(QWidget):
         else:
             return None
 
+    def save_viewer_exe_path(self):
+        """
+        Save viewer exe path in textfile in the configdir,
+        so that these settings are saved.
+        """
+
+        if self.viewer_exe is not None:
+            configdir = get_configdir()
+            with open(configdir / "viewer_exe.txt", "w") as f:
+                f.write(str(self.viewer_exe))
+
     def set_viewer_exe(self):
         selection_widget = ImodViewerExeSelectionWidget(self)
         selection_widget.exec()
         self.viewer_exe = selection_widget.viewer_exe
-        # TODO: Save to viewer_exe.txt file!
+
+        self.save_viewer_exe_path()
 
     def set_bbox(self):
         self.bbox = self.rectangle_tool.rectangle()
@@ -473,7 +485,7 @@ class ImodViewerWidget(QWidget):
         else:
             self.set_viewer_exe()
 
-        if self.viewer is None or not self.viewer_exe.exists():
+        if self.viewer_exe is None or not self.viewer_exe.exists():
             raise FileNotFoundError(VIEWER_NOT_FOUND_MESSAGE)
 
         self.server.start_imod(self.viewer_exe)
