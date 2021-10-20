@@ -13,17 +13,27 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QPushButton,
     QDialogButtonBox,
+    QToolButton,
+    QSizePolicy,
 )
 
 
-from qgis.gui import QgsExtentGroupBox, QgsMapLayerComboBox, QgsFileWidget
+from qgis.gui import (
+    QgsExtentGroupBox,
+    QgsMapLayerComboBox,
+    QgsFileWidget,
+    QgsMessageBar,
+)
+
 from qgis.core import (
+    Qgis,
     QgsProject,
     QgsMapLayerProxyModel,
     QgsMeshDatasetIndex,
     QgsMapLayerType,
     QgsCoordinateTransform,
     QgsGeometry,
+    QgsApplication,
 )
 
 from ..widgets import RectangleMapTool, MultipleLineGeometryPickerWidget
@@ -43,7 +53,8 @@ import platform, os
 from ..utils.pathing import get_configdir
 from pathlib import Path
 
-VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D viewer executable, please specify by clicking the 'select viewer exe' button"
+VIEWER_NOT_FOUND_ERROR = "Cannot find the iMOD 3D viewer executable, please specify by clicking the 'Options' button"
+VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D viewer executable, please specify"
 
 
 @dataclass
@@ -146,34 +157,66 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
 
 
 class ImodViewerExeSelectionWidget(QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, initial_path=None, push_warning=False):
         QDialog.__init__(self, parent)
 
-        defaultdir = self.get_defaultdir()
+        # Set internal states
+        self.viewer_exe = None
+        self.push_warning = push_warning
+
+        # Create message bar
+        self.messagebar = QgsMessageBar()
+        self.messagebar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
+        exe_selection_label = QLabel("3D viewer .exe")
 
         # Create QgsFileWidget
         self.exe_selection_widget = QgsFileWidget(
             parent=self,
             filter="*.exe",
         )
+        defaultdir = self.get_defaultdir()
         self.exe_selection_widget.setDefaultRoot(defaultdir)
+        self.exe_selection_widget.setDialogTitle("Select iMOD 3D viewer .exe")
+
+        if initial_path is not None:
+            self.exe_selection_widget.setFilePath(str(initial_path))
 
         # Create simple OK/Cancel button box
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
 
-        # Set layout
+        # Layout things
         layout = QVBoxLayout()
-        layout.addWidget(self.exe_selection_widget)
+
+        ## Prepare row with .exe selection
+        exe_selection_row = QHBoxLayout()
+        exe_selection_row.addWidget(exe_selection_label)
+        exe_selection_row.addWidget(self.exe_selection_widget)
+
+        ## Fill in layout
+        layout.addWidget(self.messagebar)
+        layout.addLayout(exe_selection_row)
         layout.addWidget(button_box)
         self.setLayout(layout)
-        self.setWindowTitle("Select iMOD 3D viewer .exe")
+        self.setWindowTitle("Options")
 
-        self.viewer_exe = None
+        if self.push_warning:
+            self.messagebar.pushMessage(
+                "Warning", VIEWER_NOT_FOUND_MESSAGE, level=Qgis.Warning
+            )
+
+    def run(self):
+        if self.push_warning:
+            self.messagebar.pushMessage(
+                "Warning", VIEWER_NOT_FOUND_MESSAGE, level=Qgis.Warning
+            )
 
     def accept(self):
-        self.viewer_exe = Path(self.exe_selection_widget.filePath())
+        path = self.exe_selection_widget.filePath()
+        if path != "":
+            self.viewer_exe = Path(path)
         return QDialog.accept(self)
 
     def get_defaultdir(self):
@@ -214,7 +257,7 @@ class ImodViewerWidget(QWidget):
         # Start viewer button
         self.viewer_button = QPushButton("Start iMOD 3D viewer")
         self.viewer_button.clicked.connect(self.start_viewer)
-        self.viewer_exe = None
+        self.viewer_exe = self.find_viewer_exe()
 
         self.update_button = QPushButton("Load mesh data")
         self.update_button.clicked.connect(self.update_viewer)
@@ -225,9 +268,19 @@ class ImodViewerWidget(QWidget):
         self.legend_button = QPushButton("Load legend")
         self.legend_button.clicked.connect(self.load_legend)
 
+        self.options_button = QToolButton()
+        self.options_button.setAutoRaise(True)
+        self.options_button.setToolTip("Options")
+        self.options_button.setIcon(QgsApplication.getThemeIcon("/mActionOptions.svg"))
+        self.options_button.clicked.connect(self.on_options_clicked)
+
         # Define layout
         layout = QVBoxLayout()
-        layout.addWidget(self.layer_selection)
+        top_row = QHBoxLayout()
+        top_row.addWidget(self.layer_selection)
+        top_row.addWidget(self.options_button)
+
+        layout.addLayout(top_row)
         layout.addWidget(self.extent_box)
 
         select_group = QGroupBox("Select")
@@ -310,12 +363,25 @@ class ImodViewerWidget(QWidget):
             with open(configdir / "viewer_exe.txt", "w") as f:
                 f.write(str(self.viewer_exe))
 
-    def set_viewer_exe(self):
-        selection_widget = ImodViewerExeSelectionWidget(self)
+    def set_viewer_exe(self, initial_path=None, push_warning=False):
+        selection_widget = ImodViewerExeSelectionWidget(
+            self, initial_path=initial_path, push_warning=push_warning
+        )
         selection_widget.exec()
-        self.viewer_exe = selection_widget.viewer_exe
+
+        if selection_widget.viewer_exe is not None:
+            self.viewer_exe = selection_widget.viewer_exe
 
         self.save_viewer_exe_path()
+
+    def on_options_clicked(self):
+        # Catch case where user edited viewer_exe.txt during running of plugin
+        # if self.viewer_exe is None:
+        #     viewer_exe = self.find_viewer_exe()
+        # else:
+        #     viewer_exe = self.viewer_exe
+
+        self.set_viewer_exe(initial_path=self.viewer_exe)
 
     def set_bbox(self):
         self.bbox = self.rectangle_tool.rectangle()
@@ -479,14 +545,18 @@ class ImodViewerWidget(QWidget):
 
     def start_viewer(self):
         self.server.start_server()
-        viewer_exe = self.find_viewer_exe()
-        if viewer_exe is not None:
-            self.viewer_exe = viewer_exe
-        else:
-            self.set_viewer_exe()
 
-        if self.viewer_exe is None or not self.viewer_exe.exists():
-            raise FileNotFoundError(VIEWER_NOT_FOUND_MESSAGE)
+        # First let user try to configure path to viewer exe
+        if self.viewer_exe is None:
+            self.set_viewer_exe(push_warning=True)
+
+        # If this failed, raise error
+        if (
+            self.viewer_exe is None
+            or not self.viewer_exe.exists()
+            or (self.viewer_exe.suffix != ".exe")
+        ):
+            raise FileNotFoundError(VIEWER_NOT_FOUND_ERROR)
 
         self.server.start_imod(self.viewer_exe)
         self.server.accept_client()
