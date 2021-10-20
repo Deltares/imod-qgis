@@ -17,6 +17,8 @@ import subprocess
 from contextlib import closing
 from pathlib import Path
 
+from ..utils.pathing import get_configdir
+
 
 class Server:
     def __init__(self):
@@ -38,22 +40,6 @@ class Server:
             sock.bind(("localhost", 0))
             return sock.getsockname()[1]
 
-    def get_configdir(self) -> Path:
-        """
-        Get the location of the imod-qgis plugin settings.
-
-        The location differs per OS.
-
-        Returns
-        -------
-        configdir: pathlib.Path
-        """
-        if platform.system() == "Windows":
-            configdir = Path(os.environ["APPDATA"]) / "imod-qgis"
-        else:
-            configdir = Path(os.environ["HOME"]) / ".imod-qgis"
-        return configdir
-
     def start_server(self) -> None:
         self.PORT = self.find_free_port()
 
@@ -64,27 +50,21 @@ class Server:
     def accept_client(self):
         self.client, address = self.socket.accept()
 
-    def start_imod(self) -> None:
+    def start_imod(self, viewer_exe) -> None:
         """
         Starts imod, based on the settings in the
         configuration directory.
         """
 
-        configdir = self.get_configdir()
+        configdir = get_configdir()
 
         # Overwrite command log
         with open(configdir / "xml_commands.log", "w") as f:
             f.write("")
 
-        with open(configdir / "viewer_exe.txt") as f:
-            viewer_exe = f.read().strip()
-
-        with open(configdir / "environmental-variables.json", "r") as f:
-            env_vars = json.loads(f.read())
-
         hostAddress = f"{self.HOST}:{self.PORT}"
 
-        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress], env=env_vars)
+        subprocess.Popen([viewer_exe, "--hostAddress", hostAddress])
 
     def send(self, data) -> str:
         """
@@ -101,7 +81,7 @@ class Server:
             Value depends on the requested operation
         """
 
-        configdir = self.get_configdir()
+        configdir = get_configdir()
         with open(configdir / "xml_commands.log", "a") as f:
             f.write(data)
             f.write("\n\n")
