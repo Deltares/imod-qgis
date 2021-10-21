@@ -33,38 +33,43 @@ class ImodPlugin:
         self.netcdf_manager = None
         self.plugin_dir = Path(__file__).parent
         self.pluginIsActive = False
-        self.menu = u"iMOD"
-        self.actions = []
+        self.toolbar = iface.addToolBar(u"iMOD")
+        self.toolbar.setObjectName(u"iMOD")
 
-    def add_action(self, icon_name, text="", callback=None, add_to_menu=False):
-        icon = QIcon(str(self.plugin_dir / icon_name))
+    def add_action(self, icon_name, text="", callback=None, add_to_toolbar=False):
+        icon = QIcon(str(self.plugin_dir / "icons" / icon_name))
         action = QAction(icon, text, self.iface.mainWindow())
         action.triggered.connect(callback)
-        if add_to_menu:
-            self.iface.addPluginToMenu(self.menu, action)
-        self.actions.append(action)
+        if add_to_toolbar:
+            self.toolbar.addAction(action)
         return action
 
     def initGui(self):
-        icon_name = "icon.png"
+        self.action_about_dialog = self.add_action(
+            "iMOD.svg", "About", self.about_dialog, True
+        )
+
         self.action_ipf_dialog = self.add_action(
-            icon_name, "Open IPF", self.ipf_dialog, True
+            "ipf-reader.svg", "Open IPF", self.ipf_dialog, True
         )
         self.action_viewer = self.add_action(
-            icon_name, "3D Viewer", self.toggle_viewer, True
+            "3d-viewer.svg", "3D Viewer", self.toggle_viewer, True
         )
         self.action_timeseries = self.add_action(
-            icon_name, "Time Series", self.toggle_timeseries, True
+            "time-series.svg", "Time Series", self.toggle_timeseries, True
         )
         self.action_cross_section = self.add_action(
-            icon_name, "Cross section", self.toggle_cross_section, True
+            "cross-section.svg", "Cross section", self.toggle_cross_section, True
         )
-        self.action_netcdf_manager = self.add_action(
-            icon_name, "NetCDF Manager", self.toggle_netcdf_manager, True
-        )
+        # self.action_netcdf_manager = self.add_action(
+        #    "iMOD.svg", "NetCDF Manager", self.toggle_netcdf_manager, False
+        # )
         self.action_nhi_data = self.add_action(
-            icon_name, "Add NHI Data", self.nhi_data_dialog, True
+            "NHI-portal.svg", "Add NHI Data", self.nhi_data_dialog, True
         )
+
+    def about_dialog(self):
+        pass
 
     def ipf_dialog(self):
         dialog = ImodIpfDialog()
@@ -124,5 +129,4 @@ class ImodPlugin:
         self.netcdf_manager.setWidget(widget)
 
     def unload(self):
-        for action in self.actions:
-            self.iface.removePluginMenu("iMOD", action)
+        self.toolbar.deleteLater()
