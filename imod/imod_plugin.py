@@ -33,24 +33,18 @@ class ImodPlugin:
         self.netcdf_manager = None
         self.plugin_dir = Path(__file__).parent
         self.pluginIsActive = False
-        self.menu = u"iMOD"
-        self.actions = []
         self.toolbar = iface.addToolBar(u"iMOD")
         self.toolbar.setObjectName(u"iMOD")
 
-    def add_action(self, icon_name, text="", callback=None, add_to_menu=False):
+    def add_action(self, icon_name, text="", callback=None, add_to_toolbar=False):
         icon = QIcon(str(self.plugin_dir / "icons" / icon_name))
         action = QAction(icon, text, self.iface.mainWindow())
         action.triggered.connect(callback)
-        if add_to_menu:
-            self.iface.addPluginToMenu(self.menu, action)
-        self.toolbar.addAction(action)
-        self.actions.append(action)
+        if add_to_toolbar:
+            self.toolbar.addAction(action)
         return action
 
     def initGui(self):
-        icon_name = "icon.png"
-
         self.action_about_dialog = self.add_action(
             "iMOD.svg", "About", self.about_dialog, True
         )
@@ -68,7 +62,7 @@ class ImodPlugin:
             "cross-section.svg", "Cross section", self.toggle_cross_section, True
         )
         # self.action_netcdf_manager = self.add_action(
-        #    icon_name, "NetCDF Manager", self.toggle_netcdf_manager, False
+        #    "iMOD.svg", "NetCDF Manager", self.toggle_netcdf_manager, False
         # )
         self.action_nhi_data = self.add_action(
             "NHI-portal.svg", "Add NHI Data", self.nhi_data_dialog, True
@@ -135,5 +129,4 @@ class ImodPlugin:
         self.netcdf_manager.setWidget(widget)
 
     def unload(self):
-        for action in self.actions:
-            self.iface.removePluginMenu("iMOD", action)
+        self.toolbar.deleteLater()
