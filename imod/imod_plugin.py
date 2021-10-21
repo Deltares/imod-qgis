@@ -35,6 +35,8 @@ class ImodPlugin:
         self.pluginIsActive = False
         self.menu = u"iMOD"
         self.actions = []
+        self.toolbar = iface.addToolBar(u"iMOD")
+        self.toolbar.setObjectName(u"iMOD")
 
     def add_action(self, icon_name, text="", callback=None, add_to_menu=False):
         icon = QIcon(str(self.plugin_dir / "icons" / icon_name))
@@ -42,11 +44,17 @@ class ImodPlugin:
         action.triggered.connect(callback)
         if add_to_menu:
             self.iface.addPluginToMenu(self.menu, action)
+        self.toolbar.addAction(action)
         self.actions.append(action)
         return action
 
     def initGui(self):
         icon_name = "icon.png"
+
+        self.action_about_dialog = self.add_action(
+            "iMOD.svg", "About", self.about_dialog, True
+        )
+
         self.action_ipf_dialog = self.add_action(
             "ipf-reader.svg", "Open IPF", self.ipf_dialog, True
         )
@@ -65,6 +73,9 @@ class ImodPlugin:
         self.action_nhi_data = self.add_action(
             "NHI-portal.svg", "Add NHI Data", self.nhi_data_dialog, True
         )
+
+    def about_dialog(self):
+        pass
 
     def ipf_dialog(self):
         dialog = ImodIpfDialog()
