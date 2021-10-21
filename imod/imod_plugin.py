@@ -60,7 +60,7 @@ class ImodPlugin:
             icon_name, "Cross section", self.toggle_cross_section, True
         )
         self.action_netcdf_manager = self.add_action(
-            icon_name, "NetCDF Manager", self.toggle_netcdf_manager, True
+            icon_name, "NetCDF Manager", self.toggle_netcdf_manager, False
         )
         self.action_nhi_data = self.add_action(
             icon_name, "Add NHI Data", self.nhi_data_dialog, True
