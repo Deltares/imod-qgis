@@ -57,6 +57,14 @@ VIEWER_NOT_FOUND_ERROR = "Cannot find the iMOD 3D viewer executable, please spec
 VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D viewer executable, please specify"
 
 
+def get_programdir():
+    if platform.system() == "Windows":
+        programdir = os.environ["PROGRAMFILES"]
+    else:
+        programdir = os.environ["HOME"]
+    return programdir
+
+
 @dataclass
 class MeshViewerData:
     path: str = None
@@ -220,11 +228,7 @@ class ImodViewerExeSelectionWidget(QDialog):
         return QDialog.accept(self)
 
     def get_defaultdir(self):
-        if platform.system() == "Windows":
-            defaultdir = os.environ["PROGRAMFILES"]
-        else:
-            defaultdir = os.environ["HOME"]
-        return defaultdir
+        return get_programdir()
 
 
 class ImodViewerWidget(QWidget):
@@ -338,17 +342,34 @@ class ImodViewerWidget(QWidget):
 
     def find_viewer_exe(self):
         """
-        Check if viewer executable can be found
+        Check if viewer executable can be found,
+        First looks if a path was previously saved in viewer_exe.txt, in the Appdata folder
+        If not an existing path here, use the default path provided by the installer.
+        Else return None (and a warning will be thrown later)
         """
         configdir = get_configdir()
         viewer_textfile = configdir / "viewer_exe.txt"
+
+        # FUTURE: Default viewer path now purely for Windows.
+        # No iMOD 3D viewer can be compiled for Linux yet
+        default_viewer_exe = (
+            Path(get_programdir()) / "Deltares" / "IMOD6 GUI" / "IMOD6.exe"
+        )
+
         if viewer_textfile.exists():
             with open(configdir / "viewer_exe.txt") as f:
-                viewer_exe = Path(f.read().strip())
-            if viewer_exe.exists():
-                return viewer_exe
-            else:
-                return None
+                viewer_textfile_exe = Path(f.read().strip())
+            viewer_textfile_exe_exists = viewer_textfile_exe.exists()
+        else:
+            viewer_textfile_exe_exists = False
+
+        # First check whether some working viewer exe is saved in the textfile.
+        if viewer_textfile_exe_exists:
+            return viewer_textfile_exe
+        # Second check whether the default Deltares path exists
+        elif default_viewer_exe.exists():
+            return default_viewer_exe
+        # Else return None
         else:
             return None
 
@@ -375,12 +396,6 @@ class ImodViewerWidget(QWidget):
         self.save_viewer_exe_path()
 
     def on_options_clicked(self):
-        # Catch case where user edited viewer_exe.txt during running of plugin
-        # if self.viewer_exe is None:
-        #     viewer_exe = self.find_viewer_exe()
-        # else:
-        #     viewer_exe = self.viewer_exe
-
         self.set_viewer_exe(initial_path=self.viewer_exe)
 
     def set_bbox(self):
