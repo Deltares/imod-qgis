@@ -11,6 +11,11 @@ Primary components are:
 * Cross-section visualization
 * Connecting to the NHI data portal, which provides subsurface data for the Netherlands
 
+3D data needs to be provided as an unstructured file readable by MDAL, preferably an UGRID file. 
+Currently MDAL does not support the reading of 3D layered unstructured UGRID files.
+Therefore, each layer needs to be provided as a seperate variable as "*{varname}*-layer-1".
+Here is an example script how to do this with [iMOD-python](https://gitlab.com/deltares/imod/imod-python/-/snippets/2111702).
+
 ## Dependencies 
 This plugin uses:
 
