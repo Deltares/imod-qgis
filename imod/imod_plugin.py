@@ -69,7 +69,11 @@ class ImodPlugin:
         )
 
     def about_dialog(self):
-        pass
+        from .about import ImodAboutDialog
+
+        dialog = ImodAboutDialog(self.iface)
+        dialog.show()
+        dialog.exec_()
 
     def ipf_dialog(self):
         dialog = ImodIpfDialog()
@@ -129,4 +133,5 @@ class ImodPlugin:
         self.netcdf_manager.setWidget(widget)
 
     def unload(self):
-        self.toolbar.deleteLater()
+        del self.toolbar
+        # self.toolbar.deleteLater()
