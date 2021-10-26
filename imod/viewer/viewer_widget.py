@@ -53,8 +53,11 @@ import platform, os
 from ..utils.pathing import get_configdir
 from pathlib import Path
 
-VIEWER_NOT_FOUND_ERROR = "Cannot find the iMOD 3D viewer executable, please specify by clicking the 'Options' button"
-VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D viewer executable, please specify"
+VIEWER_NOT_FOUND_ERROR = (
+    "Cannot find the iMOD 3D viewer, please specify by clicking the 'Options' button."
+)
+
+VIEWER_NOT_FOUND_MESSAGE = "Cannot find the iMOD 3D viewer, make sure you have installed it and specify its path here."
 
 
 def get_programdir():
@@ -210,12 +213,6 @@ class ImodViewerExeSelectionWidget(QDialog):
         self.setLayout(layout)
         self.setWindowTitle("Options")
 
-        if self.push_warning:
-            self.messagebar.pushMessage(
-                "Warning", VIEWER_NOT_FOUND_MESSAGE, level=Qgis.Warning
-            )
-
-    def run(self):
         if self.push_warning:
             self.messagebar.pushMessage(
                 "Warning", VIEWER_NOT_FOUND_MESSAGE, level=Qgis.Warning
@@ -388,6 +385,8 @@ class ImodViewerWidget(QWidget):
         selection_widget = ImodViewerExeSelectionWidget(
             self, initial_path=initial_path, push_warning=push_warning
         )
+
+        selection_widget.setMinimumSize(800, 200)
         selection_widget.exec()
 
         if selection_widget.viewer_exe is not None:
