@@ -11,10 +11,20 @@ Primary components are:
 * Cross-section visualization
 * Connecting to the NHI data portal, which provides subsurface data for the Netherlands
 
-3D data needs to be provided as an unstructured file readable by MDAL, preferably an UGRID file. 
+## Data Requirements
+3D data needs to be provided as an unstructured file readable by MDAL, 
+preferably an 
+[UGRID file](https://ugrid-conventions.github.io/ugrid-conventions/). 
 Currently MDAL does not support the reading of 3D layered unstructured UGRID files.
-Therefore, each layer needs to be provided as a seperate variable as "*{varname}*-layer-1".
-Here is an example script how to do this with [iMOD-python](https://gitlab.com/deltares/imod/imod-python/-/snippets/2111702).
+Therefore, each layer needs to be provided as a seperate variable as 
+"*{varname}*-layer-1".
+Here is an example script how to do this with 
+[iMOD-python](https://gitlab.com/deltares/imod/imod-python/-/snippets/2111702).
+
+Point data with timeseries or borelogs need to be provided as 
+[IPF](https://content.oss.deltares.nl/imod/iMOD_Manual_actual/imod-um-IPF-files.html#autosec-591) file.
+The IPF file is a Deltares point format that supports assocciated depth or 
+time data.
 
 ## Dependencies 
 This plugin uses:
