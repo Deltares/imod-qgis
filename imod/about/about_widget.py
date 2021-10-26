@@ -18,7 +18,7 @@ with open(path_text) as file:
 class ImodAboutDialog(QDialog):
     def __init__(self, iface, parent=None):
         QDialog.__init__(self, parent)
-        self.setWindowTitle("About iMOD plugin")
+        self.setWindowTitle("About the iMOD plugin")
         self.iface = iface
 
         # Set minimum width of Dialog
