@@ -17,6 +17,9 @@ files = [Path(file) for file in files]
 files = [file for file in files if not file.match("imodqgis/plugin_upload.py")]
 files = [file for file in files if not file.match("imodqgis/resources.py")]
 
+# Filter dependencies, we are not copyrighting those
+files = [file for file in files if not "dependencies" in list(file.parts)]
+
 for file in files:
     with open(file, "r+", encoding="utf-8") as fd:
         contents = fd.readlines()
