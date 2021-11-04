@@ -50,9 +50,9 @@ class Server:
     def accept_client(self):
         self.client, address = self.socket.accept()
 
-    def start_imod(self, viewer_exe) -> None:
+    def start_viewer(self, viewer_exe) -> None:
         """
-        Starts imod, based on the settings in the
+        Starts iMOD 3D viewer, based on the settings in the
         configuration directory.
         """
 

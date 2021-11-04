@@ -572,7 +572,7 @@ class ImodViewerWidget(QWidget):
         ):
             raise FileNotFoundError(VIEWER_NOT_FOUND_ERROR)
 
-        self.server.start_imod(self.viewer_exe)
+        self.server.start_viewer(self.viewer_exe)
         self.server.accept_client()
 
     def update_viewer(self):
