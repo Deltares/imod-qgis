@@ -1,35 +1,37 @@
-# This file contains metadata for your plugin.
-
-# This file should be included when you package your plugin.# Mandatory items:
-
 [general]
-name=iMOD plugin
+name=iMOD
 qgisMinimumVersion=3.16
-description=A plugin to visualize 4D geospatial data, catered to groundwater modellers 
+description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
 version=0.1
 author=Deltares
-email=joeri.vanengelen@deltares.nl
+email=imod.support@deltares.nl
 
-about=This plugin aids visualizing 4D geospatial data and links to the iMOD6 3D viewer.
+about=  This plugin aids exploring 4D geospatial data and links to the iMOD 3D viewer.
+        It is part of a larger software suite, named "iMOD Suite" (see homepage). 
+        Mesh data can be used to store data with a time, z, y, and x dimension. 
+        Currently the z-dimension is only scarcely supported by MDAL, 
+        so instead for each vertical layer, we require a mesh dataset with "{var}_layer_{nr}", 
+        "top_layer_{nr}", and "bottom_layer_{nr}" as variables.
+        An example of preparing such a dataset is here: 
+        https://deltares.github.io/iMOD-Documentation/workflow_wq.html#convert-output-data 
+        We expect to improve this in the future.
 
 tracker=https://github.com/Deltares/imod-qgis/issues
 repository=https://github.com/Deltares/imod-qgis
-# End of mandatory metadata
-
-# Recommended items:
 
 hasProcessingProvider=no
+
 # Uncomment the following line and add your changelog:
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=time, layers, groundwater, geology
+tags=3d, cross section, groundwater, geology, netcdf, modflow, time, time series, timeseries, ugrid
 
-homepage=https://oss.deltares.nl/nl/web/imod
+homepage=https://deltares.github.io/iMOD-Documentation/
 category=Plugins
 icon=icon.png
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
