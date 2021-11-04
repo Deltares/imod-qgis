@@ -15,6 +15,6 @@ if exist c:\OSGeo4W64\OSGeo4W.bat (
     call "c:\Program Files\%%qgis%%\bin\py3_env.bat"
 )
 
-cd ..\imod
+cd ..\imodqgis
 call pyrcc5 resources.qrc -o resources.py
 pause
