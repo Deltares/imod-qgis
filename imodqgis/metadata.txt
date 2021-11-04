@@ -9,12 +9,12 @@ email=imod.support@deltares.nl
 about=  This plugin aids exploring 4D geospatial data and links to the iMOD 3D viewer.
         It is part of a larger software suite, named "iMOD Suite" (see homepage). 
         Mesh data can be used to store data with a time, z, y, and x dimension. 
-        Currently the z-dimension is only scarcely supported by MDAL, 
-        so instead for each vertical layer, we require a mesh dataset with "{var}_layer_{nr}", 
+        Currently the z-dimension is only scarcely supported by MDAL. 
+        Therefore, for each vertical layer, we require a mesh dataset with "{var}_layer_{nr}", 
         "top_layer_{nr}", and "bottom_layer_{nr}" as variables.
-        An example of preparing such a dataset is here: 
+        An example of preparing such a dataset in python is found here: 
         https://deltares.github.io/iMOD-Documentation/workflow_wq.html#convert-output-data 
-        We expect to improve this in the future.
+        We expect to make this less specific in the future.
 
 tracker=https://github.com/Deltares/imod-qgis/issues
 repository=https://github.com/Deltares/imod-qgis
