@@ -8,14 +8,14 @@ SPDX = """\
 #
 """
 
-wdir = (Path(sys.path[0]) / ".." / "imod").resolve()
+wdir = (Path(sys.path[0]) / ".." / "imodqgis").resolve()
 
 files = glob(str(wdir / "**" / "*.py"), recursive=True)
 files = [Path(file) for file in files]
 
 # Filter default scripts that were added by the QGIS plugin builder
-files = [file for file in files if not file.match("imod/plugin_upload.py")]
-files = [file for file in files if not file.match("imod/resources.py")]
+files = [file for file in files if not file.match("imodqgis/plugin_upload.py")]
+files = [file for file in files if not file.match("imodqgis/resources.py")]
 
 for file in files:
     with open(file, "r+", encoding="utf-8") as fd:
