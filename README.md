@@ -13,9 +13,13 @@ Primary components are:
 Mesh data can be used to store data with a time, z, y, 
 and x dimension. 
 Currently the z-dimension is only scarcely supported by MDAL. 
-Therefore, for each vertical layer, we require a mesh dataset with 
-`{var}_layer_{nr}`, `top_layer_{nr}`, and `bottom_layer_{nr}` 
-as variables.
+Therefore, for each vertical layer, 
+we require a mesh dataset with the following variables:
+
+* `{var}_layer_{nr}` 
+* `top_layer_{nr}`
+* `bottom_layer_{nr}` 
+
 An example of preparing such a dataset in python is found 
 [here](https://deltares.github.io/iMOD-Documentation/workflow_wq.html#convert-output-data). 
 We expect to make this less specific in the future.
