@@ -49,11 +49,14 @@ from ..widgets import (
     VariablesWidget,
 )
 from ..utils.layers import get_group_names, groupby_variable
+from ..utils.temporal import is_temporal_meshlayer, get_group_is_temporal
+
 import pathlib
 import tempfile
 
 import numpy as np
 
+from itertools import compress
 
 from qgis.core import QgsMeshDatasetIndex
 
@@ -156,7 +159,8 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
         excepted_layers = []
         for layer in QgsProject.instance().mapLayers().values():
             if layer.type() == QgsMapLayerType.MeshLayer:
-                continue
+                if not is_temporal_meshlayer(layer):
+                    excepted_layers.append(layer)
             elif (layer.type() != QgsMapLayerType.VectorLayer) or (
                 layer.geometryType() != QgsWkbTypes.PointGeometry
             ):
@@ -330,6 +334,13 @@ class ImodTimeSeriesWidget(QWidget):
         self.multi_variable_selection.menu_datasets.populate_actions(layers)
         self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
 
+        # If no layers present, but time is present, disable button.
+        if layers == ["-1"]:
+            self.multi_variable_selection.setDisabled(True)
+        else:
+            # Else statement to re-enable after being disabled first (switching between two datasets)
+            self.multi_variable_selection.setEnabled(True)
+
     def on_layer_changed(self):
         layer = self.layer_selection.currentLayer()
         if layer is None:
@@ -342,7 +353,23 @@ class ImodTimeSeriesWidget(QWidget):
         self.id_selection_box.clear()
         if layer.type() == QgsMapLayerType.MeshLayer:
             indexes, names = get_group_names(layer)
+            is_temporal = get_group_is_temporal(layer)
+
+            # Filter non-temporal dataset groups
+            indexes = list(compress(indexes, is_temporal))
+            names = list(compress(names, is_temporal))
+
             self.variables_indexes = groupby_variable(names, indexes)
+
+            # Add groups without layer, but with time
+            # (so which are in names after filtering, and not in variables_indexes)
+            # to variables_index, with a sentinel layer index of -1
+            for name, index in zip(names, indexes):
+                if (not name in self.variables_indexes.keys()) and (
+                    not "_layer_" in name
+                ):
+                    self.variables_indexes[name]["-1"] = index
+
             self.id_label.setVisible(False)
             self.id_selection_box.setVisible(False)
             self.variable_selection.setVisible(True)
