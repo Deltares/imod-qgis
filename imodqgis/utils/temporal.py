@@ -16,9 +16,9 @@ def get_group_is_temporal(layer):
 def is_temporal_meshlayer(layer):
     """
     Return whether layer is temporal,
-    I could not find a qgis layer attribute that indicates
-    whether there is a temporal dataset stored in a layer.
 
+    There currently does not seem to exist a qgis mesh layer attribute that
+    indicates whether there is a temporal dataset stored in a layer.
     If there is one, this function is obsolete.
     """
 
