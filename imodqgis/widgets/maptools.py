@@ -155,7 +155,7 @@ class LineGeometryPickerWidget(QWidget):
         self.pick_layer = None
         self.geometries = []
 
-        self.button = QPushButton("From map")
+        self.button = QPushButton("Select location")
         self.button.clicked.connect(self.picker_clicked)
         self.button.clicked.connect(self.clear_geometries)
 
