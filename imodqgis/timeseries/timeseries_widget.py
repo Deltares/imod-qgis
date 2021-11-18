@@ -332,7 +332,6 @@ class ImodTimeSeriesWidget(QWidget):
         variable = self.variable_selection.dataset_variable
         layers = [str(a) for a in self.variables_indexes[variable].keys()]
         self.multi_variable_selection.menu_datasets.populate_actions(layers)
-        self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
 
         # If no layers present, but time is present, disable button.
         if layers == ["-1"]:
@@ -378,6 +377,7 @@ class ImodTimeSeriesWidget(QWidget):
             )
             self.variable_selection.menu_datasets.check_first()
             self.set_variable_layernumbers()
+            self.multi_variable_selection.menu_datasets.check_first()
             self.multi_variable_selection.setText("Layers: ")
         elif layer.type() == QgsMapLayerType.VectorLayer:
             layer.selectionChanged.connect(self.on_select)
@@ -399,6 +399,7 @@ class ImodTimeSeriesWidget(QWidget):
                 self.id_selection_box.insertItems(0, variables)
                 self.id_selection_box.setEnabled(True)
             self.multi_variable_selection.menu_datasets.populate_actions(variables)
+            self.multi_variable_selection.menu_datasets.check_first()
             self.multi_variable_selection.setText("Variable: ")
 
     def load_mesh_data(self, layer):
