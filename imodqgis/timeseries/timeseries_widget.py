@@ -202,7 +202,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear)
 
-        self.selection_button = QPushButton("From map")
+        self.selection_button = QPushButton("Select points")
         self.selection_button.clicked.connect(self.start_selection)
 
         self.update_on_select = QCheckBox("Update on selection")
