@@ -284,6 +284,22 @@ class ImodTimeSeriesWidget(QWidget):
         self.on_layer_changed()
 
     def hideEvent(self, e):
+        self.point_picker.stop_picking()
+
+        # WORKAROUND ALERT
+        # It seems impossible to "untrigger"
+        # a self.actionRectangleSelect() trigger, except by
+        # triggering another QAction method of self.iface.
+        # The safest fallback option then is actionPan.
+        # There also seems no attribute that gives us info
+        # whether we are currently selecting or not.
+        # TODO: Create a seperate object in maptools, which
+        # stores whether we triggered self.iface.actionRectangleSelect
+        # And has methods to "stop_picking" etc.
+        # We could use the triggered() signal to store whether
+        # we are currently selecting on the iface.
+        self.iface.actionPan().trigger()
+
         self.clear()
         QWidget.hideEvent(self, e)
 
@@ -297,6 +313,11 @@ class ImodTimeSeriesWidget(QWidget):
     def clear(self):
         self.dataframes = {}
         self.point_picker.clear_geometries()
+        # NOTE: self.point_picker.clear_geometries emits
+        # a signal to self.point_picker.geometries_changed
+        # which is connected to self.on_select,
+        # which also calls self.clear_plot
+        # TODO: Check whether two calls to self.clear_plot are necessary
         self.clear_plot()
 
     def start_selection(self):
@@ -306,7 +327,7 @@ class ImodTimeSeriesWidget(QWidget):
         if layer.type() == QgsMapLayerType.MeshLayer:
             self.point_picker.picker_clicked()
         else:
-            self.iface.actionSelect().trigger()
+            self.iface.actionSelectRectangle().trigger()
 
     def toggle_update(self):
         """
@@ -337,7 +358,8 @@ class ImodTimeSeriesWidget(QWidget):
         if layers == ["-1"]:
             self.multi_variable_selection.setDisabled(True)
         else:
-            # Else statement to re-enable after being disabled first (switching between two datasets)
+            # Else statement to re-enable after being disabled
+            # first (switching between two datasets)
             self.multi_variable_selection.setEnabled(True)
 
     def on_layer_changed(self):
