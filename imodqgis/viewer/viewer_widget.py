@@ -329,13 +329,15 @@ class ImodViewerWidget(QWidget):
     def unset_rectangle_tool(self):
         self.canvas.unsetMapTool(self.rectangle_tool)
 
-    def on_close(self):
+    def hideEvent(self, e):
         """Ensure rubberbands are removed and picking tools are unset when hiding widget."""
         self.rectangle_tool.reset()
         self.unset_rectangle_tool()
 
         self.line_picker.stop_picking()
         self.line_picker.clear_rubber_bands()
+
+        QWidget.hideEvent(self, e)
 
     def find_viewer_exe(self):
         """

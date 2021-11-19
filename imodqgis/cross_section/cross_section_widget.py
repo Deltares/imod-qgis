@@ -316,6 +316,11 @@ class ImodCrossSectionWidget(QWidget):
         self.on_layer_changed()
 
     def hideEvent(self, e):
+        scene = self.iface.mapCanvas().scene()
+        scene.removeItem(self.buffer_rubber_band)
+        scene.removeItem(self.point_rubber_band)
+        scene.removeItem(self.buffer_rubber_band)
+
         self.line_picker.clear_geometries()
         self.clear_plot()
         QWidget.hideEvent(self, e)
@@ -517,9 +522,3 @@ class ImodCrossSectionWidget(QWidget):
 
     def hide_vertex(self):
         self.point_rubber_band.hide()
-
-    def on_close(self):
-        scene = self.iface.mapCanvas().scene()
-        scene.removeItem(self.buffer_rubber_band)
-        scene.removeItem(self.point_rubber_band)
-        scene.removeItem(self.buffer_rubber_band)
