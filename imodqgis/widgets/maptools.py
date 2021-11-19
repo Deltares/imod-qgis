@@ -313,18 +313,21 @@ class MultipleLineGeometryPickerWidget(QWidget):
 
 class PickPointGeometryTool(QgsMapTool):
     picked = pyqtSignal(
-        QgsPointXY, bool, bool
-    )  # point, whether clicked or just moving, whether clicked with Ctrl
+        QgsPointXY, bool, bool, bool
+    )  # point, whether clicked or just moving, whether clicked with Ctrl, whether finished
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
 
     def canvasMoveEvent(self, e):
-        self.picked.emit(e.mapPoint(), False, False)
+        self.picked.emit(e.mapPoint(), False, False, False)
 
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            self.picked.emit(e.mapPoint(), True, e.modifiers() & Qt.ControlModifier)
+            is_ctrl_clicked = e.modifiers() & Qt.ControlModifier
+            self.picked.emit(e.mapPoint(), True, is_ctrl_clicked, False)
+        elif e.button() == Qt.RightButton:
+            self.picked.emit(e.mapPoint(), True, False, True)
 
     def canvasReleaseEvent(self, e):
         pass
@@ -370,7 +373,7 @@ class PointGeometryPickerWidget(QWidget):
             self.canvas.unsetMapTool(self.tool)
         self.pick_mode = self.PICK_NO
 
-    def on_picked(self, geom, clicked, with_ctrl):
+    def on_picked(self, geom, clicked, with_ctrl, finished):
         if clicked:
             if self.temp_geometry_index == -1:
                 self.geometries.append(geom)
@@ -390,4 +393,7 @@ class PointGeometryPickerWidget(QWidget):
 
         self.geometries_changed.emit()
         if clicked and (self.updating and not with_ctrl):  # no more updates
+            self.stop_picking()
+
+        if finished:
             self.stop_picking()
