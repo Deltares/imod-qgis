@@ -301,6 +301,12 @@ class ImodTimeSeriesWidget(QWidget):
         self.iface.actionPan().trigger()
 
         self.clear()
+
+        # Explicitly disconnect signal
+        layer = self.layer_selection.currentLayer()
+        if layer.type() == QgsMapLayerType.VectorLayer:
+            layer.selectionChanged.disconnect(self.on_select)
+
         QWidget.hideEvent(self, e)
 
     def clear_plot(self):
@@ -558,6 +564,8 @@ class ImodTimeSeriesWidget(QWidget):
             c.curve.setPen(pen)
 
     def on_select(self):
+        # NOTE: Use self.sender() to know whether method is called by PointGeometryPickerWidget
+        # or qgis._core.QgsVectorLayer (that is: connected to layer for IPFs and Vector data)
         if not self.update_on_select.isChecked():
             return
         self.draw_plot()
