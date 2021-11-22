@@ -402,6 +402,7 @@ class ImodTimeSeriesWidget(QWidget):
             self.multi_variable_selection.menu_datasets.check_first()
             self.multi_variable_selection.setText("Layers: ")
         elif layer.type() == QgsMapLayerType.VectorLayer:
+            # Connect to QGIS signal that selection changed
             layer.selectionChanged.connect(self.on_select)
             # Set active layer so the Selection Toolbar will work as expected
             # (since it works on the currently active layer)
@@ -450,8 +451,8 @@ class ImodTimeSeriesWidget(QWidget):
                 f"{name} point {i + 1} {variable}"
             ] = pd.DataFrame.from_dict(columns).set_index("time")
 
-    def load_ipf_data(self, layer):
-        """Load timeseries data from an IPF dataset"""
+    def sync_ipf_data(self, layer):
+        """Synchronize (load & unload) timeseries data from an IPF dataset"""
         feature_ids = layer.selectedFeatureIds()  # Returns a new list
         # Do not read the data if the selection is the same
         if self.feature_ids == feature_ids:
@@ -468,14 +469,22 @@ class ImodTimeSeriesWidget(QWidget):
             [str(layer.getFeature(fid).attribute(index)) for fid in feature_ids]
         )
 
-        for name in names:
+        # Filter names to add and to remove, to prevent loading duplicates
+        names_to_add = set(names).difference(self.dataframes.keys())
+        names_to_pop = set(self.dataframes.keys()).difference(names)
+
+        for name in names_to_add:
             dataframe = read_associated_timeseries(f"{parent.joinpath(name)}.{ext}")
             self.dataframes[name] = dataframe
+
+        for name in names_to_pop:
+            self.dataframes.pop(name)
+
         # Store feature_ids for future comparison
         self.feature_ids = feature_ids
 
-    def load_table_data(self, layer):
-        """Load timeseries data from a QGIS attribute table."""
+    def sync_table_data(self, layer):
+        """Synchronize timeseries data from a QGIS attribute table."""
         feature_ids = layer.selectedFeatureIds()  # Returns a new list
         # Do not read the data if the selection is the same
         if self.feature_ids == feature_ids:
@@ -503,8 +512,17 @@ class ImodTimeSeriesWidget(QWidget):
         selection = set(
             layer.getFeature(fid).attribute(id_column) for fid in feature_ids
         )
-        for name in selection:
+
+        # Filter names to add and to remove, to prevent loading duplicates
+        names_to_add = set(selection).difference(self.dataframes.keys())
+        names_to_pop = set(self.dataframes.keys()).difference(selection)
+
+        for name in names_to_add:
             self.dataframes[name] = df.loc[name].set_index(datetime_column)
+
+        for name in names_to_pop:
+            self.dataframes.pop(name)
+
         # Store feature_ids for future comparison
         self.feature_ids = feature_ids
 
@@ -515,9 +533,9 @@ class ImodTimeSeriesWidget(QWidget):
         if layer.type() == QgsMapLayerType.MeshLayer:
             self.load_mesh_data(layer)
         elif layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
-            self.load_ipf_data(layer)
+            self.sync_ipf_data(layer)
         else:
-            self.load_table_data(layer)
+            self.sync_table_data(layer)
 
     def select_curve(self, curve):
         for c, pen, name in zip(self.curves, self.pens, self.names):
@@ -542,10 +560,12 @@ class ImodTimeSeriesWidget(QWidget):
     def on_select(self):
         if not self.update_on_select.isChecked():
             return
-        self.clear_plot()
         self.draw_plot()
 
     def draw_plot(self):
+        # Always clear plot before drawing
+        self.clear_plot()
+
         self.load()
         columns_to_plot = self.multi_variable_selection.checked_variables()
         series_list = []
