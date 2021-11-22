@@ -2,7 +2,7 @@
 name=iMOD
 qgisMinimumVersion=3.18
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
-version=0.1
+version=0.2
 author=Deltares
 email=imod.support@deltares.nl
 
@@ -27,7 +27,14 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=      <p>0.2 - New features & usability improvements
+                - Timeseries: Support for non-layered mesh
+                - Timeseries: Right click to stop selecting points on a mesh
+                - Timeseries: When closing dockwidget while picking, automatically fall back to QGIS pan action
+                - Timeseries: By default, select top variable for points and select top layer number for mesh
+                - Timeseries: Filter non-time mesh datatasets from layer selection
+                - Timeseries & Cross-section: Changed text "From  map" to respectively "Select points" and "Select location"
+                <p>0.1 - Initial release
 
 # Tags are comma separated with spaces allowed
 tags=3d, cross section, groundwater, geology, netcdf, modflow, time, time series, timeseries, ugrid
