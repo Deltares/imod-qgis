@@ -33,7 +33,9 @@ changelog=      <p>0.2 - New features & usability improvements
                 - Timeseries: When closing dockwidget while picking, automatically fall back to QGIS pan action
                 - Timeseries: By default, select top variable for points and select top layer number for mesh
                 - Timeseries: Filter non-time mesh datatasets from layer selection
+                - Timeseries: Make behaviour of point selection for IPFs more consistent to the mesh equivalent
                 - Timeseries & Cross-section: Changed text "From  map" to respectively "Select points" and "Select location"
+                - 3D Viewer: When drawing the extent, a right-click now stops drawing
                 <p>0.1 - Initial release
 
 # Tags are comma separated with spaces allowed
