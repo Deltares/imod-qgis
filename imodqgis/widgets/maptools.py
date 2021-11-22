@@ -112,6 +112,7 @@ class RectangleMapTool(QgsMapToolEmitPoint):
     def deactivate(self):
         QgsMapTool.deactivate(self)
         self.deactivated.emit()
+        self.canvas.unsetMapTool(self)
 
 
 class PickGeometryTool(QgsMapTool):
