@@ -276,6 +276,9 @@ class ImodTimeSeriesWidget(QWidget):
         self.selected = (None, None, None)
         self.variables_indexes = None
 
+        # Initialize stored layer
+        self.previous_layer = None
+
         # Run a single time initialize the combo boxes
         self.feature_ids = None
         self.layer_selection.update_layers()
@@ -301,6 +304,12 @@ class ImodTimeSeriesWidget(QWidget):
         self.iface.actionPan().trigger()
 
         self.clear()
+
+        # Explicitly disconnect signal
+        layer = self.layer_selection.currentLayer()
+        if layer.type() == QgsMapLayerType.VectorLayer:
+            layer.selectionChanged.disconnect(self.on_select)
+
         QWidget.hideEvent(self, e)
 
     def clear_plot(self):
@@ -363,6 +372,10 @@ class ImodTimeSeriesWidget(QWidget):
             self.multi_variable_selection.setEnabled(True)
 
     def on_layer_changed(self):
+        # Explicitly disconnect signal in formerly connected vector layers
+        if self.previous_layer.type() == QgsMapLayerType.VectorLayer:
+            self.previous_layer.selectionChanged.disconnect(self.on_select)
+
         layer = self.layer_selection.currentLayer()
         if layer is None:
             return
@@ -424,6 +437,9 @@ class ImodTimeSeriesWidget(QWidget):
             self.multi_variable_selection.menu_datasets.populate_actions(variables)
             self.multi_variable_selection.menu_datasets.check_first()
             self.multi_variable_selection.setText("Variable: ")
+
+        # Set "previous" layer for next call of this method
+        self.previous_layer = layer
 
     def load_mesh_data(self, layer):
         """Load timeseries data from a Mesh dataset"""
@@ -558,6 +574,8 @@ class ImodTimeSeriesWidget(QWidget):
             c.curve.setPen(pen)
 
     def on_select(self):
+        # NOTE: Use self.sender() to know whether method is called by PointGeometryPickerWidget
+        # or qgis._core.QgsVectorLayer (that is: connected to layer for IPFs and Vector data)
         if not self.update_on_select.isChecked():
             return
         self.draw_plot()
