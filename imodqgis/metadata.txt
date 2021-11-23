@@ -1,6 +1,6 @@
 [general]
 name=iMOD
-qgisMinimumVersion=3.18
+qgisMinimumVersion=3.16
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
 version=0.2
 author=Deltares
@@ -36,6 +36,8 @@ changelog=      <p>0.2 - New features & usability improvements
                 - Timeseries: Make behaviour of point selection for IPFs more consistent to the mesh equivalent
                 - Timeseries & Cross-section: Changed text "From  map" to respectively "Select points" and "Select location"
                 - 3D Viewer: When drawing the extent, a right-click now stops drawing
+                <p>0.2 - Bug fixes
+                - Fix "PyQt5 cannot import sip" error by updating to pyqtgraph 12_2_3
                 <p>0.1 - Initial release
 
 # Tags are comma separated with spaces allowed
