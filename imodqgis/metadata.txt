@@ -1,6 +1,6 @@
 [general]
 name=iMOD
-qgisMinimumVersion=3.16
+qgisMinimumVersion=3.18
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
 version=0.2
 author=Deltares
