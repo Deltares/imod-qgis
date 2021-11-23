@@ -375,7 +375,12 @@ class ImodTimeSeriesWidget(QWidget):
         # Explicitly disconnect signal to formerly connected vector layers
         if self.previous_layer is not None:  # Do nothing the first time after init
             if self.previous_layer.type() == QgsMapLayerType.VectorLayer:
-                self.previous_layer.selectionChanged.disconnect(self.on_select)
+                try:
+                    self.previous_layer.selectionChanged.disconnect(self.on_select)
+                # Edge case where IPF points are selected with SHIFT+click.
+                # TODO: Investigate why this function is called when SHIFT clicking
+                except TypeError:
+                    pass
 
         layer = self.layer_selection.currentLayer()
         if layer is None:
