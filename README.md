@@ -29,3 +29,5 @@ We expect to make this less specific in the future.
 * [Installation instructions](https://deltares.github.io/iMOD-Documentation/qgis_install.html)
 
 * [User manual](https://deltares.github.io/iMOD-Documentation/qgis_user_manual.html)
+
+* [Known issues](https://deltares.github.io/iMOD-Documentation/qgis_known_issues.html)
