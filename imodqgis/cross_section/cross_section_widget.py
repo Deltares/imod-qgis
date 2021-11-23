@@ -5,7 +5,7 @@ import pathlib
 from typing import List, Tuple
 
 import numpy as np
-from ..dependencies import pyqtgraph_0_12_2 as pg
+from ..dependencies import pyqtgraph_0_12_3 as pg
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QDropEvent
 from PyQt5.QtWidgets import (
@@ -29,8 +29,8 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from ..dependencies.pyqtgraph_0_12_2.graphicsItems.GraphicsWidget import GraphicsWidget
-from ..dependencies.pyqtgraph_0_12_2.GraphicsScene.exportDialog import ExportDialog
+from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsWidget import GraphicsWidget
+from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
 
 from qgis import processing
 from qgis.core import (

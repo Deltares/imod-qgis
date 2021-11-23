@@ -4,7 +4,7 @@
 # Import the code for the DockWidget
 from pathlib import Path
 
-from .dependencies import pyqtgraph_0_12_2 as pg
+from .dependencies import pyqtgraph_0_12_3 as pg
 
 from qgis.gui import QgsDockWidget
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator

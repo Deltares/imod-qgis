@@ -6,15 +6,15 @@ from __future__ import division
 import numpy as np
 from PyQt5.QtGui import QColor
 
-from ..dependencies.pyqtgraph_0_12_2 import functions as fn
-from ..dependencies.pyqtgraph_0_12_2 import getConfigOption
-from ..dependencies.pyqtgraph_0_12_2.colormap import ColorMap
-from ..dependencies.pyqtgraph_0_12_2.graphicsItems.GradientEditorItem import (
+from ..dependencies.pyqtgraph_0_12_3 import functions as fn
+from ..dependencies.pyqtgraph_0_12_3 import getConfigOption
+from ..dependencies.pyqtgraph_0_12_3.colormap import ColorMap
+from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GradientEditorItem import (
     Gradients,
 )  # List of colormaps
-from ..dependencies.pyqtgraph_0_12_2.graphicsItems.GraphicsObject import GraphicsObject
-from ..dependencies.pyqtgraph_0_12_2.Qt import QtCore, QtGui
-from ..dependencies.pyqtgraph_0_12_2.Point import Point
+from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsObject import GraphicsObject
+from ..dependencies.pyqtgraph_0_12_3.Qt import QtCore, QtGui
+from ..dependencies.pyqtgraph_0_12_3.Point import Point
 
 
 class PColorMeshItem(GraphicsObject):
