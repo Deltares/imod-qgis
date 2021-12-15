@@ -27,7 +27,9 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>0.2 - New features & usability improvements
+changelog=      <p>0.2.1 - Bug fixes
+                - 3D Viewer: Update default location of iMOD 3D Viewer
+                <p>0.2 - New features & usability improvements
                 - Timeseries: Support for non-layered mesh
                 - Timeseries: Right click to stop selecting points on a mesh
                 - Timeseries: When closing dockwidget while picking, automatically fall back to QGIS pan action
