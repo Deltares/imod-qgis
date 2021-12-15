@@ -352,8 +352,13 @@ class ImodViewerWidget(QWidget):
         # FUTURE: Default viewer path now purely for Windows.
         # No iMOD 3D viewer can be compiled for Linux yet
         default_viewer_exe = (
-            Path(get_programdir()) / "Deltares" / "IMOD6 GUI" / "IMOD6.exe"
+            Path(get_programdir()) / "Deltares" / "iMOD Viewer" / "IMOD6.exe"
         )
+
+        # Old viewer exe location, still left in here as some people might still have
+        # this old version installed.
+        # FUTURE: Remove for release 2022.02
+        old_viewer_exe = Path(get_programdir()) / "Deltares" / "IMOD6 GUI" / "IMOD6.exe"
 
         if viewer_textfile.exists():
             with open(configdir / "viewer_exe.txt") as f:
@@ -368,6 +373,8 @@ class ImodViewerWidget(QWidget):
         # Second check whether the default Deltares path exists
         elif default_viewer_exe.exists():
             return default_viewer_exe
+        elif old_viewer_exe.exists():
+            return old_viewer_exe
         # Else return None
         else:
             return None
