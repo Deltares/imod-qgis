@@ -35,23 +35,23 @@ jobs:
             echo "GITHUB_REF: ${GITHUB_REF}"
 
       - name: Pull qgis image
-        run: docker pull qgis/qgis:release-3_18
+        run: docker pull qgis/qgis:release-3_22
 
       # Runs all tests
         # When running locally on Windows, use the second docker run line in this step. Windows docker with WSL2 requires the absolute path.
       - name: Install qgis image
-        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18 #Run on Github
-        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_18 #Run locally
+        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run on Github
+        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run locally
       - run: sleep 10 # This is required to allow xvfb to start
-      - run: docker exec -t qgis-testing-environment sh -c "qgis_setup.sh imod"    # Setup qgis and enables the plugin
+      - run: docker exec -t qgis-testing-environment sh -c "qgis_setup.sh imodqgis"    # Setup qgis and enables the plugin
 
         # Additional steps (for example make or paver setup) here
         # Fix the symlink created by qgis_setup.sh
-      - run: docker exec -t qgis-testing-environment sh -c "rm -f  /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
-      - run: docker exec -t qgis-testing-environment sh -c "ln -s /tests_directory/imod /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imod"
+      - run: docker exec -t qgis-testing-environment sh -c "rm -f  /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imodqgis"
+      - run: docker exec -t qgis-testing-environment sh -c "ln -s /tests_directory/imodqgis /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imodqgis"
         
-      - name: pip install plugin dependencies
-        run: docker exec -t qgis-testing-environment sh -c "pip3 install -q pandas pyqtgraph==0.11.1 pytest declxml"
+      - name: pip install pytest
+        run: docker exec -t qgis-testing-environment sh -c "pip3 install -q pytest"
 
       - name: test using pytest
         run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory && pytest -v"
