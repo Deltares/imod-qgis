@@ -1,5 +1,6 @@
 .vscode/
 *.pyc
+__pycache__/
 
 # Unit test / coverage reports
 htmlcov/
@@ -15,3 +16,6 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# Locally packaged plugin
+imodqgis.zip

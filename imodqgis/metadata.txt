@@ -1,0 +1,69 @@
+[general]
+name=iMOD
+qgisMinimumVersion=3.18
+description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
+version=0.2.2
+author=Deltares
+email=imod.support@deltares.nl
+
+about=  This plugin aids exploring 4D geospatial data and links to the iMOD 3D viewer.
+        It is part of a larger software suite, named "iMOD Suite" (see homepage). 
+        Mesh data can be used to store data with a time, z, y, and x dimension. 
+        Currently the z-dimension is only scarcely supported by MDAL. 
+        Therefore, for each vertical layer, we require a mesh dataset with the
+        following variables:
+
+        - "{var}_layer_{nr}"
+        - "top_layer_{nr}"
+        - "bottom_layer_{nr}" 
+
+        An example of preparing such a dataset in python is found here: 
+        https://deltares.github.io/iMOD-Documentation/workflow_wq.html#convert-output-data 
+        We expect to make this less specific in the future.
+
+tracker=https://github.com/Deltares/imod-qgis/issues
+repository=https://github.com/Deltares/imod-qgis
+
+hasProcessingProvider=no
+
+# Uncomment the following line and add your changelog:
+changelog=       <p>0.2.2 - Bug fixes
+                - Fixed critical bug where the icons were left as Git LFS pointers, so would not show. This affected the version uploaded in qgis plugin database.
+                 <p>0.2.1 - Bug fixes
+                - 3D Viewer: Update default location of iMOD 3D Viewer
+                <p>0.2 - New features & usability improvements
+                - Timeseries: Support for non-layered mesh
+                - Timeseries: Right click to stop selecting points on a mesh
+                - Timeseries: When closing dockwidget while picking, automatically fall back to QGIS pan action
+                - Timeseries: By default, select top variable for points and select top layer number for mesh
+                - Timeseries: Filter non-time mesh datatasets from layer selection
+                - Timeseries: Make behaviour of point selection for IPFs more consistent to the mesh equivalent
+                - Timeseries & Cross-section: Changed text "From  map" to respectively "Select points" and "Select location"
+                - 3D Viewer: When drawing the extent, a right-click now stops drawing
+                <p>0.2 - Bug fixes
+                - Fix "PyQt5 cannot import sip" error by updating to pyqtgraph 12_2_3
+                <p>0.1 - Initial release
+
+# Tags are comma separated with spaces allowed
+tags=3d, cross section, groundwater, geology, netcdf, modflow, time, time series, timeseries, ugrid
+
+homepage=https://deltares.github.io/iMOD-Documentation/
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+Category of the plugin: Raster, Vector, Database or Web
+# category=
+
+# If the plugin can run on QGIS Server.
+server=False
+
