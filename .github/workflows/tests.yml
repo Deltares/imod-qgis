@@ -51,12 +51,9 @@ jobs:
       - run: docker exec -t qgis-testing-environment sh -c "ln -s /tests_directory/imodqgis /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imodqgis"
         
       - name: pip install pytest
-        run: docker exec -t qgis-testing-environment sh -c "pip3 install -q pytest"
-
-      - name: test using pytest
-        run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory && pytest -v"
+        run: docker exec -t qgis-testing-environment sh -c "pip3 install -q pytest pandas"
         
       - name: test using qgis unittesting
         run: docker exec -t qgis-testing-environment sh -c "export PYTHONPATH=${PYTHONPATH}:/tests_directory/tests/unittests/"
         
-      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_qgis"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_timeseries"
