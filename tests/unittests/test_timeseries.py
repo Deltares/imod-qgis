@@ -16,7 +16,8 @@ import sys
 def get_axis_ticklabels(axis_item):
     """
     Helper function to safely get axis ticklabels, as pyqtgraph does not provide
-    one (only on to set one).
+    one (only setTicklabels). tickStrings() requires extra arguments, which are
+    taken care of in generateDrawSpecs().
     https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/graphicsItems/AxisItem.html
     """
 
@@ -46,7 +47,7 @@ class TestTimeseriesMesh(unittest.TestCase):
         # each test. This to ensure the tests are isolated.
         # https://stackoverflow.com/questions/23667610/what-is-the-difference-between-setup-and-setupclass-in-python-unittest
 
-        # Toggle timeseries The toggle_timeseries() method also imports the
+        # The toggle_timeseries() method also imports the
         # timeseries module, and thus is a requirement to test the timeseries
         # module.
         imodplugin = plugins["imodqgis"]
@@ -122,14 +123,14 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(len(data) == self.n_timesteps)
         self.assertTrue(np.all(np.isclose(data, self.expected_y_data)))
 
-    def test_timeseries_load_mesh_data_empty(self):
+    def test_load_mesh_data_empty(self):
         self.widget.clear()  # Clear plot
         self.widget.load_mesh_data(self.mesh)
 
         self.assertTrue(len(self.widget.dataframes) == 0)
         self.assertTrue(self.widget.dataframes == {})
 
-    def test_timeseries_load_mesh_data(self):
+    def test_load_mesh_data(self):
 
         # Clear and add point geometry again to test load_mesh_data in isolation
         self.widget.clear()
@@ -244,9 +245,26 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(y_data_matches)
         self.assertTrue(correct_ticklabels)
 
+    def test_clear(self):
+        self.widget.clear()
+
+        self.assertTrue(self.widget.dataframes == {})
+        self.assertTrue(self.widget.point_picker.geometries == [])
+
+    def test_clear_plot(self):
+        # Draw plot first, then clear it to test if clear_plot works.
+        self.widget.draw_plot()
+        self.widget.clear_plot()
+
+        self.assertTrue(self.widget.names == [])
+        self.assertTrue(self.widget.curves == [])
+        self.assertTrue(self.widget.pens == [])
+
 
 def run_all():
-    """Default function that is called by the runner if nothing else is specified"""
+    """
+    Default function that is called by the runner if nothing else is specified
+    """
     suite = unittest.TestSuite()
     suite.addTests(unittest.makeSuite(TestTimeseriesMesh))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)
