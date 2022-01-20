@@ -1,6 +1,7 @@
 from qgis.utils import plugins
 from qgis.testing import unittest
 from qgis.core import QgsMeshLayer, QgsProject, QgsPointXY
+from PyQt5.QtGui import QColor, QPicture, QPainter
 
 import numpy as np
 
@@ -10,6 +11,22 @@ from pathlib import Path
 import pandas as pd
 
 import sys
+
+
+def get_axis_ticklabels(axis_item):
+    """
+    Helper function to safely get axis ticklabels, as pyqtgraph does not provide
+    one (only on to set one).
+    https://pyqtgraph.readthedocs.io/en/latest/_modules/pyqtgraph/graphicsItems/AxisItem.html
+    """
+
+    picture = QPicture()
+    painter = QPainter(picture)
+    specs = axis_item.generateDrawSpecs(painter)
+
+    dateaxis_ticklabels = [spec[2] for spec in specs[2]]
+    painter.end()
+    return dateaxis_ticklabels
 
 
 class MockPointPicker:
@@ -26,13 +43,14 @@ class MockPointPicker:
 class TestTimeseriesMesh(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # setUpClass is used because this method has to be called once when setting up the instance.
-        # If we were to use setUp(), all this code would be called for each test.
+        # setUpClass is used because this method has to be called once when
+        # setting up the instance. If we were to use setUp(), all this code
+        # would be called for each test.
         # https://stackoverflow.com/questions/23667610/what-is-the-difference-between-setup-and-setupclass-in-python-unittest
 
-        # Toggle timeseries
-        # The toggle_timeseries() method also imports the timeseries
-        # module, and thus is a requirement to test the timeseries module.
+        # Toggle timeseries The toggle_timeseries() method also imports the
+        # timeseries module, and thus is a requirement to test the timeseries
+        # module.
         imodplugin = plugins["imodqgis"]
         imodplugin.toggle_timeseries()
 
@@ -48,8 +66,8 @@ class TestTimeseriesMesh(unittest.TestCase):
         )
         QgsProject.instance().addMapLayer(cls.mesh)
 
-        # datasetValue() requires cached mesh,
-        # so we have to call this method to cache the mesh
+        # datasetValue() requires cached mesh, so we have to call this method to
+        # cache the mesh
         cls.mesh.updateTriangularMesh()
 
         cls.point = QgsPointXY(43.67054079696396229, 49.67836812144211933)
@@ -62,11 +80,16 @@ class TestTimeseriesMesh(unittest.TestCase):
             freq=None,
             name="time",
         )
-        cls.expected_data = np.array(
+        cls.expected_key = "tri-time-test.nc point 1 data"
+
+        cls.expected_x_data = np.array(
+            [1.5147648e9, 1.5148512e9, 1.5149376e9, 1.5150240e9, 1.5151104e9]
+        )
+        cls.expected_y_data = np.array(
             [0.45458985, 1.41937719, 1.77983244, 1.95104218, 2.86607693]
         )
 
-        cls.expected_key = "tri-time-test.nc point 1 data"
+        cls.expected_x_ticklabels = ["Mon 01", "Tue 02", "Wed 03", "Thu 04", "Fri 05"]
 
     def test_timeseries_x_data(self):
         from imodqgis.timeseries.timeseries_widget import timeseries_x_data
@@ -82,7 +105,7 @@ class TestTimeseriesMesh(unittest.TestCase):
         data = timeseries_y_data(self.mesh, self.point, self.group_nr, self.n_timesteps)
 
         self.assertTrue(len(data) == self.n_timesteps)
-        self.assertTrue(np.all(np.isclose(data, self.expected_data)))
+        self.assertTrue(np.all(np.isclose(data, self.expected_y_data)))
 
     def test_timeseries_load_mesh_data_empty(self):
         self.widget.clear()  # Clear plot
@@ -98,7 +121,7 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.widget.load_mesh_data(self.mesh)
 
         expected_dataframe = pd.DataFrame(
-            index=self.expected_datetime_index, data=self.expected_data, columns=["1"]
+            index=self.expected_datetime_index, data=self.expected_y_data, columns=["1"]
         )
 
         keys = list(self.widget.dataframes.keys())
@@ -130,6 +153,71 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(self.widget.variable_selection.isVisible())
         self.assertTrue(self.widget.multi_variable_selection.isEnabled())
         self.assertTrue(self.widget.multi_variable_selection.text() == "Layers: ")
+
+    def test_set_variable_layernumbers(self):
+        self.widget.set_variable_layernumbers()
+
+        layers = self.widget.multi_variable_selection.menu_datasets.variables
+        expected_layers = ["1", "2", "3", "4", "5"]
+
+        checkboxes = self.widget.multi_variable_selection.menu_datasets.checkboxes
+        checkboxes_checked = [checkbox.isChecked() for checkbox in checkboxes]
+        # By default first checkbox should be checked
+        expected_checkboxes_checked = [True, False, False, False, False]
+
+        self.assertTrue(len(layers) == 5)
+        self.assertTrue(len(checkboxes) == 5)
+        self.assertTrue(layers == expected_layers)
+        self.assertTrue(checkboxes_checked == expected_checkboxes_checked)
+
+    def test_draw_timeseries(self):
+        # Ensure plot is cleared
+        self.widget.clear_plot()
+
+        dataframe = pd.DataFrame(
+            index=self.expected_datetime_index, data=self.expected_y_data, columns=["1"]
+        )
+
+        series = dataframe["1"]
+        color = QColor(0, 0, 0, 255)
+
+        self.widget.draw_timeseries(series, color)
+
+        x_data_matches = np.all(
+            np.isclose(self.expected_x_data, self.widget.curves[0].xData)
+        )
+        y_data_matches = np.all(
+            np.isclose(self.expected_y_data, self.widget.curves[0].yData)
+        )
+
+        axis_item = self.widget.plot_widget.getAxis("bottom")
+        ticklabels = get_axis_ticklabels(axis_item)
+
+        self.assertTrue(len(self.widget.curves) == 1)
+        self.assertTrue(x_data_matches)
+        self.assertTrue(y_data_matches)
+        self.assertTrue(ticklabels == self.expected_x_ticklabels)
+
+    def test_draw_plot(self):
+        # Mocked point picker, contains the required "geometries" attribute
+        self.widget.point_picker = MockPointPicker([self.point])
+
+        self.widget.draw_plot()
+
+        x_data_matches = np.all(
+            np.isclose(self.expected_x_data, self.widget.curves[0].xData)
+        )
+        y_data_matches = np.all(
+            np.isclose(self.expected_y_data, self.widget.curves[0].yData)
+        )
+
+        axis_item = self.widget.plot_widget.getAxis("bottom")
+        ticklabels = get_axis_ticklabels(axis_item)
+
+        self.assertTrue(len(self.widget.curves) == 1)
+        self.assertTrue(x_data_matches)
+        self.assertTrue(y_data_matches)
+        self.assertTrue(ticklabels == self.expected_x_ticklabels)
 
 
 def run_all():
