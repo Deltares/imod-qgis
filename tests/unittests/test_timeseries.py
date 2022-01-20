@@ -41,11 +41,9 @@ class MockPointPicker:
 
 
 class TestTimeseriesMesh(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        # setUpClass is used because this method has to be called once when
-        # setting up the instance. If we were to use setUp(), all this code
-        # would be called for each test.
+    def setUp(self):
+        # setUp is used instead of setUpClas because this setUp is called before
+        # each test. This to ensure the tests are isolated.
         # https://stackoverflow.com/questions/23667610/what-is-the-difference-between-setup-and-setupclass-in-python-unittest
 
         # Toggle timeseries The toggle_timeseries() method also imports the
@@ -54,42 +52,59 @@ class TestTimeseriesMesh(unittest.TestCase):
         imodplugin = plugins["imodqgis"]
         imodplugin.toggle_timeseries()
 
-        cls.widget = imodplugin.timeseries_widget.widget()
+        self.widget = imodplugin.timeseries_widget.widget()
 
         script_dir = Path(__file__).parent
         meshfile = (script_dir / ".." / "testdata" / "tri-time-test.nc").resolve()
 
-        cls.mesh = QgsMeshLayer(
+        self.mesh = QgsMeshLayer(
             str(meshfile),
             "tri-time-test.nc",
             "mdal",
         )
-        QgsProject.instance().addMapLayer(cls.mesh)
+        QgsProject.instance().addMapLayer(self.mesh)
 
         # datasetValue() requires cached mesh, so we have to call this method to
         # cache the mesh
-        cls.mesh.updateTriangularMesh()
+        self.mesh.updateTriangularMesh()
 
-        cls.point = QgsPointXY(43.67054079696396229, 49.67836812144211933)
-        cls.group_nr = 5
-        cls.n_timesteps = 5
+        self.point = QgsPointXY(43.67054079696396229, 49.67836812144211933)
+        self.group_nr = 5
+        self.n_timesteps = 5
 
-        cls.expected_datetime_index = pd.DatetimeIndex(
+        # Mocked point picker, contains the required "geometries" attribute
+        self.widget.point_picker = MockPointPicker([self.point])
+        self.widget.load_mesh_data(self.mesh)
+
+        self.expected_datetime_index = pd.DatetimeIndex(
             ["2018-01-01", "2018-01-02", "2018-01-03", "2018-01-04", "2018-01-05"],
             dtype="datetime64[ns]",
             freq=None,
             name="time",
         )
-        cls.expected_key = "tri-time-test.nc point 1 data"
+        self.expected_key = "tri-time-test.nc point 1 data"
 
-        cls.expected_x_data = np.array(
+        self.expected_x_data = np.array(
             [1.5147648e9, 1.5148512e9, 1.5149376e9, 1.5150240e9, 1.5151104e9]
         )
-        cls.expected_y_data = np.array(
+        self.expected_y_data = np.array(
             [0.45458985, 1.41937719, 1.77983244, 1.95104218, 2.86607693]
         )
 
-        cls.expected_x_ticklabels = ["Mon 01", "Tue 02", "Wed 03", "Thu 04", "Fri 05"]
+        self.expected_x_ticklabels_large = [
+            "Mon 01",
+            "Tue 02",
+            "Wed 03",
+            "Thu 04",
+            "Fri 05",
+        ]  # ticklabels on large window
+        self.expected_x_ticklabels_small = [
+            "Jan",
+            "02",
+            "03",
+            "04",
+            "05",
+        ]  # ticklabels on small window
 
     def test_timeseries_x_data(self):
         from imodqgis.timeseries.timeseries_widget import timeseries_x_data
@@ -115,7 +130,9 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(self.widget.dataframes == {})
 
     def test_timeseries_load_mesh_data(self):
-        # Mocked point picker, contains the required "geometries" attribute
+
+        # Clear and add point geometry again to test load_mesh_data in isolation
+        self.widget.clear()
         self.widget.point_picker = MockPointPicker([self.point])
 
         self.widget.load_mesh_data(self.mesh)
@@ -130,16 +147,26 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(keys == [self.expected_key])
 
         dataframe = self.widget.dataframes[self.expected_key]
+
+        self.assertTrue(dataframe.columns == ["1"])
+
         # Because data is float, we have to compensate for floating point errors
         data_match = np.all(np.isclose(expected_dataframe["1"], dataframe["1"]))
 
-        self.assertTrue(dataframe.columns == ["1"])
         self.assertTrue(data_match)
 
     def test_on_layer_changed(self):
         self.widget.layer_selection.setLayer(self.mesh)
 
+        checkboxes = self.widget.multi_variable_selection.menu_datasets.checkboxes
+        checkboxes_checked = [checkbox.isChecked() for checkbox in checkboxes]
+        # By default first checkbox should be checked
+        expected_checkboxes_checked = [True, False, False, False, False]
+
         expected_variables_indexes = {"1": 5, "2": 6, "3": 7, "4": 8, "5": 9}
+
+        self.assertTrue(len(checkboxes) == 5)
+        self.assertTrue(checkboxes_checked == expected_checkboxes_checked)
         self.assertTrue(
             self.widget.variables_indexes["data"] == expected_variables_indexes
         )
@@ -160,15 +187,8 @@ class TestTimeseriesMesh(unittest.TestCase):
         layers = self.widget.multi_variable_selection.menu_datasets.variables
         expected_layers = ["1", "2", "3", "4", "5"]
 
-        checkboxes = self.widget.multi_variable_selection.menu_datasets.checkboxes
-        checkboxes_checked = [checkbox.isChecked() for checkbox in checkboxes]
-        # By default first checkbox should be checked
-        expected_checkboxes_checked = [True, False, False, False, False]
-
         self.assertTrue(len(layers) == 5)
-        self.assertTrue(len(checkboxes) == 5)
         self.assertTrue(layers == expected_layers)
-        self.assertTrue(checkboxes_checked == expected_checkboxes_checked)
 
     def test_draw_timeseries(self):
         # Ensure plot is cleared
@@ -193,15 +213,16 @@ class TestTimeseriesMesh(unittest.TestCase):
         axis_item = self.widget.plot_widget.getAxis("bottom")
         ticklabels = get_axis_ticklabels(axis_item)
 
+        correct_ticklabels = (ticklabels == self.expected_x_ticklabels_large) | (
+            ticklabels == self.expected_x_ticklabels_small
+        )
+
         self.assertTrue(len(self.widget.curves) == 1)
         self.assertTrue(x_data_matches)
         self.assertTrue(y_data_matches)
-        self.assertTrue(ticklabels == self.expected_x_ticklabels)
+        self.assertTrue(correct_ticklabels)
 
     def test_draw_plot(self):
-        # Mocked point picker, contains the required "geometries" attribute
-        self.widget.point_picker = MockPointPicker([self.point])
-
         self.widget.draw_plot()
 
         x_data_matches = np.all(
@@ -214,10 +235,14 @@ class TestTimeseriesMesh(unittest.TestCase):
         axis_item = self.widget.plot_widget.getAxis("bottom")
         ticklabels = get_axis_ticklabels(axis_item)
 
+        correct_ticklabels = (ticklabels == self.expected_x_ticklabels_large) | (
+            ticklabels == self.expected_x_ticklabels_small
+        )
+
         self.assertTrue(len(self.widget.curves) == 1)
         self.assertTrue(x_data_matches)
         self.assertTrue(y_data_matches)
-        self.assertTrue(ticklabels == self.expected_x_ticklabels)
+        self.assertTrue(correct_ticklabels)
 
 
 def run_all():
