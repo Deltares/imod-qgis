@@ -124,7 +124,7 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(np.all(np.isclose(data, self.expected_y_data)))
 
     def test_load_mesh_data_empty(self):
-        self.widget.clear()  # Clear plot
+        self.widget.clear()  # Clear first
         self.widget.load_mesh_data(self.mesh)
 
         self.assertTrue(len(self.widget.dataframes) == 0)
@@ -192,9 +192,6 @@ class TestTimeseriesMesh(unittest.TestCase):
         self.assertTrue(layers == expected_layers)
 
     def test_draw_timeseries(self):
-        # Ensure plot is cleared
-        self.widget.clear_plot()
-
         dataframe = pd.DataFrame(
             index=self.expected_datetime_index, data=self.expected_y_data, columns=["1"]
         )
