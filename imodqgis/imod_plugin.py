@@ -133,7 +133,7 @@ class ImodPlugin:
 
     def _import_all_submodules(self):
         """
-        Import all submodules, only used for test bench
+        Import all submodules, required for test bench
         """
         from . import timeseries, cross_section, ipf, nhi_data, utils, viewer, widgets
 
