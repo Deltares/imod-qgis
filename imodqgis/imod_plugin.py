@@ -11,7 +11,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from .ipf import ImodIpfDialog
 from .widgets import ImodDockWidget
 
 # Set plot background color
@@ -76,6 +75,8 @@ class ImodPlugin:
         dialog.exec_()
 
     def ipf_dialog(self):
+        from .ipf import ImodIpfDialog
+
         dialog = ImodIpfDialog()
         dialog.show()
         dialog.exec_()
