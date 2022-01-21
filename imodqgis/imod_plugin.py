@@ -130,6 +130,12 @@ class ImodPlugin:
         widget = ImodNetcdfManagerWidget(self.netcdf_manager)
         self.netcdf_manager.setWidget(widget)
 
+    def _import_all_submodules(self):
+        """
+        Import all submodules, only used for test bench
+        """
+        from . import timeseries, cross_section, ipf, nhi_data, utils, viewer, widgets
+
     def unload(self):
         del self.toolbar
         # self.toolbar.deleteLater()
