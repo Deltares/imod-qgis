@@ -57,3 +57,4 @@ jobs:
         run: docker exec -t qgis-testing-environment sh -c "export PYTHONPATH=${PYTHONPATH}:/tests_directory/tests/unittests/"
         
       - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_timeseries"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_dataset_variable_widget"
