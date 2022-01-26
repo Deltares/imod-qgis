@@ -145,6 +145,8 @@ class PickGeometryTool(QgsMapTool):
 
 
 class LineGeometryPickerWidget(QWidget):
+    # TODO: Make rubberbands part of this object as well? Concurring with
+    # MultipleLineGeometryPickerWidget.
     geometries_changed = pyqtSignal()
     PICK_NO, PICK_MAP, PICK_LAYER = range(3)
 
