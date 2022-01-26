@@ -16,7 +16,7 @@ from PyQt5.QtTest import QTest, QSignalSpy
 from PyQt5.QtGui import QColor
 
 
-class TestPickGeometryWidget(unittest.TestCase):
+class TestPickGeometryTool(unittest.TestCase):
     def setUp(self):
         imodplugin = plugins["imodqgis"]
         # Required call in order to import widgets
@@ -55,11 +55,12 @@ class TestPickGeometryWidget(unittest.TestCase):
         # Three signals are emitted (2 left clicks + 1 right click)
         self.assertTrue(len(signals) == 3)
 
+        points_clicked = [s[0][-1] for s in signals]
         # On first two clicks, click locations emitted
-        self.assertEqual(signals[0][0][-1], QgsPointXY(200, -199))
-        self.assertEqual(signals[1][0][-1], QgsPointXY(300, -299))
+        self.assertEqual(points_clicked[0], QgsPointXY(200, -199))
+        self.assertEqual(points_clicked[1], QgsPointXY(300, -299))
         # On right click, click location not emitted
-        self.assertEqual(signals[2][0][-1], QgsPointXY(300, -299))
+        self.assertEqual(points_clicked[2], QgsPointXY(300, -299))
 
         endpoint_is_end = [s[-1] for s in signals]
 
@@ -320,12 +321,58 @@ class TestMultipleLineGeometryPickerWidget(unittest.TestCase):
         self.assertEqual(self.widget.last_geometry, None)
 
 
+class TestPickPointGeometryTool(unittest.TestCase):
+    def setUp(self):
+        imodplugin = plugins["imodqgis"]
+        # Required call in order to import widgets
+        imodplugin._import_all_submodules()
+
+        from imodqgis.widgets.maptools import PickPointGeometryTool
+
+        self.project = QgsProject.instance()
+        self.canvas = QgsMapCanvas()
+        # The bridge makes the link between QgsProject and QgsMapCanvas. So when
+        # a layer is added in the project, it is displayed in the map canvas.
+        # https://gis.stackexchange.com/a/340563
+        bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+
+        self.tool = PickPointGeometryTool(self.canvas)
+
+    def test_canvasPressEvent(self):
+        viewport = self.canvas.viewport()
+
+        signalspy = QSignalSpy(self.tool.picked)
+        self.canvas.setMapTool(self.tool)
+
+        # Source of this solution:
+        # https://gis.stackexchange.com/questions/250234/qtest-interactions-with-the-qgis-map-canvas
+        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(200, 200))
+        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(300, 300), delay=200)
+        QTest.mouseClick(viewport, Qt.RightButton, pos=QPoint(400, 400), delay=400)
+
+        signals = list(signalspy)
+
+        # Three signals are emitted (2 left clicks + 1 right click)
+        self.assertTrue(len(signals) == 3)
+
+        # On first two clicks, click locations emitted
+        points_clicked = [s[0][0] for s in signals]
+        self.assertEqual(points_clicked[0], QgsPointXY(200, -199))
+        self.assertEqual(points_clicked[1], QgsPointXY(300, -299))
+        self.assertEqual(points_clicked[2], QgsPointXY(400, -399))
+
+        endpoint_is_end = [s[-1] for s in signals]
+
+        self.assertTrue(endpoint_is_end == [False, False, True])
+
+
 def run_all():
     """
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestPickGeometryWidget))
+    suite.addTests(unittest.makeSuite(TestPickGeometryTool))
     suite.addTests(unittest.makeSuite(TestLineGeometryPickerWidget))
     suite.addTests(unittest.makeSuite(TestMultipleLineGeometryPickerWidget))
+    suite.addTests(unittest.makeSuite(TestPickPointGeometryTool))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)
