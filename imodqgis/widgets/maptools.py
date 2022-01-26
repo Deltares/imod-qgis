@@ -153,7 +153,6 @@ class LineGeometryPickerWidget(QWidget):
 
         self.canvas = canvas
         self.pick_mode = self.PICK_NO
-        self.pick_layer = None
         self.geometries = []
 
         self.button = QPushButton("Select location")
@@ -185,9 +184,6 @@ class LineGeometryPickerWidget(QWidget):
     def stop_picking(self):
         if self.pick_mode == self.PICK_MAP:
             self.canvas.unsetMapTool(self.tool)
-        elif self.pick_mode == self.PICK_LAYER:
-            self.pick_layer.selectionChanged.disconnect(self.on_pick_selection_changed)
-            self.pick_layer = None
         self.pick_mode = self.PICK_NO
 
     def on_picked(self, points, finished):
