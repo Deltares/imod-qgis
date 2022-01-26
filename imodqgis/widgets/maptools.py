@@ -312,21 +312,32 @@ class MultipleLineGeometryPickerWidget(QWidget):
 
 class PickPointGeometryTool(QgsMapTool):
     picked = pyqtSignal(
-        QgsPointXY, bool, bool, bool
+        list, bool, bool, bool
     )  # point, whether clicked or just moving, whether clicked with Ctrl, whether finished
+
+    # Emits point in list, because custom object types have to be registered
+    # with qRegisterMetaType() (see note in
+    # https://doc.qt.io/qt-5/qsignalspy.html) to be able to identify them with
+    # QSignalspy (used in test bench), used for testing. However
+    # qRegisterMetaType() is unavailable in PyQt5 (and PySide2), see:
+    # https://pyqt.riverbankcomputing.narkive.com/pnqc6qSc/qthread-and-qregistermetatype
+    # and:
+    # https://forum.qt.io/topic/122451/pyqt5-register-meta-type
+    # However, objects in a list are registered by QSignalSpy, hence this
+    # workaround.
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
 
     def canvasMoveEvent(self, e):
-        self.picked.emit(e.mapPoint(), False, False, False)
+        self.picked.emit([e.mapPoint()], False, False, False)
 
     def canvasPressEvent(self, e):
         if e.button() == Qt.LeftButton:
             is_ctrl_clicked = e.modifiers() & Qt.ControlModifier
-            self.picked.emit(e.mapPoint(), True, is_ctrl_clicked, False)
+            self.picked.emit([e.mapPoint()], True, is_ctrl_clicked, False)
         elif e.button() == Qt.RightButton:
-            self.picked.emit(e.mapPoint(), True, False, True)
+            self.picked.emit([e.mapPoint()], True, False, True)
 
     def canvasReleaseEvent(self, e):
         pass
@@ -372,7 +383,8 @@ class PointGeometryPickerWidget(QWidget):
             self.canvas.unsetMapTool(self.tool)
         self.pick_mode = self.PICK_NO
 
-    def on_picked(self, geom, clicked, with_ctrl, finished):
+    def on_picked(self, geom_ls, clicked, with_ctrl, finished):
+        geom = geom_ls[0]  # See comment PickPointGeometryTool
         if clicked:
             if self.temp_geometry_index == -1:
                 self.geometries.append(geom)
