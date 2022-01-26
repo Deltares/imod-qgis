@@ -366,6 +366,58 @@ class TestPickPointGeometryTool(unittest.TestCase):
         self.assertTrue(endpoint_is_end == [False, False, True])
 
 
+class TestPointGeometryPickerWidget(unittest.TestCase):
+    def setUp(self):
+        imodplugin = plugins["imodqgis"]
+        # Required call in order to import widgets
+        imodplugin._import_all_submodules()
+
+        from imodqgis.widgets.maptools import (
+            PointGeometryPickerWidget,
+            PickPointGeometryTool,
+        )
+
+        self.project = QgsProject.instance()
+        self.canvas = QgsMapCanvas()
+        # The bridge makes the link between QgsProject and QgsMapCanvas. So when
+        # a layer is added in the project, it is displayed in the map canvas.
+        # https://gis.stackexchange.com/a/340563
+        bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+
+        self.widget = PointGeometryPickerWidget(self.canvas)
+        self.tooltype = PickPointGeometryTool
+
+        self.points = [QgsPointXY(200, -199), QgsPointXY(300, -299)]
+        self.expected_geometry = QgsGeometry.fromPolylineXY(self.points)
+
+    def test_start_picking_map(self):
+        # Test if properly initialized
+        self.assertEqual(self.widget.pick_mode, 0)
+
+        self.widget.start_picking_map()
+
+        self.assertEqual(self.widget.pick_mode, 1)  # == self.widget.PICK_MAP
+        # Test if mapTool set
+        self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
+
+    def test_stop_picking(self):
+        self.widget.stop_picking()
+
+        self.assertEqual(self.widget.pick_mode, 0)
+        self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+    def test_start_and_stop_picking(self):
+        self.widget.start_picking_map()
+
+        self.assertEqual(self.widget.pick_mode, 1)
+        self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
+
+        self.widget.stop_picking()
+
+        self.assertEqual(self.widget.pick_mode, 0)
+        self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+
 def run_all():
     """
     Default function that is called by the runner if nothing else is specified
@@ -375,4 +427,5 @@ def run_all():
     suite.addTests(unittest.makeSuite(TestLineGeometryPickerWidget))
     suite.addTests(unittest.makeSuite(TestMultipleLineGeometryPickerWidget))
     suite.addTests(unittest.makeSuite(TestPickPointGeometryTool))
+    suite.addTests(unittest.makeSuite(TestPointGeometryPickerWidget))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)
