@@ -215,7 +215,7 @@ class ImodCrossSectionWidget(QWidget):
         self.add_button.clicked.connect(self.add)
         self.add_button.setMaximumWidth(70)
 
-        self.line_picker = LineGeometryPickerWidget(iface)
+        self.line_picker = LineGeometryPickerWidget(self.iface.mapCanvas())
         self.line_picker.geometries_changed.connect(self.on_geometries_changed)
         self.line_picker.button.clicked.connect(self.hide_vertex)
 

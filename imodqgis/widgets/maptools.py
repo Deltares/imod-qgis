@@ -148,10 +148,10 @@ class LineGeometryPickerWidget(QWidget):
     geometries_changed = pyqtSignal()
     PICK_NO, PICK_MAP, PICK_LAYER = range(3)
 
-    def __init__(self, iface, parent=None):
+    def __init__(self, canvas, parent=None):
         QWidget.__init__(self, parent)
 
-        self.iface = iface
+        self.canvas = canvas
         self.pick_mode = self.PICK_NO
         self.pick_layer = None
         self.geometries = []
@@ -160,7 +160,7 @@ class LineGeometryPickerWidget(QWidget):
         self.button.clicked.connect(self.picker_clicked)
         self.button.clicked.connect(self.clear_geometries)
 
-        self.tool = PickGeometryTool(self.iface.mapCanvas())
+        self.tool = PickGeometryTool(self.canvas)
         self.tool.picked.connect(self.on_picked)
         self.tool.setButton(self.button)
 
@@ -180,11 +180,11 @@ class LineGeometryPickerWidget(QWidget):
 
     def start_picking_map(self):
         self.pick_mode = self.PICK_MAP
-        self.iface.mapCanvas().setMapTool(self.tool)
+        self.canvas.setMapTool(self.tool)
 
     def stop_picking(self):
         if self.pick_mode == self.PICK_MAP:
-            self.iface.mapCanvas().unsetMapTool(self.tool)
+            self.canvas.unsetMapTool(self.tool)
         elif self.pick_mode == self.PICK_LAYER:
             self.pick_layer.selectionChanged.disconnect(self.on_pick_selection_changed)
             self.pick_layer = None
