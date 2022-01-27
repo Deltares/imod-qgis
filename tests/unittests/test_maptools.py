@@ -8,7 +8,12 @@ from qgis.core import (
     QgsPoint,
     QgsLineString,
 )
-from qgis.gui import QgsMapCanvas, QgsLayerTreeMapCanvasBridge, QgsRubberBand
+from qgis.gui import (
+    QgsMapCanvas,
+    QgsLayerTreeMapCanvasBridge,
+    QgsRubberBand,
+    QgsVertexMarker,
+)
 import sys
 
 from PyQt5.QtCore import Qt, QPoint
@@ -337,12 +342,12 @@ class TestPickPointGeometryTool(unittest.TestCase):
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
 
         self.tool = PickPointGeometryTool(self.canvas)
+        self.signalspy = QSignalSpy(self.tool.picked)
+
+        self.canvas.setMapTool(self.tool)
 
     def test_canvasPressEvent(self):
         viewport = self.canvas.viewport()
-
-        signalspy = QSignalSpy(self.tool.picked)
-        self.canvas.setMapTool(self.tool)
 
         # Source of this solution:
         # https://gis.stackexchange.com/questions/250234/qtest-interactions-with-the-qgis-map-canvas
@@ -350,10 +355,13 @@ class TestPickPointGeometryTool(unittest.TestCase):
         QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(300, 300), delay=200)
         QTest.mouseClick(viewport, Qt.RightButton, pos=QPoint(400, 400), delay=400)
 
-        signals = list(signalspy)
+        signals = list(self.signalspy)
 
         # Three signals are emitted (2 left clicks + 1 right click)
         self.assertTrue(len(signals) == 3)
+        # Length of geometry list emitted should be 1
+        is_length_1 = [len(s[0]) == 1 for s in signals]
+        self.assertTrue(all(is_length_1))
 
         # On first two clicks, click locations emitted
         points_clicked = [s[0][0] for s in signals]
@@ -364,6 +372,50 @@ class TestPickPointGeometryTool(unittest.TestCase):
         endpoint_is_end = [s[-1] for s in signals]
 
         self.assertTrue(endpoint_is_end == [False, False, True])
+
+    def test_canvasPressEvent_modified(self):
+        """Add CTRL modifier"""
+        viewport = self.canvas.viewport()
+
+        # Source of this solution:
+        # https://gis.stackexchange.com/questions/250234/qtest-interactions-with-the-qgis-map-canvas
+        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(200, 200))
+        QTest.mouseClick(
+            viewport,
+            Qt.LeftButton,
+            modifier=Qt.ControlModifier,
+            pos=QPoint(300, 300),
+            delay=200,
+        )
+        QTest.mouseClick(
+            viewport,
+            Qt.RightButton,
+            modifier=Qt.ControlModifier,
+            pos=QPoint(400, 400),
+            delay=400,
+        )
+
+        signals = list(self.signalspy)
+
+        # Three signals are emitted (2 left clicks + 1 right click)
+        self.assertTrue(len(signals) == 3)
+        # Length of geometry list emitted should be 1
+        is_length_1 = [len(s[0]) == 1 for s in signals]
+        self.assertTrue(all(is_length_1))
+
+        # On first two clicks, click locations emitted
+        points_clicked = [s[0][0] for s in signals]
+        self.assertEqual(points_clicked[0], QgsPointXY(200, -199))
+        self.assertEqual(points_clicked[1], QgsPointXY(300, -299))
+        self.assertEqual(points_clicked[2], QgsPointXY(400, -399))
+
+        endpoint_is_end = [s[-1] for s in signals]
+        self.assertTrue(endpoint_is_end == [False, False, True])
+
+        is_ctrl_clicked = [s[2] for s in signals]
+        # Last element should be False, because CTRL modifier is ignored upon
+        # right-click.
+        self.assertTrue(is_ctrl_clicked == [False, True, False])
 
 
 class TestPointGeometryPickerWidget(unittest.TestCase):
@@ -387,8 +439,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         self.widget = PointGeometryPickerWidget(self.canvas)
         self.tooltype = PickPointGeometryTool
 
-        self.points = [QgsPointXY(200, -199), QgsPointXY(300, -299)]
-        self.expected_geometry = QgsGeometry.fromPolylineXY(self.points)
+        self.point1 = QgsPointXY(200, -199)
+        self.point2 = QgsPointXY(300, -299)
 
     def test_start_picking_map(self):
         # Test if properly initialized
@@ -416,6 +468,97 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
 
         self.assertEqual(self.widget.pick_mode, 0)
         self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+    def test_on_picked_clicked(self):
+        """No ctrl_click, not finished"""
+        self.widget.start_picking_map()
+        self.widget.on_picked([self.point1], True, False, False)
+        self.widget.on_picked([self.point2], True, False, False)
+
+        self.assertEqual(len(self.widget.geometries), 2)
+        self.assertEqual(self.widget.geometries[0], self.point1)
+        self.assertEqual(self.widget.geometries[1], self.point2)
+
+        self.assertEqual(len(self.widget.markers), 2)
+        self.assertEqual(type(self.widget.markers[0]), QgsVertexMarker)
+        self.assertEqual(self.widget.temp_geometry_index, -1)
+
+        # Assert picking stopped (no CTRL click)
+        self.assertEqual(self.widget.pick_mode, 0)
+        self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+    def test_on_picked_ctrl_clicked(self):
+        """ctrl_click, not finished"""
+        self.widget.start_picking_map()
+        self.widget.on_picked([self.point1], True, True, False)
+        self.widget.on_picked([self.point2], True, True, False)
+
+        self.assertEqual(len(self.widget.geometries), 2)
+        self.assertEqual(self.widget.geometries[0], self.point1)
+        self.assertEqual(self.widget.geometries[1], self.point2)
+
+        self.assertEqual(len(self.widget.markers), 2)
+        self.assertEqual(type(self.widget.markers[0]), QgsVertexMarker)
+        self.assertEqual(self.widget.temp_geometry_index, -1)
+
+        # Assert still picking
+        self.assertEqual(self.widget.pick_mode, 1)
+        self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
+
+    def test_on_picked_ctrl_clicked_finished(self):
+        """ctrl_click, finished"""
+        self.widget.start_picking_map()
+        self.widget.on_picked([self.point1], True, True, False)
+        self.widget.on_picked([self.point2], True, True, True)
+
+        self.assertEqual(len(self.widget.geometries), 2)
+        self.assertEqual(self.widget.geometries[0], self.point1)
+        self.assertEqual(self.widget.geometries[1], self.point2)
+
+        self.assertEqual(len(self.widget.markers), 2)
+        self.assertEqual(type(self.widget.markers[0]), QgsVertexMarker)
+        self.assertEqual(self.widget.temp_geometry_index, -1)
+
+        # Assert picking stopped
+        self.assertEqual(self.widget.pick_mode, 0)
+        self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+    def test_on_picked_ctrl_clicked_then_clicked(self):
+        """1st ctrl_click, 2nd not ctrl_click"""
+        self.widget.start_picking_map()
+        self.widget.on_picked([self.point1], True, True, False)
+        self.widget.on_picked([self.point2], True, False, False)
+
+        self.assertEqual(len(self.widget.geometries), 2)
+        self.assertEqual(self.widget.geometries[0], self.point1)
+        self.assertEqual(self.widget.geometries[1], self.point2)
+
+        self.assertEqual(len(self.widget.markers), 2)
+        self.assertEqual(type(self.widget.markers[0]), QgsVertexMarker)
+        self.assertEqual(self.widget.temp_geometry_index, -1)
+
+        # Assert picking stopped
+        self.assertEqual(self.widget.pick_mode, 0)
+        self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+    def test_on_picked_mouse_move(self):
+        """1st ctrl_click, then just move mouse."""
+        self.widget.start_picking_map()
+        self.widget.on_picked([self.point1], True, True, False)
+        self.widget.on_picked([self.point2], False, False, False)
+
+        self.assertEqual(len(self.widget.geometries), 2)
+        self.assertEqual(self.widget.geometries[0], self.point1)
+        self.assertEqual(self.widget.geometries[1], self.point2)
+
+        # No marker drawn for moving the mouse
+        self.assertEqual(len(self.widget.markers), 1)
+        self.assertEqual(type(self.widget.markers[0]), QgsVertexMarker)
+        self.assertEqual(self.widget.temp_geometry_index, 1)
+
+        # Assert still picking
+        self.assertEqual(self.widget.pick_mode, 1)
+        self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
 
 
 def run_all():
