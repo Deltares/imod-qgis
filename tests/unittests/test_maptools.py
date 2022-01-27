@@ -439,6 +439,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         self.widget = PointGeometryPickerWidget(self.canvas)
         self.tooltype = PickPointGeometryTool
 
+        self.signalspy = QSignalSpy(self.widget.geometries_changed)
+
         self.point1 = QgsPointXY(200, -199)
         self.point2 = QgsPointXY(300, -299)
 
@@ -452,11 +454,15 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         # Test if mapTool set
         self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
 
+        self.assertEqual(len(self.signalspy), 1)  # clear_geometries() called
+
     def test_stop_picking(self):
         self.widget.stop_picking()
 
         self.assertEqual(self.widget.pick_mode, 0)
         self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+        self.assertEqual(len(self.signalspy), 0)  # No signals should be sent
 
     def test_start_and_stop_picking(self):
         self.widget.start_picking_map()
@@ -468,6 +474,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
 
         self.assertEqual(self.widget.pick_mode, 0)
         self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+        self.assertEqual(len(self.signalspy), 1)  # clear_geometries() called
 
     def test_on_picked_clicked(self):
         """No ctrl_click, not finished"""
@@ -487,6 +495,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         self.assertEqual(self.widget.pick_mode, 0)
         self.assertEqual(type(self.canvas.mapTool()), type(None))
 
+        self.assertEqual(len(self.signalspy), 3)
+
     def test_on_picked_ctrl_clicked(self):
         """ctrl_click, not finished"""
         self.widget.start_picking_map()
@@ -504,6 +514,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         # Assert still picking
         self.assertEqual(self.widget.pick_mode, 1)
         self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
+
+        self.assertEqual(len(self.signalspy), 3)
 
     def test_on_picked_ctrl_clicked_finished(self):
         """ctrl_click, finished"""
@@ -523,6 +535,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         self.assertEqual(self.widget.pick_mode, 0)
         self.assertEqual(type(self.canvas.mapTool()), type(None))
 
+        self.assertEqual(len(self.signalspy), 3)
+
     def test_on_picked_ctrl_clicked_then_clicked(self):
         """1st ctrl_click, 2nd not ctrl_click"""
         self.widget.start_picking_map()
@@ -540,6 +554,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         # Assert picking stopped
         self.assertEqual(self.widget.pick_mode, 0)
         self.assertEqual(type(self.canvas.mapTool()), type(None))
+
+        self.assertEqual(len(self.signalspy), 3)
 
     def test_on_picked_mouse_move(self):
         """1st ctrl_click, then just move mouse."""
@@ -559,6 +575,19 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         # Assert still picking
         self.assertEqual(self.widget.pick_mode, 1)
         self.assertEqual(type(self.canvas.mapTool()), self.tooltype)
+
+        self.assertEqual(len(self.signalspy), 3)
+
+    def test_clear_geometries(self):
+        self.widget.on_picked([self.point1], True, True, False)
+        self.widget.on_picked([self.point2], False, False, False)
+        self.widget.clear_geometries()
+
+        self.assertEqual(self.widget.geometries, [])
+        self.assertEqual(self.widget.markers, [])
+        self.assertEqual(self.widget.temp_geometry_index, -1)
+
+        self.assertEqual(len(self.signalspy), 3)
 
 
 def run_all():
