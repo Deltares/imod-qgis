@@ -315,16 +315,14 @@ class PickPointGeometryTool(QgsMapTool):
         list, bool, bool, bool
     )  # point, whether clicked or just moving, whether clicked with Ctrl, whether finished
 
-    # Emits point in list, because custom object types have to be registered
-    # with qRegisterMetaType() (see note in
+    # Emits QgsPointXY in list, because directly emitting custom object types
+    # requires registering these types with qRegisterMetaType() (see note in
     # https://doc.qt.io/qt-5/qsignalspy.html) to be able to identify them with
-    # QSignalspy (used in test bench), used for testing. However
-    # qRegisterMetaType() is unavailable in PyQt5 (and PySide2), see:
+    # QSignalspy, which is required for testing. However qRegisterMetaType() is
+    # unavailable in PyQt5 (and PySide2), see:
     # https://pyqt.riverbankcomputing.narkive.com/pnqc6qSc/qthread-and-qregistermetatype
-    # and:
-    # https://forum.qt.io/topic/122451/pyqt5-register-meta-type
-    # However, objects in a list are registered by QSignalSpy, hence this
-    # workaround.
+    # and: https://forum.qt.io/topic/122451/pyqt5-register-meta-type However,
+    # objects in a list are registered by QSignalSpy, hence this workaround.
 
     def __init__(self, canvas):
         QgsMapTool.__init__(self, canvas)
