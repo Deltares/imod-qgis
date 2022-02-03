@@ -2,7 +2,7 @@
 name=iMOD
 qgisMinimumVersion=3.18
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
-version=0.2.2
+version=0.2.3
 author=Deltares
 email=imod.support@deltares.nl
 
@@ -27,7 +27,9 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=       <p>0.2.2 - Bug fixes
+changelog=       <p>0.2.3 - Bug fixes
+                - Fixed bug where configdir was not created if it did not exist. This prevented startup of the 3D viewer.
+                 <p>0.2.2 - Bug fixes
                 - Fixed critical bug where the icons were left as Git LFS pointers, so would not show. This affected the version uploaded in qgis plugin database.
                  <p>0.2.1 - Bug fixes
                 - 3D Viewer: Update default location of iMOD 3D Viewer
