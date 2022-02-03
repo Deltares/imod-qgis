@@ -40,8 +40,8 @@ jobs:
       # Runs all tests
         # When running locally on Windows, use the second docker run line in this step. Windows docker with WSL2 requires the absolute path.
       - name: Install qgis image
-        #run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run on Github
-        run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run locally
+        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run on Github
+        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run locally
       - run: sleep 10 # This is required to allow xvfb to start
       - run: docker exec -t qgis-testing-environment sh -c "qgis_setup.sh imodqgis"    # Setup qgis and enables the plugin
 
@@ -61,3 +61,4 @@ jobs:
       - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_maptools"
       - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_utils"
       - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_ipf_reading"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_ipf_dialog"
