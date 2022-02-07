@@ -25,7 +25,7 @@ class TestCaseIpfBorehole(unittest.TestCase):
         self.ipfdir = script_dir / ".." / "testdata" / "ipf-borehole"
 
         self.ipffile = (self.ipfdir / "boreholes.ipf").resolve()
-        self.associated = [txt.resolve() for txt in self.ipfdir.glob("*.txt")]
+        self.associated = [txt.resolve() for txt in sorted(self.ipfdir.glob("*.txt"))]
 
     def test_read_ipf_header(self):
         from imodqgis.ipf.reading import read_ipf_header
@@ -81,7 +81,7 @@ class TestCaseIpfBorehole(unittest.TestCase):
 
         self.assertEqual(list(df.columns), ["top", "lithology"])
         self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(np.all(np.isclose(df["top"].values,expected_top_values)))
+        self.assertTrue(np.all(np.isclose(df["top"].values, expected_top_values)))
         self.assertTrue(np.all(df["lithology"].values == expected_lithology))
 
     def test_read_associated_timeseries(self):
@@ -108,7 +108,7 @@ class TestCaseIpfTimeseries(unittest.TestCase):
         self.ipfdir = script_dir / ".." / "testdata" / "ipf-timeseries"
 
         self.ipffile = (self.ipfdir / "timeseries.ipf").resolve()
-        self.associated = [txt.resolve() for txt in self.ipfdir.glob("*.txt")]
+        self.associated = [txt.resolve() for txt in sorted(self.ipfdir.glob("*.txt"))]
 
     def test_read_ipf_header(self):
         from imodqgis.ipf.reading import read_ipf_header
