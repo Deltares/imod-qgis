@@ -1,0 +1,8 @@
+4
+2,2
+top,1e+20
+lithology,1e+20
+-30,"sand"
+-100,"sandy loam"
+-210,"clay"
+-300,"silt"

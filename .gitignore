@@ -1,4 +1,21 @@
 .vscode/
+*.pyc
 __pycache__/
 
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Sphinx documentation
+docs/_build/
+
+# Locally packaged plugin
 imodqgis.zip

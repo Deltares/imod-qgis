@@ -1,0 +1,64 @@
+# Modified from https://github.com/GispoCoding/qaava-qgis-plugin/blob/master/.github/workflows/tests.yml
+# workflow name
+name: Tests
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the wanted branches
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  test:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      - name: echo-default-env-variables
+        run: |
+            echo "Home: ${HOME}"
+            echo "GITHUB_WORKFLOW: ${GITHUB_WORKFLOW}"
+            echo "GITHUB_ACTIONS: ${GITHUB_ACTIONS}"
+            echo "GITHUB_ACTOR: ${GITHUB_ACTOR}"
+            echo "GITHUB_REPOSITORY: ${GITHUB_REPOSITORY}"
+            echo "GITHUB_EVENT_NAME: ${GITHUB_EVENT_NAME}"
+            echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE}"
+            echo "GITHUB_SHA: ${GITHUB_SHA}"
+            echo "GITHUB_REF: ${GITHUB_REF}"
+
+      - name: Pull qgis image
+        run: docker pull qgis/qgis:release-3_22
+
+      # Runs all tests
+        # When running locally on Windows, use the second docker run line in this step. Windows docker with WSL2 requires the absolute path.
+      - name: Install qgis image
+        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run on Github
+        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run locally
+      - run: sleep 10 # This is required to allow xvfb to start
+      - run: docker exec -t qgis-testing-environment sh -c "qgis_setup.sh imodqgis"    # Setup qgis and enables the plugin
+
+        # Additional steps (for example make or paver setup) here
+        # Fix the symlink created by qgis_setup.sh
+      - run: docker exec -t qgis-testing-environment sh -c "rm -f  /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imodqgis"
+      - run: docker exec -t qgis-testing-environment sh -c "ln -s /tests_directory/imodqgis /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/imodqgis"
+        
+      - name: pip install pandas
+        run: docker exec -t qgis-testing-environment sh -c "pip3 install -q pandas"
+        
+      - name: test using qgis unittesting
+        run: docker exec -t qgis-testing-environment sh -c "export PYTHONPATH=${PYTHONPATH}:/tests_directory/tests/unittests/"
+        
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_timeseries"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_dataset_variable_widget"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_maptools"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_utils"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_ipf_reading"
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory/tests && qgis_testrunner.sh unittests.test_ipf_dialog"

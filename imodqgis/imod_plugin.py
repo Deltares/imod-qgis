@@ -11,7 +11,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from .ipf import ImodIpfDialog
 from .widgets import ImodDockWidget
 
 # Set plot background color
@@ -76,6 +75,8 @@ class ImodPlugin:
         dialog.exec_()
 
     def ipf_dialog(self):
+        from .ipf import ImodIpfDialog
+
         dialog = ImodIpfDialog()
         dialog.show()
         dialog.exec_()
@@ -129,6 +130,12 @@ class ImodPlugin:
         self.iface.addDockWidget(Qt.RightDockWidgetArea, self.netcdf_manager)
         widget = ImodNetcdfManagerWidget(self.netcdf_manager)
         self.netcdf_manager.setWidget(widget)
+
+    def _import_all_submodules(self):
+        """
+        Import all submodules, required for test bench
+        """
+        from . import timeseries, cross_section, ipf, nhi_data, utils, viewer, widgets
 
     def unload(self):
         del self.toolbar
