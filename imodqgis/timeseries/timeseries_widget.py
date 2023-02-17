@@ -307,7 +307,7 @@ class ImodTimeSeriesWidget(QWidget):
 
         # Explicitly disconnect signal
         layer = self.layer_selection.currentLayer()
-        if layer.type() == QgsMapLayerType.VectorLayer:
+        if (layer is not None) and (layer.type() == QgsMapLayerType.VectorLayer):
             layer.selectionChanged.disconnect(self.on_select)
 
         QWidget.hideEvent(self, e)
