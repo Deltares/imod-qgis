@@ -15,6 +15,7 @@ from qgis.core import (
 from collections import defaultdict
 import re
 
+NO_LAYERS = ["0"]
 
 def natural_sort_key(pair, _nsre=re.compile("([0-9]+)")):
     # From: https://stackoverflow.com/questions/4836710/is-there-a-built-in-function-for-string-natural-sort
@@ -33,12 +34,18 @@ def get_group_names(layer):
 
 
 def groupby_variable(group_names, dataset_indexes):
+    EXCEPTED_VARIABLE_NAMES = ["face_x", "face_y"] # Might be further expanded with other UGRID groups.
     grouped = defaultdict(dict)
     for group_name, dataset_idx in zip(group_names, dataset_indexes):
         if "_layer_" in group_name:
             parts = group_name.split("_layer_")
             name, layer_number = parts
             grouped[name][layer_number] = dataset_idx
+        elif group_name not in EXCEPTED_VARIABLE_NAMES:
+            layer_number = NO_LAYERS[0]
+            name = group_name
+            grouped[name][layer_number] = dataset_idx
+
     return grouped
 
 

@@ -50,7 +50,7 @@ from qgis.gui import (
 )
 
 from ..ipf import IpfType, read_associated_borehole
-from ..utils.layers import get_group_names, groupby_variable
+from ..utils.layers import get_group_names, groupby_variable, NO_LAYERS
 from ..widgets import LineGeometryPickerWidget, MultipleVariablesWidget, VariablesWidget
 from .cross_section_data import BoreholeData, MeshData, MeshLineData, RasterLineData
 
@@ -454,6 +454,10 @@ class ImodCrossSectionWidget(QWidget):
         layers = [str(a) for a in self.variables_indexes[variable].keys()]
         self.multi_variable_selection.menu_datasets.populate_actions(layers)
         self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
+
+        if layers == NO_LAYERS:
+            self.as_line_checkbox.setChecked(True)
+            self.as_line_checkbox.setEnabled(False)
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
