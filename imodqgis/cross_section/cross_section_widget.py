@@ -50,7 +50,7 @@ from qgis.gui import (
 )
 
 from ..ipf import IpfType, read_associated_borehole
-from ..utils.layers import get_group_names, groupby_variable
+from ..utils.layers import get_group_names, groupby_variable, NO_LAYERS
 from ..widgets import LineGeometryPickerWidget, MultipleVariablesWidget, VariablesWidget
 from .cross_section_data import BoreholeData, MeshData, MeshLineData, RasterLineData
 
@@ -341,6 +341,13 @@ class ImodCrossSectionWidget(QWidget):
                 self.line_picker.geometries[0].buffer(buffer_distance, 4), None
             )
 
+    def has_top_bottom(self):
+        return (
+            "bottom" in self.self.variables_indexes.keys()
+            ) and (
+            "top" in self.self.variables_indexes.keys()
+            )
+
     def add(self):
         layer = self.layer_selection.currentLayer()
         if layer is None:
@@ -355,6 +362,12 @@ class ImodCrossSectionWidget(QWidget):
                 data = MeshLineData(layer, self.variables_indexes, variable, layers)
                 layer_item = StyleTreeItem(f"{name}: {variable}", "mesh: lines", data)
             else:
+                # Catch case where user provided dataset without "top" or
+                # "bottom" variables in dataset.
+                if not self.has_top_bottom():
+                    raise ValueError(
+                        """Missing "top" and "bottom" variables in dataset."""
+                    )
                 data = MeshData(layer, self.variables_indexes, variable, layers)
                 layer_item = StyleTreeItem(f"{name}: {variable}", "mesh", data)
             self.resolution_spinbox.valueChanged.connect(data.clear)
@@ -454,6 +467,10 @@ class ImodCrossSectionWidget(QWidget):
         layers = [str(a) for a in self.variables_indexes[variable].keys()]
         self.multi_variable_selection.menu_datasets.populate_actions(layers)
         self.multi_variable_selection.menu_datasets.check_all.setChecked(True)
+
+        if layers == NO_LAYERS:
+            self.as_line_checkbox.setChecked(True)
+            self.as_line_checkbox.setEnabled(False)
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)

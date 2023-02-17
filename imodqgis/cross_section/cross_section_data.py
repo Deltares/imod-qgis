@@ -36,6 +36,8 @@ from .plot_util import (
     project_points_to_section,
 )
 
+from ..utils.layers import NO_LAYERS
+
 WIDTH = 2
 
 
@@ -152,9 +154,13 @@ class MeshLineData(AbstractLineData):
         self.layer_numbers = layer_numbers
         self.x = None
         self.y = None
-        self.variables = np.array(
-            [f"{variable} layer {layer}" for layer in layer_numbers]
-        )
+        if layer_numbers == NO_LAYERS:
+            self.variables = [f"{variable}"]
+        else:
+            self.variables = np.array(
+                [f"{variable} layer {layer}" for layer in layer_numbers]
+            )
+        
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.render_style = UNIQUE_COLOR
