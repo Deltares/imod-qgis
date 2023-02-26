@@ -42,6 +42,7 @@ import pandas as pd
 from ..dependencies import pyqtgraph_0_12_3 as pg
 from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
 from ..ipf import read_associated_timeseries, IpfType
+from ..arrow import read_arrow
 from ..widgets import (
     ImodUniqueColorWidget,
     MultipleVariablesWidget,
@@ -59,6 +60,9 @@ import numpy as np
 from itertools import compress
 
 from qgis.core import QgsMeshDatasetIndex
+
+
+PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsLayerTreeGroup has been deleted"
 
 
 def timeseries_x_data(layer, group_index):
@@ -169,8 +173,9 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
                 is_ipf_series = (
                     layer.customProperty("ipf_type") == IpfType.TIMESERIES.name
                 )
+                is_arrow = layer.customProperty("arrow_type") == "timeseries"
                 is_temporal = layer.temporalProperties().startField() != ""
-                if not (is_ipf_series or is_temporal):
+                if not (is_ipf_series or is_temporal or is_arrow):
                     excepted_layers.append(layer)
         self.setExceptedLayerList(excepted_layers)
 
@@ -269,6 +274,7 @@ class ImodTimeSeriesWidget(QWidget):
 
         # Data
         self.dataframes = {}
+        self.stored_dataframes = {}
         # Graphing
         self.names = []
         self.curves = []
@@ -379,8 +385,15 @@ class ImodTimeSeriesWidget(QWidget):
                     self.previous_layer.selectionChanged.disconnect(self.on_select)
                 # Edge case where IPF points are selected with SHIFT+click.
                 # TODO: Investigate why this function is called when SHIFT clicking
-                except TypeError:
-                    pass
+                except (TypeError, RuntimeError) as e:
+                    if isinstance(e, TypeError):
+                        pass
+                    elif (
+                        isinstance(e, RuntimeError) and e.args[0] == PYQT_DELETED_ERROR
+                    ):
+                        pass
+                    else:
+                        raise
 
         layer = self.layer_selection.currentLayer()
         if layer is None:
@@ -431,6 +444,12 @@ class ImodTimeSeriesWidget(QWidget):
                 self.id_selection_box.insertItem(0, layer.attributeAlias(index))
                 self.id_selection_box.setEnabled(False)
                 variables = layer.customProperty("ipf_assoc_columns").split("␞")
+            elif layer.customProperty("arrow_type") == "timeseries":
+                self.load_arrow_data(layer)
+                sample_df = next(iter(self.stored_dataframes.values()))
+                variables = list(sample_df.columns)
+                self.id_selection_box.insertItem(0, "fid")
+                self.id_selection_box.setEnabled(False)
             else:
                 datetime_column = layer.temporalProperties().startField()
                 variables = [f.name() for f in layer.fields()]
@@ -504,6 +523,40 @@ class ImodTimeSeriesWidget(QWidget):
 
         # Store feature_ids for future comparison
         self.feature_ids = feature_ids
+        return
+
+    def load_arrow_data(self, layer):
+        """Synchronize timeseries data from an Arrow dataset"""
+        arrow_path = layer.customProperty("arrow_path")
+        df = read_arrow(arrow_path)
+        for node_id, groupdf in df.groupby("node_id"):
+            self.stored_dataframes[node_id] = groupdf.set_index("time")
+        return
+
+    def sync_arrow_data(self, layer):
+        feature_ids = layer.selectedFeatureIds()  # Returns a new list
+        # Do not read the data if the selection is the same
+        if self.feature_ids == feature_ids:
+            return
+        if len(feature_ids) == 0:
+            # warn user: no features selected in current layer
+            return
+
+        feature_ids = set(feature_ids).intersection(self.stored_dataframes.keys())
+
+        # Filter names to add and to remove, to prevent loading duplicates
+        names_to_add = set(feature_ids).difference(self.dataframes.keys())
+        names_to_pop = set(self.dataframes.keys()).difference(feature_ids)
+
+        for name in names_to_add:
+            self.dataframes[name] = self.stored_dataframes[name]
+
+        for name in names_to_pop:
+            self.dataframes.pop(name)
+
+        # Store feature_ids for future comparison
+        self.feature_ids = feature_ids
+        return
 
     def sync_table_data(self, layer):
         """Synchronize timeseries data from a QGIS attribute table."""
@@ -556,6 +609,8 @@ class ImodTimeSeriesWidget(QWidget):
             self.load_mesh_data(layer)
         elif layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
             self.sync_ipf_data(layer)
+        elif layer.customProperty("arrow_type") == "timeseries":
+            self.sync_arrow_data(layer)
         else:
             self.sync_table_data(layer)
 
