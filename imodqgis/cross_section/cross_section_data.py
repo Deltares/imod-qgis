@@ -213,28 +213,12 @@ class RasterLineData(AbstractLineData):
         self.x = x
         self.y = y.transpose().copy()
         self.set_color_data()
+        
 
-
-class BoreholeData(AbstractCrossSectionData):
-    def __init__(self, layer, variable):
-        self.layer = layer
-        self.variable = variable
-        self.x = None
-        self.boreholes_id = None
-        self.boreholes_data = None
-        self.relative_width = 0.01
-        self.pseudocolor_widget = ImodPseudoColorWidget()
-        self.unique_color_widget = ImodUniqueColorWidget()
-        self.render_style = UNIQUE_COLOR
-        self.color_widget = self.unique_color_widget
-        self.legend_items = []
-        self.styling_data = None
-        self.dummy_widget = DummyWidget()
-
-    def load(
-        self, geometry: QgsGeometry, buffer_distance: float, **_
-    ) -> Tuple[np.ndarray, List[str], List[pathlib.Path]]:
-        # Create a tempory layer to contain the buffer geometry
+class PointCrossSectionData(AbstractCrossSectionData):
+    def select_geometry(
+        self, geometry: QgsGeometry, buffer_distance: float
+    ):
         buffered = geometry.buffer(buffer_distance, 4)
         tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
         tmp_layer.setCrs(QgsProject.instance().crs())
@@ -243,7 +227,7 @@ class BoreholeData(AbstractCrossSectionData):
         tmp_layer.dataProvider().addFeature(tmp_feature)
 
         # Collect the boreholes per layer
-        boreholes_id = []
+        point_id = []
         paths = []
         points = []
         # Due to the selection, another column is added at the left
@@ -266,7 +250,7 @@ class BoreholeData(AbstractCrossSectionData):
 
         for feature in output.getFeatures():
             filename = feature.attribute(indexcol)
-            boreholes_id.append(filename)
+            point_id.append(filename)
             paths.append(parent.joinpath(f"{filename}.{ext}"))
             points.append(feature.geometry().asPoint())
 
@@ -274,6 +258,30 @@ class BoreholeData(AbstractCrossSectionData):
             x = project_points_to_section(points, geometry)
         else:
             x = []
+        
+        return point_id, paths, x
+
+
+class BoreholeData(PointCrossSectionData):
+    def __init__(self, layer, variable):
+        self.layer = layer
+        self.variable = variable
+        self.x = None
+        self.boreholes_id = None
+        self.boreholes_data = None
+        self.relative_width = 0.01
+        self.pseudocolor_widget = ImodPseudoColorWidget()
+        self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = UNIQUE_COLOR
+        self.color_widget = self.unique_color_widget
+        self.legend_items = []
+        self.styling_data = None
+        self.dummy_widget = DummyWidget()
+
+    def load(
+        self, geometry: QgsGeometry, buffer_distance: float, **_
+    ) -> Tuple[np.ndarray, List[str], List[pathlib.Path]]:
+        boreholes_id, paths, x = self.select_geometry(geometry, buffer_distance)
 
         self.x = x
         self.boreholes_id = boreholes_id
@@ -314,6 +322,69 @@ class BoreholeData(AbstractCrossSectionData):
         self.boreholes_data = None
         self.styling_data = None
         self.plot_item = None
+
+
+class CptData(PointCrossSectionData):
+    def __init__(self, layer, variable):
+        self.layer = layer
+        self.variable = variable
+        self.x = None
+        self.boreholes_id = None
+        self.boreholes_data = None
+        self.relative_width = 0.01
+        self.pseudocolor_widget = ImodPseudoColorWidget()
+        self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = UNIQUE_COLOR
+        self.color_widget = self.unique_color_widget
+        self.legend_items = []
+        self.styling_data = None
+        self.dummy_widget = DummyWidget()
+
+    def load(
+        self, geometry: QgsGeometry, buffer_distance: float, **_
+    ) -> Tuple[np.ndarray, List[str], List[pathlib.Path]]:
+        boreholes_id, paths, x = self.select_geometry(geometry, buffer_distance)
+
+        self.x = x
+        self.boreholes_id = boreholes_id
+        self.boreholes_data = [read_gef_data(p) for p in paths]
+
+        variable_names = set()
+        styling_entries = []
+        for df in self.boreholes_data:
+            variable_names.update(df.columns)
+            styling_entries.append(df[self.variable].values)
+        self.styling_data = np.concatenate(styling_entries)
+        self.set_color_data()
+
+    def plot(self, plot_widget):
+        if self.x is None:
+            return
+
+        # First column in IPF associated file indicates vertical coordinates
+        y_plot = [df.iloc[:, 0].values for df in self.boreholes_data]
+
+        # Collect values in column to plot
+        z_plot = [df[self.variable].values for df in self.boreholes_data]
+
+        self.plot_item = [
+            BoreholePlotItem(
+                self.x,
+                y_plot,
+                z_plot,
+                self.relative_width * (self.x.max() - self.x.min()),
+                colorshader=self.colorshader(),
+            )
+        ]
+        plot_widget.addItem(self.plot_item[0])
+
+    def clear(self):
+        self.x = None
+        self.boreholes_id = None
+        self.boreholes_data = None
+        self.styling_data = None
+        self.plot_item = None
+
 
 
 class MeshData(AbstractCrossSectionData):

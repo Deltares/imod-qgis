@@ -50,9 +50,10 @@ from qgis.gui import (
 )
 
 from ..ipf import IpfType, read_associated_borehole
+from ..gef import GefType, read_gef_data
 from ..utils.layers import get_group_names, groupby_variable, NO_LAYERS
 from ..widgets import LineGeometryPickerWidget, MultipleVariablesWidget, VariablesWidget
-from .cross_section_data import BoreholeData, MeshData, MeshLineData, RasterLineData
+from .cross_section_data import BoreholeData, CptData, MeshData, MeshLineData, RasterLineData
 
 RUBBER_BAND_COLOR = QColor(Qt.black)
 BUFFER_RUBBER_BAND_COLOR = QColor(Qt.yellow)
@@ -381,16 +382,21 @@ class ImodCrossSectionWidget(QWidget):
             data = BoreholeData(layer, variable)
             layer_item = StyleTreeItem(f"{name}: {variable}", "IPF", data)
             self.buffer_spinbox.valueChanged.connect(data.clear)
+        elif layer.customProperty("gef_type") == "cpt":
+            #TODO: variables
+            data = CptData(layer, variable)
+            layer_item = StyleTreeItem(f"{name}: {variable}", "GEF", data)
+            self.buffer_spinbox.valueChanged.connect(data.clear)
         else:
             raise ValueError(
-                "Inappropriate layer type: only meshes, rasters, and IPFs are allowed"
+                "Inappropriate layer type: only meshes, rasters, IPFs, GEF-CPTs are allowed"
             )
         self.style_tree.addTopLevelItem(layer_item)
         layer_item.set_widgets()
         layer_item.show_checkbox.stateChanged.connect(self.plot)
         data.colors_changed.connect(self.plot)
         layer_item.legend_checkbox.stateChanged.connect(self.update_legend)
-
+        
     def remove(self):
         self.style_tree.remove()
 
