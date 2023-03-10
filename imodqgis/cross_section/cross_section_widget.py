@@ -344,9 +344,9 @@ class ImodCrossSectionWidget(QWidget):
 
     def has_top_bottom(self):
         return (
-            "bottom" in self.self.variables_indexes.keys()
+            "bottom" in self.variables_indexes.keys()
             ) and (
-            "top" in self.self.variables_indexes.keys()
+            "top" in self.variables_indexes.keys()
             )
 
     def add(self):
