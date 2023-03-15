@@ -3,51 +3,52 @@
 #
 import pathlib
 import shlex
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import List
-from tempfile import TemporaryFile
 
+import numpy as np
+import pandas as pd
 from PyQt5.QtWidgets import (
     QDialog,
-    QPushButton,
     QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QVBoxLayout,
 )
-from qgis.core import (
-    QgsVectorLayer,
-    QgsProject,
-)
-import numpy as np
-import pandas as pd
+from qgis.core import QgsProject, QgsVectorLayer
 
+from ..utils.pathing import get_configdir
 from .reading import CptGefFile
 
 
 def read_gef(paths) -> QgsVectorLayer:
-    paths = [pathlib.Path(path) for path in paths]
+    filenames = [pathlib.Path(path).stem for path in paths]
     x = []
     y = []
-    filenames = []
     label = []
     gefdata = []
     for path in paths:
         gef = CptGefFile(path)
         x.append(gef.x)
         y.append(gef.y)
-        filenames.append(path.stem)
         label.append(gef.nr)
         gefdata.append(gef)
 
-    header_dataframe = pd.DataFrame({"x": x, "y": y, "label": label, "filenames": filenames})
-    temp_file = TemporaryFile("gefheader.csv", "w")
-    with open(temp_file) as f:
-        header_dataframe.to_csv(f)
-        
+    header_dataframe = pd.DataFrame(
+        {"x": x, "y": y, "label": label, "filenames": filenames}
+    )
+
+    fp = get_configdir() / "gef_header.csv"
+
+    # with NamedTemporaryFile(delete=False) as fp:
+    header_dataframe.to_csv(fp)
+    temppath = pathlib.Path(fp)
+
     uri = "&".join(
         (
-            f"file:///{temp_file.path.as_posix()}?encoding=UTF-8",
+            f"file:///{temppath.as_posix()}?encoding=UTF-8",
             "delimiter=,",
             "type=csv",
             "xField=field_1",
@@ -57,15 +58,18 @@ def read_gef(paths) -> QgsVectorLayer:
             "geomType=point",
         )
     )
+
     layer = QgsVectorLayer(uri, "GEF-CPT", "delimitedtext")
     layer.setCustomProperty("gef_type", "cpt")
     layer.setCustomProperty("gef_paths", "␞".join(paths))
+
+    return layer
 
 
 class ImodGefDialog(QDialog):
     def __init__(self, parent=None) -> None:
         QDialog.__init__(self, parent)
-        self.setWindowTitle("Open IPF")
+        self.setWindowTitle("Open GEF")
         self.label = QLabel("GEF File(s)")
         self.line_edit = QLineEdit()
         self.line_edit.setMinimumWidth(250)
@@ -74,7 +78,7 @@ class ImodGefDialog(QDialog):
         self.close_button = QPushButton("Close")
         self.close_button.clicked.connect(self.reject)
         self.add_button = QPushButton("Add")
-        self.add_button.clicked.connect(self.add_ipfs)
+        self.add_button.clicked.connect(self.add_gefs)
         self.add_button.clicked.connect(self.accept)
         self.line_edit.textChanged.connect(
             lambda: self.add_button.setEnabled(self.line_edit != "")

@@ -51,6 +51,9 @@ class ImodPlugin:
         self.action_ipf_dialog = self.add_action(
             "ipf-reader.svg", "Open IPF", self.ipf_dialog, True
         )
+        self.action_ipf_dialog = self.add_action(
+            "iMOD.svg", "Open GEF", self.gef_dialog, True
+        )
         self.action_viewer = self.add_action(
             "3d-viewer.svg", "3D Viewer", self.toggle_viewer, True
         )
@@ -71,6 +74,13 @@ class ImodPlugin:
         from .about import ImodAboutDialog
 
         dialog = ImodAboutDialog(self.iface)
+        dialog.show()
+        dialog.exec_()
+
+    def gef_dialog(self):
+        from .gef import ImodGefDialog
+
+        dialog = ImodGefDialog()
         dialog.show()
         dialog.exec_()
 
