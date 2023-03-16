@@ -6,7 +6,6 @@ import pathlib
 from typing import List, Tuple
 
 import numpy as np
-from ..dependencies import pyqtgraph_0_12_3 as pg
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
@@ -20,7 +19,10 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
+from ..dependencies import pyqtgraph_0_12_3 as pg
+from ..gef import CptGefFile
 from ..ipf import IpfType, read_associated_borehole
+from ..utils.layers import NO_LAYERS
 from ..widgets import (
     PSEUDOCOLOR,
     UNIQUE_COLOR,
@@ -35,8 +37,6 @@ from .plot_util import (
     cross_section_y_data,
     project_points_to_section,
 )
-
-from ..utils.layers import NO_LAYERS
 
 WIDTH = 2
 
@@ -102,7 +102,7 @@ class AbstractCrossSectionData(abc.ABC):
         Check if data requires static indexing, meaning temporal manager inactive
         (datetime_range is None) or layer has not time data.
         """
-        
+
         # This works for Raster, Mesh and Vector data, as they all have this
         # method.
         is_temporal_layer = self.layer.temporalProperties().isActive()
@@ -172,7 +172,7 @@ class MeshLineData(AbstractLineData):
             self.variables = np.array(
                 [f"{variable} layer {layer}" for layer in layer_numbers]
             )
-        
+
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.render_style = UNIQUE_COLOR
@@ -182,9 +182,12 @@ class MeshLineData(AbstractLineData):
         self.dummy_widget = DummyWidget()
 
     def load(self, geometry, resolution, datetime_range, **_):
-
-        if self.requires_static_index(datetime_range):  # Just take the first one in such a case
-            plot_datetime_range = None # Fix datetime_range of cross_section_y_data to None
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
+            plot_datetime_range = (
+                None  # Fix datetime_range of cross_section_y_data to None
+            )
         else:
             plot_datetime_range = datetime_range
 
@@ -231,12 +234,15 @@ class RasterLineData(AbstractLineData):
         self.x = x
         self.y = y.transpose().copy()
         self.set_color_data()
-        
+
 
 class PointCrossSectionData(AbstractCrossSectionData):
-    def select_geometry(
-        self, geometry: QgsGeometry, buffer_distance: float
-    ):
+    @property
+    @abc.abstractmethod
+    def ext(self):
+        return self._ext
+
+    def select_geometry(self, geometry: QgsGeometry, buffer_distance: float):
         buffered = geometry.buffer(buffer_distance, 4)
         tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
         tmp_layer.setCrs(QgsProject.instance().crs())
@@ -248,10 +254,11 @@ class PointCrossSectionData(AbstractCrossSectionData):
         point_id = []
         paths = []
         points = []
+
         # Due to the selection, another column is added at the left
-        indexcol = int(self.layer.customProperty("ipf_indexcolumn"))
-        ext = self.layer.customProperty("ipf_assoc_ext")
-        parent = pathlib.Path(self.layer.customProperty("ipf_path")).parent
+        indexcol = int(self.layer.customProperty(f"{self.ext}_indexcolumn"))
+        assoc_ext = self.layer.customProperty(f"{self.ext}_assoc_ext")
+        parent = pathlib.Path(self.layer.customProperty(f"{self.ext}_path")).parent
         output = processing.run(
             "native:extractbylocation",
             {
@@ -269,18 +276,20 @@ class PointCrossSectionData(AbstractCrossSectionData):
         for feature in output.getFeatures():
             filename = feature.attribute(indexcol)
             point_id.append(filename)
-            paths.append(parent.joinpath(f"{filename}.{ext}"))
+            paths.append(parent.joinpath(f"{filename}.{assoc_ext}"))
             points.append(feature.geometry().asPoint())
 
         if len(points) > 0:
             x = project_points_to_section(points, geometry)
         else:
             x = []
-        
+
         return point_id, paths, x
 
 
 class BoreholeData(PointCrossSectionData):
+    _ext = "ipf"
+
     def __init__(self, layer, variable):
         self.layer = layer
         self.variable = variable
@@ -343,6 +352,8 @@ class BoreholeData(PointCrossSectionData):
 
 
 class CptData(PointCrossSectionData):
+    _ext = "gef"
+
     def __init__(self, layer, variable):
         self.layer = layer
         self.variable = variable
@@ -365,7 +376,7 @@ class CptData(PointCrossSectionData):
 
         self.x = x
         self.boreholes_id = boreholes_id
-        self.boreholes_data = [read_gef_data(p) for p in paths]
+        self.boreholes_data = [CptGefFile(p).df for p in paths]
 
         variable_names = set()
         styling_entries = []
@@ -404,7 +415,6 @@ class CptData(PointCrossSectionData):
         self.plot_item = None
 
 
-
 class MeshData(AbstractCrossSectionData):
     def __init__(self, layer, variables_indexes, variable, layer_numbers):
         self.layer = layer
@@ -428,7 +438,9 @@ class MeshData(AbstractCrossSectionData):
 
     def requires_loading(self, datetime_range):
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if self.requires_static_index(datetime_range):  # Just take the first one in such a case
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
             sample_index = (group_index, 0)
         else:
             index = self.layer.datasetIndexAtTime(datetime_range, group_index)
@@ -442,9 +454,13 @@ class MeshData(AbstractCrossSectionData):
     def load(self, geometry, resolution, datetime_range, **_):
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
 
-        if self.requires_static_index(datetime_range):  # Just take the first one in such a case
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
             sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
-            plot_datetime_range = None # Fix datetime_range of cross_section_y_data to None
+            plot_datetime_range = (
+                None  # Fix datetime_range of cross_section_y_data to None
+            )
         else:
             sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
             plot_datetime_range = datetime_range

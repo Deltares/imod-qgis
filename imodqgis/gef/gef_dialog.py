@@ -8,15 +8,8 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from PyQt5.QtWidgets import (
-    QDialog,
-    QFileDialog,
-    QHBoxLayout,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QVBoxLayout,
-)
+from PyQt5.QtWidgets import (QDialog, QFileDialog, QHBoxLayout, QLabel,
+                             QLineEdit, QPushButton, QVBoxLayout)
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..utils.pathing import get_configdir
@@ -62,6 +55,12 @@ def read_gef(paths) -> QgsVectorLayer:
     layer = QgsVectorLayer(uri, "GEF-CPT", "delimitedtext")
     layer.setCustomProperty("gef_type", "cpt")
     layer.setCustomProperty("gef_paths", "␞".join(paths))
+
+    # Gef index column not used
+    layer.setCustomProperty("gef_indexcolumn", 0)
+    # Gef file does not have associated file, instead vertical information
+    # stored in geffile itsself.
+    layer.setCustomProperty("gef_assoc_ext", "gef") 
 
     return layer
 
