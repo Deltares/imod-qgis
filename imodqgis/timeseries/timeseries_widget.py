@@ -385,7 +385,6 @@ class ImodTimeSeriesWidget(QWidget):
                     except TypeError:
                         pass
             except RuntimeError as e:
-                print(e.args[0])
                 # The layer has been deleted from qgis
                 if e.args[0] == PYQT_DELETED_ERROR:
                     pass
