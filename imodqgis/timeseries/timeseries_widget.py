@@ -60,6 +60,8 @@ from itertools import compress
 
 from qgis.core import QgsMeshDatasetIndex
 
+PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsVectorLayer has been deleted"
+
 
 def timeseries_x_data(layer, group_index):
     # sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
@@ -374,13 +376,21 @@ class ImodTimeSeriesWidget(QWidget):
     def on_layer_changed(self):
         # Explicitly disconnect signal to formerly connected vector layers
         if self.previous_layer is not None:  # Do nothing the first time after init
-            if self.previous_layer.type() == QgsMapLayerType.VectorLayer:
-                try:
-                    self.previous_layer.selectionChanged.disconnect(self.on_select)
-                # Edge case where IPF points are selected with SHIFT+click.
-                # TODO: Investigate why this function is called when SHIFT clicking
-                except TypeError:
+            try:
+                if self.previous_layer.type() == QgsMapLayerType.VectorLayer:
+                    try:
+                        self.previous_layer.selectionChanged.disconnect(self.on_select)
+                    # Edge case where IPF points are selected with SHIFT+click.
+                    # TODO: Investigate why this function is called when SHIFT clicking
+                    except TypeError:
+                        pass
+            except RuntimeError as e:
+                print(e.args[0])
+                # The layer has been deleted from qgis
+                if e.args[0] == PYQT_DELETED_ERROR:
                     pass
+                else:
+                    raise e
 
         layer = self.layer_selection.currentLayer()
         if layer is None:
