@@ -550,7 +550,7 @@ class ImodTimeSeriesWidget(QWidget):
         names_to_pop = set(self.dataframes.keys()).difference(selection)
 
         for name in names_to_add:
-            self.dataframes[name] = df.loc[name].set_index(datetime_column)
+            self.dataframes[name] = df.loc[[name]].set_index(datetime_column)
 
         for name in names_to_pop:
             self.dataframes.pop(name)
@@ -621,6 +621,7 @@ class ImodTimeSeriesWidget(QWidget):
     def draw_timeseries(self, series, color):
         x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
         y = series.values
+        print(y)
         pen = pg.mkPen(
             color=color,
             width=WIDTH,
