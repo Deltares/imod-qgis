@@ -31,6 +31,7 @@ from ..widgets import (
     ImodUniqueColorWidget,
 )
 from .borehole_plot_item import BoreholePlotItem
+from .cpt_plot_item import CptPlotItem
 from .pcolormesh import PColorMeshItem
 from .plot_util import (
     cross_section_x_data,
@@ -237,11 +238,6 @@ class RasterLineData(AbstractLineData):
 
 
 class PointCrossSectionData(AbstractCrossSectionData):
-    @property
-    @abc.abstractmethod
-    def ext(self):
-        return self._ext
-
     def select_geometry(self, geometry: QgsGeometry, buffer_distance: float):
         buffered = geometry.buffer(buffer_distance, 4)
         tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
@@ -288,9 +284,8 @@ class PointCrossSectionData(AbstractCrossSectionData):
 
 
 class BoreholeData(PointCrossSectionData):
-    _ext = "ipf"
-
     def __init__(self, layer, variable):
+        self.ext = "ipf"
         self.layer = layer
         self.variable = variable
         self.x = None
@@ -352,15 +347,13 @@ class BoreholeData(PointCrossSectionData):
 
 
 class CptData(PointCrossSectionData):
-    _ext = "gef"
-
-    def __init__(self, layer, variable):
+    def __init__(self, layer):
+        self.ext = "gef"
         self.layer = layer
-        self.variable = variable
         self.x = None
         self.boreholes_id = None
         self.boreholes_data = None
-        self.relative_width = 0.01
+        self.relative_width = 0.1
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.render_style = UNIQUE_COLOR
@@ -382,7 +375,7 @@ class CptData(PointCrossSectionData):
         styling_entries = []
         for df in self.boreholes_data:
             variable_names.update(df.columns)
-            styling_entries.append(df[self.variable].values)
+            styling_entries.append(df["rf"].values)
         self.styling_data = np.concatenate(styling_entries)
         self.set_color_data()
 
@@ -391,21 +384,31 @@ class CptData(PointCrossSectionData):
             return
 
         # First column in IPF associated file indicates vertical coordinates
-        y_plot = [df.iloc[:, 0].values for df in self.boreholes_data]
+        y_plot = [df["depth"].values for df in self.boreholes_data]
 
         # Collect values in column to plot
-        z_plot = [df[self.variable].values for df in self.boreholes_data]
+        qc_plot = [df["qc"].values for df in self.boreholes_data]
+        rf_plot = [df["rf"].values for df in self.boreholes_data]
 
-        self.plot_item = [
-            BoreholePlotItem(
-                self.x,
-                y_plot,
-                z_plot,
-                self.relative_width * (self.x.max() - self.x.min()),
-                colorshader=self.colorshader(),
-            )
-        ]
-        plot_widget.addItem(self.plot_item[0])
+        self.qc_scale = 20.0  # MPa
+        self.rf_scale = 10.0  # %
+
+        cpt_width = self.relative_width * (self.x.max() - self.x.min())
+
+        for midx, y, qc_values, rf_values in zip(self.x, y_plot, qc_plot, rf_plot):
+            scaled_qc_values = midx + (qc_values / self.qc_scale) * cpt_width
+            scaled_rf_values = midx + (rf_values / self.rf_scale) * cpt_width
+
+            qc_color = QColor(61, 61, 61, 255)
+            qc_pen = pg.mkPen(color=qc_color, width=WIDTH)
+            qc_curve = pg.PlotCurveItem(scaled_qc_values, y, pen=qc_pen)
+
+            rf_color = QColor(140, 140, 140, 255)
+            rf_pen = pg.mkPen(color=rf_color, width=WIDTH)
+            rf_curve = pg.PlotCurveItem(scaled_rf_values, y, pen=rf_pen)
+
+            plot_widget.addItem(qc_curve)
+            plot_widget.addItem(rf_curve)
 
     def clear(self):
         self.x = None

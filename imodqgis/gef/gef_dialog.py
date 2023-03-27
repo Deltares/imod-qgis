@@ -8,8 +8,15 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from PyQt5.QtWidgets import (QDialog, QFileDialog, QHBoxLayout, QLabel,
-                             QLineEdit, QPushButton, QVBoxLayout)
+from PyQt5.QtWidgets import (
+    QDialog,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+)
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..utils.pathing import get_configdir
@@ -23,7 +30,10 @@ def read_gef(paths) -> QgsVectorLayer:
     label = []
     gefdata = []
     for path in paths:
-        gef = CptGefFile(path)
+        try:
+            gef = CptGefFile(path)
+        except Exception as e:
+            raise type(e)(f"Error reading file: {path}: {e}")
         x.append(gef.x)
         y.append(gef.y)
         label.append(gef.nr)
@@ -44,8 +54,8 @@ def read_gef(paths) -> QgsVectorLayer:
             f"file:///{temppath.as_posix()}?encoding=UTF-8",
             "delimiter=,",
             "type=csv",
-            "xField=field_1",
-            "yField=field_2",
+            "xField=x",
+            "yField=y",
             "useHeader=yes",
             "trimFields=yes",
             "geomType=point",
@@ -54,13 +64,18 @@ def read_gef(paths) -> QgsVectorLayer:
 
     layer = QgsVectorLayer(uri, "GEF-CPT", "delimitedtext")
     layer.setCustomProperty("gef_type", "cpt")
-    layer.setCustomProperty("gef_paths", "␞".join(paths))
+    layer.setCustomProperty("gef_path", paths[0])
 
-    # Gef index column not used
-    layer.setCustomProperty("gef_indexcolumn", 0)
+    # TODO: See if storing all gef paths is necessary?
+    # NOTE: Present approach goes wrong in select_geometry method in cross_section_data
+    # layer.setCustomProperty("gef_paths", "␞".join(paths))
+
+    # Gef index column can be hardcoded as we always take the same info from
+    # the header into the attribute table
+    layer.setCustomProperty("gef_indexcolumn", 4)
     # Gef file does not have associated file, instead vertical information
     # stored in geffile itsself.
-    layer.setCustomProperty("gef_assoc_ext", "gef") 
+    layer.setCustomProperty("gef_assoc_ext", "gef")
 
     return layer
 
