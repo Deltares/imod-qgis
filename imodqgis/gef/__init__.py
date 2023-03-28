@@ -2,4 +2,4 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 from .gef_dialog import ImodGefDialog
-from .reading import CptGefFile
+from .reading import CptGefFile, GefType

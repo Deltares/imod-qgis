@@ -3,10 +3,7 @@
 #
 import pathlib
 import shlex
-from tempfile import NamedTemporaryFile, TemporaryDirectory
-from typing import List
 
-import numpy as np
 import pandas as pd
 from PyQt5.QtWidgets import (
     QDialog,
@@ -20,7 +17,7 @@ from PyQt5.QtWidgets import (
 from qgis.core import QgsProject, QgsVectorLayer
 
 from ..utils.pathing import get_configdir
-from .reading import CptGefFile
+from .reading import CptGefFile, GefType
 
 
 def read_gef(paths) -> QgsVectorLayer:
@@ -45,7 +42,6 @@ def read_gef(paths) -> QgsVectorLayer:
 
     fp = get_configdir() / "gef_header.csv"
 
-    # with NamedTemporaryFile(delete=False) as fp:
     header_dataframe.to_csv(fp)
     temppath = pathlib.Path(fp)
 
@@ -63,12 +59,8 @@ def read_gef(paths) -> QgsVectorLayer:
     )
 
     layer = QgsVectorLayer(uri, "GEF-CPT", "delimitedtext")
-    layer.setCustomProperty("gef_type", "cpt")
+    layer.setCustomProperty("gef_type", GefType.CPT.name)
     layer.setCustomProperty("gef_path", paths[0])
-
-    # TODO: See if storing all gef paths is necessary?
-    # NOTE: Present approach goes wrong in select_geometry method in cross_section_data
-    # layer.setCustomProperty("gef_paths", "␞".join(paths))
 
     # Gef index column can be hardcoded as we always take the same info from
     # the header into the attribute table

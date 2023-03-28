@@ -6,11 +6,18 @@
 
 import logging
 import re
+from enum import IntEnum
 from pathlib import WindowsPath
 from typing import NamedTuple, Union
 
 import numpy as np
 import pandas as pd
+
+
+# At present, only CPT supported
+class GefType(IntEnum):
+    CPT = 1
+    BOREHOLE = 2
 
 
 def safe_float(number):
