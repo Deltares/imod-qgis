@@ -353,7 +353,7 @@ class CptData(PointCrossSectionData):
         self.x = None
         self.boreholes_id = None
         self.boreholes_data = None
-        self.relative_width = 0.1
+        self.relative_width = 0.03
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.render_style = UNIQUE_COLOR
