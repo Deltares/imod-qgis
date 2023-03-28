@@ -10,34 +10,20 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
 from qgis import processing
-from qgis.core import (
-    QgsFeature,
-    QgsGeometry,
-    QgsMeshDatasetIndex,
-    QgsProject,
-    QgsRaster,
-    QgsVectorLayer,
-)
+from qgis.core import (QgsFeature, QgsGeometry, QgsMeshDatasetIndex,
+                       QgsProject, QgsRaster, QgsVectorLayer)
 
 from ..dependencies import pyqtgraph_0_12_3 as pg
 from ..gef import CptGefFile
 from ..ipf import IpfType, read_associated_borehole
 from ..utils.layers import NO_LAYERS
-from ..widgets import (
-    PSEUDOCOLOR,
-    UNIQUE_COLOR,
-    ColorsDialog,
-    ImodPseudoColorWidget,
-    ImodUniqueColorWidget,
-)
+from ..widgets import (PSEUDOCOLOR, UNIQUE_COLOR, ColorsDialog,
+                       ImodPseudoColorWidget, ImodUniqueColorWidget)
 from .borehole_plot_item import BoreholePlotItem
 from .cpt_plot_item import CptPlotItem
 from .pcolormesh import PColorMeshItem
-from .plot_util import (
-    cross_section_x_data,
-    cross_section_y_data,
-    project_points_to_section,
-)
+from .plot_util import (cross_section_x_data, cross_section_y_data,
+                        project_points_to_section)
 
 WIDTH = 2
 
@@ -346,13 +332,21 @@ class BoreholeData(PointCrossSectionData):
         self.plot_item = None
 
 
+CPT_SCALE_VALUES = {
+    "qc": 20.0,  # MPa
+    "fs": 0.2,  # MPa
+    "rf": 10.0,  # %
+}
+
+
 class CptData(PointCrossSectionData):
-    def __init__(self, layer):
+    def __init__(self, layer, variables):
         self.ext = "gef"
+        self.variables = variables
         self.layer = layer
         self.x = None
-        self.boreholes_id = None
-        self.boreholes_data = None
+        self.cpt_id = None
+        self.cpt_data = None
         self.relative_width = 0.03
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
@@ -368,15 +362,12 @@ class CptData(PointCrossSectionData):
         boreholes_id, paths, x = self.select_geometry(geometry, buffer_distance)
 
         self.x = x
-        self.boreholes_id = boreholes_id
-        self.boreholes_data = [CptGefFile(p).df for p in paths]
+        self.cpt_id = boreholes_id
+        self.cpt_data = [CptGefFile(p).df for p in paths]
 
-        variable_names = set()
-        styling_entries = []
-        for df in self.boreholes_data:
-            variable_names.update(df.columns)
-            styling_entries.append(df["rf"].values)
-        self.styling_data = np.concatenate(styling_entries)
+        self.styling_data = np.array(
+            [var for var in self.variables]
+        )  # , dtype=np.int32)
         self.set_color_data()
 
     def plot(self, plot_widget):
@@ -384,36 +375,33 @@ class CptData(PointCrossSectionData):
             return
 
         # First column in IPF associated file indicates vertical coordinates
-        y_plot = [df["depth"].values for df in self.boreholes_data]
-
-        # Collect values in column to plot
-        qc_plot = [df["qc"].values for df in self.boreholes_data]
-        rf_plot = [df["rf"].values for df in self.boreholes_data]
-
-        self.qc_scale = 20.0  # MPa
-        self.rf_scale = 10.0  # %
+        y_plot = [df["depth"].values for df in self.cpt_data]
+        colorshader = self.colorshader()
 
         cpt_width = self.relative_width * (self.x.max() - self.x.min())
 
-        for midx, y, qc_values, rf_values in zip(self.x, y_plot, qc_plot, rf_plot):
-            scaled_qc_values = midx + (qc_values / self.qc_scale) * cpt_width
-            scaled_rf_values = midx + (rf_values / self.rf_scale) * cpt_width
+        for variable in self.variables:
+            to_draw, r, g, b, alpha = colorshader.shade(variable)
+            color = QColor(r, g, b, alpha)
+            pen = pg.mkPen(color=color, width=WIDTH)
 
-            qc_color = QColor(61, 61, 61, 255)
-            qc_pen = pg.mkPen(color=qc_color, width=WIDTH)
-            qc_curve = pg.PlotCurveItem(scaled_qc_values, y, pen=qc_pen)
+            z_plot = [
+                df[variable].values if variable in df.columns else None
+                for df in self.cpt_data
+            ]
 
-            rf_color = QColor(140, 140, 140, 255)
-            rf_pen = pg.mkPen(color=rf_color, width=WIDTH)
-            rf_curve = pg.PlotCurveItem(scaled_rf_values, y, pen=rf_pen)
+            for midx, y, z in zip(self.x, y_plot, z_plot):
+                if z is None:
+                    continue
+                scaled_z_values = midx + (z / CPT_SCALE_VALUES[variable]) * cpt_width
 
-            plot_widget.addItem(qc_curve)
-            plot_widget.addItem(rf_curve)
+                curve = pg.PlotCurveItem(scaled_z_values, y, pen=pen)
+                plot_widget.addItem(curve)
 
     def clear(self):
         self.x = None
-        self.boreholes_id = None
-        self.boreholes_data = None
+        self.cpt_id = None
+        self.cpt_data = None
         self.styling_data = None
         self.plot_item = None
 
