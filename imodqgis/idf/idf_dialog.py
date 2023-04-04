@@ -24,14 +24,14 @@ from qgis.core import (
 )
 from qgis.gui import QgsCrsSelectionWidget, QgsMapLayerComboBox
 
-from imodqgis.idf.reading import convert_idf_to_gdal
-from imodqgis.idf.writing import convert_gdal_to_idf
+from imodqgis.idf.conversion import convert_idf_to_gdal, convert_gdal_to_idf
 from imodqgis.idf.layer_styling import pseudocolor_renderer
 
 
 class OpenWidget(QWidget):
-    def __init__(self, iface, parent=None) -> None:
+    def __init__(self, iface, parent) -> None:
         super().__init__()
+        self.parent = parent
         self.label = QLabel("iMOD IDF File(s)")
         self.line_edit = QLineEdit()
         self.line_edit.setMinimumWidth(250)
@@ -82,7 +82,7 @@ class OpenWidget(QWidget):
 
         for path in paths:
             tiff_path = convert_idf_to_gdal(path, crs_wkt)
-            layer = QgsRasterLayer(str(tiff_path), tiff_path.name)
+            layer = QgsRasterLayer(str(tiff_path), tiff_path.stem)
             renderer = pseudocolor_renderer(layer, band=1, colormap="Turbo", nclass=10)
             layer.setRenderer(renderer)
             QgsProject.instance().addMapLayer(layer)
@@ -91,8 +91,9 @@ class OpenWidget(QWidget):
 
 
 class ExportWidget(QWidget):
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent) -> None:
         super().__init__()
+        self.parent = parent
         self.raster_layer = QgsMapLayerComboBox()
         self.raster_layer.setFilters(QgsMapLayerProxyModel.RasterLayer)
         self.raster_layer.layerChanged.connect(self.on_layer_changed)
@@ -143,6 +144,8 @@ class ExportWidget(QWidget):
 
     def on_layer_changed(self) -> None:
         layer = self.raster_layer.currentLayer()
+        if layer is None:  # If no raster layers in project
+            return
         path = Path(layer.dataProvider().dataSourceUri())
         idf_path = (path.parent / (path.name)).with_suffix(".idf")
         self.line_edit.setText(str(idf_path))
