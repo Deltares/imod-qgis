@@ -52,7 +52,7 @@ class ImodPlugin:
             "ipf-reader.svg", "Open IPF", self.ipf_dialog, True
         )
         self.action_idf_dialog = self.add_action(
-            "ipf-reader.svg", "Open IDF", self.idf_dialog, True
+            "idf-conversion.svg", "Open IDF", self.idf_dialog, True
         )
         self.action_viewer = self.add_action(
             "3d-viewer.svg", "3D Viewer", self.toggle_viewer, True
