@@ -188,7 +188,7 @@ class ImodIpfDialog(QDialog):
         self.setLayout(layout)
 
     def file_dialog(self) -> None:
-        paths, _ = QFileDialog.getOpenFileNames(self, "Select files", "", "*.ipf")
+        paths, _ = QFileDialog.getOpenFileNames(self, "Select files", "", "*.ipf *.IPF")
         # paths is empty list if cancel is clicked
         if len(paths) == 0:
             return
