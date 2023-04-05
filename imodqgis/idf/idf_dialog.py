@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 import shlex
 
 from pathlib import Path
@@ -166,7 +169,7 @@ class ExportWidget(QWidget):
             text=f"Exported {layer.name()} to {idf_path}",
             level=Qgis.Info,
         )
-        return None
+        return
 
 
 class ImodIdfDialog(QDialog):

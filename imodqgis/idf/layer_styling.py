@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 from typing import List
 
 from qgis.core import (
@@ -21,8 +24,10 @@ def color_ramp_items(
     maximum: float
     nclass: int
         Number of colormap classes to create
+
     Returns
     -------
+    color_ramp: QgsGradientColorRamp
     color_ramp_items: List[QgsColorRampShader.ColorRampItem]
         Can be used directly by the QgsColorRampShader
     """
@@ -50,6 +55,7 @@ def pseudocolor_renderer(
         Name of QGIS colormap
     nclass: int
         Number of colormap classes to create
+
     Returns
     -------
     renderer: QgsSingleBandPseudoColorRenderer

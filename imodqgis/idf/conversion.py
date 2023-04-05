@@ -1,3 +1,6 @@
+# Copyright © 2021 Deltares
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
 
@@ -88,9 +91,6 @@ def read_idf(path: str) -> Tuple[Dict[str, Any], np.ndarray]:
             intformat = "i"
             dtype = "float32"
             doubleprecision = False
-        # 2296 was a typo in the iMOD manual. Keep 2296 around in case some IDFs
-        # were written with this identifier to avoid possible incompatibility
-        # issues.
         elif reclen_id == 2295:
             floatsize = intsize = 8
             floatformat = "d"
@@ -243,8 +243,6 @@ def convert_idf_to_gdal(path: str, crs_wkt: str) -> Path:
     -------
     tiff_path: pathlib.Path
         Path to the newly created GeoTIFF file.
-    time: datetime.datetime or None
-        The datetime encoded in the IDF filename.
     """
     attrs, values = read_idf(path)
 
@@ -269,6 +267,19 @@ def convert_idf_to_gdal(path: str, crs_wkt: str) -> Path:
 
 
 def convert_gdal_to_idf(path: str, idf_path: str, dtype):
+    """
+    Read the content of a single-band GDAL supported raster file and write it
+    to an IDF file.
+
+    Parameters
+    ----------
+    path: str
+        Path to the GDAL raster file.
+    idf_path: str
+        Path to the IDF file that will be created.
+    dtype: np.float32 or np.float64
+        Data type of the output IDF file.
+    """
     with ReadOnlyRaster(path) as raster:
         xmin, dx, x_rotation, ymax, y_rotation, dy = raster.get_transform()
         values, nodata = raster.read_array()
