@@ -165,8 +165,10 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
             if layer.type() == QgsMapLayerType.MeshLayer:
                 if not is_temporal_meshlayer(layer):
                     excepted_layers.append(layer)
+            # Also allow edges...
             elif (layer.type() != QgsMapLayerType.VectorLayer) or (
-                layer.geometryType() != QgsWkbTypes.PointGeometry
+                layer.geometryType()
+                not in (QgsWkbTypes.PointGeometry, QgsWkbTypes.LineGeometry)
             ):
                 excepted_layers.append(layer)
             else:
@@ -207,7 +209,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear)
 
-        self.selection_button = QPushButton("Select points")
+        self.selection_button = QPushButton("Select")
         self.selection_button.clicked.connect(self.start_selection)
 
         self.update_on_select = QCheckBox("Update on selection")
@@ -418,8 +420,8 @@ class ImodTimeSeriesWidget(QWidget):
             # (so which are in names after filtering, and not in variables_indexes)
             # to variables_index, with a sentinel layer index of -1
             for name, index in zip(names, indexes):
-                if (not name in self.variables_indexes.keys()) and (
-                    not "_layer_" in name
+                if (name not in self.variables_indexes.keys()) and (
+                    "_layer_" not in name
                 ):
                     self.variables_indexes[name]["-1"] = index
 
@@ -528,9 +530,11 @@ class ImodTimeSeriesWidget(QWidget):
     def load_arrow_data(self, layer):
         """Synchronize timeseries data from an Arrow dataset"""
         arrow_path = layer.customProperty("arrow_path")
+        column = layer.customProperty("arrow_fid_column")
         df = read_arrow(arrow_path)
-        for node_id, groupdf in df.groupby("node_id"):
-            self.stored_dataframes[node_id] = groupdf.set_index("time")
+        for key, groupdf in df.groupby(column):
+            print(groupdf)
+            self.stored_dataframes[key] = groupdf.set_index("time")
         return
 
     def sync_arrow_data(self, layer):
