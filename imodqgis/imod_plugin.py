@@ -52,6 +52,7 @@ class ImodPlugin:
         )
         self.action_gef_dialog = self.add_action(
             "gef-reader.svg", "Open GEF", self.gef_dialog, True
+        )
         self.action_idf_dialog = self.add_action(
             "idf-conversion.svg", "Open IDF", self.idf_dialog, True
         )
