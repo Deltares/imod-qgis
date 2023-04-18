@@ -6,37 +6,23 @@ import pathlib
 from typing import List, Tuple
 
 import numpy as np
-from ..dependencies import pyqtgraph_0_12_3 as pg
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
 from qgis import processing
-from qgis.core import (
-    QgsFeature,
-    QgsGeometry,
-    QgsMeshDatasetIndex,
-    QgsProject,
-    QgsRaster,
-    QgsVectorLayer,
-)
+from qgis.core import (QgsFeature, QgsGeometry, QgsMeshDatasetIndex,
+                       QgsProject, QgsRaster, QgsVectorLayer)
 
-from ..ipf import IpfType, read_associated_borehole
-from ..widgets import (
-    PSEUDOCOLOR,
-    UNIQUE_COLOR,
-    ColorsDialog,
-    ImodPseudoColorWidget,
-    ImodUniqueColorWidget,
-)
+from ..dependencies import pyqtgraph_0_12_3 as pg
+from ..gef import CptGefFile
+from ..ipf import read_associated_borehole
+from ..utils.layers import NO_LAYERS
+from ..widgets import (PSEUDOCOLOR, UNIQUE_COLOR, ColorsDialog,
+                       ImodPseudoColorWidget, ImodUniqueColorWidget)
 from .borehole_plot_item import BoreholePlotItem
 from .pcolormesh import PColorMeshItem
-from .plot_util import (
-    cross_section_x_data,
-    cross_section_y_data,
-    project_points_to_section,
-)
-
-from ..utils.layers import NO_LAYERS
+from .plot_util import (cross_section_x_data, cross_section_y_data,
+                        project_points_to_section)
 
 WIDTH = 2
 
@@ -96,6 +82,18 @@ class AbstractCrossSectionData(abc.ABC):
 
     def color_ramp(self):
         return self.color_widget.color_ramp_button.colorRamp()
+
+    def requires_static_index(self, datetime_range):
+        """
+        Check if data requires static indexing, meaning temporal manager inactive
+        (datetime_range is None) or layer has not time data.
+        """
+
+        # This works for Raster, Mesh and Vector data, as they all have this
+        # method.
+        is_temporal_layer = self.layer.temporalProperties().isActive()
+
+        return (datetime_range is None) or (not is_temporal_layer)
 
     @property
     def colors_changed(self):
@@ -160,7 +158,7 @@ class MeshLineData(AbstractLineData):
             self.variables = np.array(
                 [f"{variable} layer {layer}" for layer in layer_numbers]
             )
-        
+
         self.pseudocolor_widget = ImodPseudoColorWidget()
         self.unique_color_widget = ImodUniqueColorWidget()
         self.render_style = UNIQUE_COLOR
@@ -170,13 +168,22 @@ class MeshLineData(AbstractLineData):
         self.dummy_widget = DummyWidget()
 
     def load(self, geometry, resolution, datetime_range, **_):
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
+            plot_datetime_range = (
+                None  # Fix datetime_range of cross_section_y_data to None
+            )
+        else:
+            plot_datetime_range = datetime_range
+
         n_lines = len(self.layer_numbers)
         x = cross_section_x_data(self.layer, geometry, resolution)
         y = np.empty((n_lines, x.size))
         for i, k in enumerate(self.layer_numbers):
             dataset_index = self.variables_indexes[self.variable][k]
             y[i, :] = cross_section_y_data(
-                self.layer, geometry, dataset_index, x, datetime_range
+                self.layer, geometry, dataset_index, x, plot_datetime_range
             )
         self.x = x
         self.y = y
@@ -215,8 +222,55 @@ class RasterLineData(AbstractLineData):
         self.set_color_data()
 
 
-class BoreholeData(AbstractCrossSectionData):
+class PointCrossSectionData(AbstractCrossSectionData):
+    def select_geometry(self, geometry: QgsGeometry, buffer_distance: float):
+        buffered = geometry.buffer(buffer_distance, 4)
+        tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
+        tmp_layer.setCrs(QgsProject.instance().crs())
+        tmp_feature = QgsFeature()
+        tmp_feature.setGeometry(buffered)
+        tmp_layer.dataProvider().addFeature(tmp_feature)
+
+        # Collect the boreholes per layer
+        point_id = []
+        paths = []
+        points = []
+
+        # Due to the selection, another column is added at the left
+        indexcol = int(self.layer.customProperty(f"{self.ext}_indexcolumn"))
+        assoc_ext = self.layer.customProperty(f"{self.ext}_assoc_ext")
+        parent = pathlib.Path(self.layer.customProperty(f"{self.ext}_path")).parent
+        output = processing.run(
+            "native:extractbylocation",
+            {
+                "INPUT": self.layer,
+                "PREDICATE": 6,  # are within
+                "INTERSECT": tmp_layer,
+                "OUTPUT": "TEMPORARY_OUTPUT",
+            },
+        )["OUTPUT"]
+
+        # Check if nothing is selected.
+        if output.featureCount() == 0:
+            return
+
+        for feature in output.getFeatures():
+            filename = feature.attribute(indexcol)
+            point_id.append(filename)
+            paths.append(parent.joinpath(f"{filename}.{assoc_ext}"))
+            points.append(feature.geometry().asPoint())
+
+        if len(points) > 0:
+            x = project_points_to_section(points, geometry)
+        else:
+            x = []
+
+        return point_id, paths, x
+
+
+class BoreholeData(PointCrossSectionData):
     def __init__(self, layer, variable):
+        self.ext = "ipf"
         self.layer = layer
         self.variable = variable
         self.x = None
@@ -234,46 +288,7 @@ class BoreholeData(AbstractCrossSectionData):
     def load(
         self, geometry: QgsGeometry, buffer_distance: float, **_
     ) -> Tuple[np.ndarray, List[str], List[pathlib.Path]]:
-        # Create a tempory layer to contain the buffer geometry
-        buffered = geometry.buffer(buffer_distance, 4)
-        tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
-        tmp_layer.setCrs(QgsProject.instance().crs())
-        tmp_feature = QgsFeature()
-        tmp_feature.setGeometry(buffered)
-        tmp_layer.dataProvider().addFeature(tmp_feature)
-
-        # Collect the boreholes per layer
-        boreholes_id = []
-        paths = []
-        points = []
-        # Due to the selection, another column is added at the left
-        indexcol = int(self.layer.customProperty("ipf_indexcolumn"))
-        ext = self.layer.customProperty("ipf_assoc_ext")
-        parent = pathlib.Path(self.layer.customProperty("ipf_path")).parent
-        output = processing.run(
-            "native:extractbylocation",
-            {
-                "INPUT": self.layer,
-                "PREDICATE": 6,  # are within
-                "INTERSECT": tmp_layer,
-                "OUTPUT": "TEMPORARY_OUTPUT",
-            },
-        )["OUTPUT"]
-
-        # Check if nothing is selected.
-        if output.featureCount() == 0:
-            return
-
-        for feature in output.getFeatures():
-            filename = feature.attribute(indexcol)
-            boreholes_id.append(filename)
-            paths.append(parent.joinpath(f"{filename}.{ext}"))
-            points.append(feature.geometry().asPoint())
-
-        if len(points) > 0:
-            x = project_points_to_section(points, geometry)
-        else:
-            x = []
+        boreholes_id, paths, x = self.select_geometry(geometry, buffer_distance)
 
         self.x = x
         self.boreholes_id = boreholes_id
@@ -316,6 +331,80 @@ class BoreholeData(AbstractCrossSectionData):
         self.plot_item = None
 
 
+CPT_SCALE_VALUES = {
+    "qc": 20.0,  # MPa
+    "fs": 0.2,  # MPa
+    "rf": 10.0,  # %
+}
+
+
+class CptData(PointCrossSectionData):
+    def __init__(self, layer, variables):
+        self.ext = "gef"
+        self.variables = variables
+        self.layer = layer
+        self.x = None
+        self.cpt_id = None
+        self.cpt_data = None
+        self.relative_width = 0.03
+        self.pseudocolor_widget = ImodPseudoColorWidget()
+        self.unique_color_widget = ImodUniqueColorWidget()
+        self.render_style = UNIQUE_COLOR
+        self.color_widget = self.unique_color_widget
+        self.legend_items = []
+        self.styling_data = None
+        self.dummy_widget = DummyWidget()
+
+    def load(
+        self, geometry: QgsGeometry, buffer_distance: float, **_
+    ) -> Tuple[np.ndarray, List[str], List[pathlib.Path]]:
+        boreholes_id, paths, x = self.select_geometry(geometry, buffer_distance)
+
+        self.x = x
+        self.cpt_id = boreholes_id
+        self.cpt_data = [CptGefFile(p).df for p in paths]
+
+        self.styling_data = np.array(
+            [var for var in self.variables]
+        )  # , dtype=np.int32)
+        self.set_color_data()
+
+    def plot(self, plot_widget):
+        if self.x is None:
+            return
+
+        # First column in IPF associated file indicates vertical coordinates
+        y_plot = [df["depth"].values for df in self.cpt_data]
+        colorshader = self.colorshader()
+
+        cpt_width = self.relative_width * (self.x.max() - self.x.min())
+
+        for variable in self.variables:
+            to_draw, r, g, b, alpha = colorshader.shade(variable)
+            color = QColor(r, g, b, alpha)
+            pen = pg.mkPen(color=color, width=WIDTH)
+
+            z_plot = [
+                df[variable].values if variable in df.columns else None
+                for df in self.cpt_data
+            ]
+
+            for midx, y, z in zip(self.x, y_plot, z_plot):
+                if z is None:
+                    continue
+                scaled_z_values = midx + (z / CPT_SCALE_VALUES[variable]) * cpt_width
+
+                curve = pg.PlotCurveItem(scaled_z_values, y, pen=pen)
+                plot_widget.addItem(curve)
+
+    def clear(self):
+        self.x = None
+        self.cpt_id = None
+        self.cpt_data = None
+        self.styling_data = None
+        self.plot_item = None
+
+
 class MeshData(AbstractCrossSectionData):
     def __init__(self, layer, variables_indexes, variable, layer_numbers):
         self.layer = layer
@@ -339,7 +428,9 @@ class MeshData(AbstractCrossSectionData):
 
     def requires_loading(self, datetime_range):
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if datetime_range is None:  # Just take the first one in such a case
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
             sample_index = (group_index, 0)
         else:
             index = self.layer.datasetIndexAtTime(datetime_range, group_index)
@@ -352,10 +443,17 @@ class MeshData(AbstractCrossSectionData):
 
     def load(self, geometry, resolution, datetime_range, **_):
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if datetime_range is None:  # Just take the first one in such a case
+
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
             sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
+            plot_datetime_range = (
+                None  # Fix datetime_range of cross_section_y_data to None
+            )
         else:
             sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+            plot_datetime_range = datetime_range
         index = (sample_index.dataset(), sample_index.group())
 
         # Get result from cache if available.
@@ -383,7 +481,7 @@ class MeshData(AbstractCrossSectionData):
                 for i, k in enumerate(self.layer_numbers):
                     group_index = self.variables_indexes[self.variable][k]
                     z[i, :] = cross_section_y_data(
-                        self.layer, geometry, group_index, x_mids, datetime_range
+                        self.layer, geometry, group_index, x_mids, plot_datetime_range
                     )
             # Store in cache
             self.cache[index] = (x, top, bottom, z)

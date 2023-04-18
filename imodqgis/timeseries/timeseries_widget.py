@@ -61,6 +61,8 @@ from itertools import compress
 
 from qgis.core import QgsMeshDatasetIndex
 
+PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsVectorLayer has been deleted"
+
 
 PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsLayerTreeGroup has been deleted"
 
@@ -382,20 +384,20 @@ class ImodTimeSeriesWidget(QWidget):
     def on_layer_changed(self):
         # Explicitly disconnect signal to formerly connected vector layers
         if self.previous_layer is not None:  # Do nothing the first time after init
-            if self.previous_layer.type() == QgsMapLayerType.VectorLayer:
-                try:
-                    self.previous_layer.selectionChanged.disconnect(self.on_select)
-                # Edge case where IPF points are selected with SHIFT+click.
-                # TODO: Investigate why this function is called when SHIFT clicking
-                except (TypeError, RuntimeError) as e:
-                    if isinstance(e, TypeError):
+            try:
+                if self.previous_layer.type() == QgsMapLayerType.VectorLayer:
+                    try:
+                        self.previous_layer.selectionChanged.disconnect(self.on_select)
+                    # Edge case where IPF points are selected with SHIFT+click.
+                    # TODO: Investigate why this function is called when SHIFT clicking
+                    except TypeError:
                         pass
-                    elif (
-                        isinstance(e, RuntimeError) and e.args[0] == PYQT_DELETED_ERROR
-                    ):
-                        pass
-                    else:
-                        raise
+            except RuntimeError as e:
+                # The layer has been deleted from qgis
+                if e.args[0] == PYQT_DELETED_ERROR:
+                    pass
+                else:
+                    raise e
 
         layer = self.layer_selection.currentLayer()
         if layer is None:
@@ -597,7 +599,7 @@ class ImodTimeSeriesWidget(QWidget):
         names_to_pop = set(self.dataframes.keys()).difference(selection)
 
         for name in names_to_add:
-            self.dataframes[name] = df.loc[name].set_index(datetime_column)
+            self.dataframes[name] = df.loc[[name]].set_index(datetime_column)
 
         for name in names_to_pop:
             self.dataframes.pop(name)
@@ -670,6 +672,7 @@ class ImodTimeSeriesWidget(QWidget):
     def draw_timeseries(self, series, color):
         x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
         y = series.values
+        print(y)
         pen = pg.mkPen(
             color=color,
             width=WIDTH,

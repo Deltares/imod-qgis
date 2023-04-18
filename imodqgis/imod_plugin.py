@@ -4,13 +4,12 @@
 # Import the code for the DockWidget
 from pathlib import Path
 
-from .dependencies import pyqtgraph_0_12_3 as pg
-
 from qgis.gui import QgsDockWidget
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
+from .dependencies import pyqtgraph_0_12_3 as pg
 from .widgets import ImodDockWidget
 
 # Set plot background color
@@ -32,8 +31,8 @@ class ImodPlugin:
         self.netcdf_manager = None
         self.plugin_dir = Path(__file__).parent
         self.pluginIsActive = False
-        self.toolbar = iface.addToolBar(u"iMOD")
-        self.toolbar.setObjectName(u"iMOD")
+        self.toolbar = iface.addToolBar("iMOD")
+        self.toolbar.setObjectName("iMOD")
 
     def add_action(self, icon_name, text="", callback=None, add_to_toolbar=False):
         icon = QIcon(str(self.plugin_dir / "icons" / icon_name))
@@ -50,6 +49,12 @@ class ImodPlugin:
 
         self.action_ipf_dialog = self.add_action(
             "ipf-reader.svg", "Open IPF", self.ipf_dialog, True
+        )
+        self.action_gef_dialog = self.add_action(
+            "gef-reader.svg", "Open GEF", self.gef_dialog, True
+        )
+        self.action_idf_dialog = self.add_action(
+            "idf-conversion.svg", "Open IDF", self.idf_dialog, True
         )
         self.action_viewer = self.add_action(
             "3d-viewer.svg", "3D Viewer", self.toggle_viewer, True
@@ -74,10 +79,24 @@ class ImodPlugin:
         dialog.show()
         dialog.exec_()
 
+    def gef_dialog(self):
+        from .gef import ImodGefDialog
+
+        dialog = ImodGefDialog()
+        dialog.show()
+        dialog.exec_()
+
     def ipf_dialog(self):
         from .ipf import ImodIpfDialog
 
         dialog = ImodIpfDialog()
+        dialog.show()
+        dialog.exec_()
+        
+    def idf_dialog(self):
+        from .idf import ImodIdfDialog
+
+        dialog = ImodIdfDialog(self.iface)
         dialog.show()
         dialog.exec_()
 
@@ -135,7 +154,7 @@ class ImodPlugin:
         """
         Import all submodules, required for test bench
         """
-        from . import timeseries, cross_section, ipf, nhi_data, utils, viewer, widgets
+        from . import cross_section, ipf, nhi_data, timeseries, utils, viewer, widgets
 
     def unload(self):
         del self.toolbar

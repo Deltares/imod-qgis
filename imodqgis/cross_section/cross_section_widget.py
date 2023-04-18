@@ -1,47 +1,26 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-import pathlib
 from typing import List, Tuple
 
-import numpy as np
-from ..dependencies import pyqtgraph_0_12_3 as pg
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor, QDropEvent
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
-    QComboBox,
-    QDialog,
     QDoubleSpinBox,
-    QFrame,
-    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QSizePolicy,
     QSplitter,
-    QStackedLayout,
     QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
-
-from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsWidget import GraphicsWidget
-from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
-
-from qgis import processing
-from qgis.core import (
-    QgsFeature,
-    QgsGeometry,
-    QgsMapLayerType,
-    QgsProject,
-    QgsRaster,
-    QgsVectorLayer,
-    QgsWkbTypes,
-)
+from qgis.core import QgsMapLayerType, QgsProject, QgsWkbTypes
 from qgis.gui import (
     QgsColorRampButton,
     QgsMapLayerComboBox,
@@ -49,10 +28,19 @@ from qgis.gui import (
     QgsVertexMarker,
 )
 
+from ..dependencies import pyqtgraph_0_12_3 as pg
+from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
+from ..gef import GefType
 from ..ipf import IpfType, read_associated_borehole
-from ..utils.layers import get_group_names, groupby_variable, NO_LAYERS
+from ..utils.layers import NO_LAYERS, get_group_names, groupby_variable
 from ..widgets import LineGeometryPickerWidget, MultipleVariablesWidget, VariablesWidget
-from .cross_section_data import BoreholeData, MeshData, MeshLineData, RasterLineData
+from .cross_section_data import (
+    BoreholeData,
+    CptData,
+    MeshData,
+    MeshLineData,
+    RasterLineData,
+)
 
 RUBBER_BAND_COLOR = QColor(Qt.black)
 BUFFER_RUBBER_BAND_COLOR = QColor(Qt.yellow)
@@ -75,6 +63,7 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
                 (layer.type() == QgsMapLayerType.MeshLayer)
                 or (layer.type() == QgsMapLayerType.RasterLayer)
                 or (layer.customProperty("ipf_type") == IpfType.BOREHOLE.name)
+                or (layer.customProperty("gef_type") == GefType.CPT.name)
             ):
                 excepted_layers.append(layer)
         self.setExceptedLayerList(excepted_layers)
@@ -342,11 +331,9 @@ class ImodCrossSectionWidget(QWidget):
             )
 
     def has_top_bottom(self):
-        return (
-            "bottom" in self.self.variables_indexes.keys()
-            ) and (
-            "top" in self.self.variables_indexes.keys()
-            )
+        return ("bottom" in self.variables_indexes.keys()) and (
+            "top" in self.variables_indexes.keys()
+        )
 
     def add(self):
         layer = self.layer_selection.currentLayer()
@@ -381,9 +368,14 @@ class ImodCrossSectionWidget(QWidget):
             data = BoreholeData(layer, variable)
             layer_item = StyleTreeItem(f"{name}: {variable}", "IPF", data)
             self.buffer_spinbox.valueChanged.connect(data.clear)
+        elif layer.customProperty("gef_type") == GefType.CPT.name:
+            variables = self.multi_variable_selection.checked_variables()
+            data = CptData(layer, variables)
+            layer_item = StyleTreeItem(f"{name}", f"CPT: {variables}", data)
+            self.buffer_spinbox.valueChanged.connect(data.clear)
         else:
             raise ValueError(
-                "Inappropriate layer type: only meshes, rasters, and IPFs are allowed"
+                "Inappropriate layer type: only meshes, rasters, IPFs, GEF-CPTs are allowed"
             )
         self.style_tree.addTopLevelItem(layer_item)
         layer_item.set_widgets()
@@ -458,6 +450,11 @@ class ImodCrossSectionWidget(QWidget):
             variables = layer.customProperty("ipf_assoc_columns").split("␞")
             self.variable_selection.set_layer(variables)
             self.variable_selection.menu_datasets.check_first()
+        elif layer.customProperty("gef_type") == GefType.CPT.name:
+            variables = ["qc", "rf", "fs"]
+            self.multi_variable_selection.menu_datasets.populate_actions(variables)
+            self.multi_variable_selection.menu_datasets.check_first()
+            self.multi_variable_selection.setText("Variable: ")
 
     def set_variable_layernumbers(self):
         layer = self.layer_selection.currentLayer()
@@ -518,6 +515,10 @@ class ImodCrossSectionWidget(QWidget):
             self.as_line_checkbox.setVisible(False)
             self.variable_selection.setVisible(True)
             self.multi_variable_selection.setVisible(False)
+        elif layer.customProperty("gef_type") == GefType.CPT.name:
+            self.as_line_checkbox.setVisible(False)
+            self.variable_selection.setVisible(False)
+            self.multi_variable_selection.setVisible(True)
         self.set_variable_names()
         self.refresh_buffer()
 
