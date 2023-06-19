@@ -64,9 +64,6 @@ from qgis.core import QgsMeshDatasetIndex
 PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsVectorLayer has been deleted"
 
 
-PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsLayerTreeGroup has been deleted"
-
-
 def timeseries_x_data(layer, group_index):
     # sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
     # n_times = layer.dataProvider().datasetCount(group_index)
@@ -394,6 +391,7 @@ class ImodTimeSeriesWidget(QWidget):
                         pass
             except RuntimeError as e:
                 # The layer has been deleted from qgis
+                print(e.args[0])
                 if e.args[0] == PYQT_DELETED_ERROR:
                     pass
                 else:
@@ -535,7 +533,6 @@ class ImodTimeSeriesWidget(QWidget):
         column = layer.customProperty("arrow_fid_column")
         df = read_arrow(arrow_path)
         for key, groupdf in df.groupby(column):
-            print(groupdf)
             self.stored_dataframes[key] = groupdf.set_index("time")
         return
 
@@ -672,7 +669,6 @@ class ImodTimeSeriesWidget(QWidget):
     def draw_timeseries(self, series, color):
         x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
         y = series.values
-        print(y)
         pen = pg.mkPen(
             color=color,
             width=WIDTH,
