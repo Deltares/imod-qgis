@@ -21,7 +21,7 @@ from qgis.core import QgsMapLayerProxyModel
 from qgis.gui import QgsMapLayerComboBox
 from qgis.utils import iface
 
-from .dimension_handler import DimensionHandler
+from imodqgis.netcdf_manager.dimension_handler import DimensionHandler
 
 GDT_FLOAT64 = 7
 

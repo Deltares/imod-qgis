@@ -1,6 +1,6 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from .viewer_widget import ImodViewerWidget
+from imodqgis.viewer.viewer_widget import ImodViewerWidget
 
 __all__ = ["ImodViewerWidget"]

@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from .provider_metadata import fetch_metadata
+from imodqgis.nhi_data.provider_metadata import fetch_metadata
 
 
 class ImodNhiDataDialog(QDialog):

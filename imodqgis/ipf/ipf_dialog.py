@@ -24,7 +24,7 @@ from qgis.core import (
     qgsfunction,
 )
 
-from .reading import IpfType, read_associated_header, read_ipf_header
+from imodqgis.ipf.reading import IpfType, read_associated_header, read_ipf_header
 
 
 @qgsfunction(args="auto", group="Custom", usesGeometry=False)

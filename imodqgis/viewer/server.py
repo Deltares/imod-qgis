@@ -15,7 +15,7 @@ import socket
 import subprocess
 from contextlib import closing
 
-from ..utils.pathing import get_configdir
+from imodqgis.utils.pathing import get_configdir
 
 
 class Server:

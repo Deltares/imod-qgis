@@ -19,23 +19,23 @@ from qgis.core import (
     QgsVectorLayer,
 )
 
-from ..dependencies import pyqtgraph_0_12_3 as pg
-from ..gef import CptGefFile
-from ..ipf import read_associated_borehole
-from ..utils.layers import NO_LAYERS
-from ..widgets import (
+from imodqgis.cross_section.borehole_plot_item import BoreholePlotItem
+from imodqgis.cross_section.pcolormesh import PColorMeshItem
+from imodqgis.cross_section.plot_util import (
+    cross_section_x_data,
+    cross_section_y_data,
+    project_points_to_section,
+)
+from imodqgis.dependencies import pyqtgraph_0_12_3 as pg
+from imodqgis.gef import CptGefFile
+from imodqgis.ipf import read_associated_borehole
+from imodqgis.utils.layers import NO_LAYERS
+from imodqgis.widgets import (
     PSEUDOCOLOR,
     UNIQUE_COLOR,
     ColorsDialog,
     ImodPseudoColorWidget,
     ImodUniqueColorWidget,
-)
-from .borehole_plot_item import BoreholePlotItem
-from .pcolormesh import PColorMeshItem
-from .plot_util import (
-    cross_section_x_data,
-    cross_section_y_data,
-    project_points_to_section,
 )
 
 WIDTH = 2

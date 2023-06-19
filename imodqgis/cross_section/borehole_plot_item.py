@@ -5,12 +5,14 @@ import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
-from ..dependencies.pyqtgraph_0_12_3 import functions as fn
-from ..dependencies.pyqtgraph_0_12_3 import getConfigOption
+from imodqgis.dependencies.pyqtgraph_0_12_3 import functions as fn
+from imodqgis.dependencies.pyqtgraph_0_12_3 import getConfigOption
 
 # List of colormaps
-from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsObject import GraphicsObject
-from ..dependencies.pyqtgraph_0_12_3.Qt import QtCore, QtGui
+from imodqgis.dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsObject import (
+    GraphicsObject,
+)
+from imodqgis.dependencies.pyqtgraph_0_12_3.Qt import QtCore, QtGui
 
 
 class BoreholePlotItem(GraphicsObject):

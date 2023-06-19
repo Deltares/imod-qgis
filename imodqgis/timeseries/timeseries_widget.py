@@ -35,13 +35,15 @@ from qgis.core import (
 )
 from qgis.gui import QgsColorButton, QgsMapLayerComboBox
 
-from ..arrow import read_arrow
-from ..dependencies import pyqtgraph_0_12_3 as pg
-from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
-from ..ipf import IpfType, read_associated_timeseries
-from ..utils.layers import get_group_names, groupby_variable
-from ..utils.temporal import get_group_is_temporal, is_temporal_meshlayer
-from ..widgets import (
+from imodqgis.arrow import read_arrow
+from imodqgis.dependencies import pyqtgraph_0_12_3 as pg
+from imodqgis.dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import (
+    ExportDialog,
+)
+from imodqgis.ipf import IpfType, read_associated_timeseries
+from imodqgis.utils.layers import get_group_names, groupby_variable
+from imodqgis.utils.temporal import get_group_is_temporal, is_temporal_meshlayer
+from imodqgis.widgets import (
     ImodUniqueColorWidget,
     MultipleVariablesWidget,
     PointGeometryPickerWidget,

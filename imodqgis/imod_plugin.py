@@ -73,35 +73,35 @@ class ImodPlugin:
         )
 
     def about_dialog(self):
-        from .about import ImodAboutDialog
+        from imodqgis.about import ImodAboutDialog
 
         dialog = ImodAboutDialog(self.iface)
         dialog.show()
         dialog.exec_()
 
     def gef_dialog(self):
-        from .gef import ImodGefDialog
+        from imodqgis.gef import ImodGefDialog
 
         dialog = ImodGefDialog()
         dialog.show()
         dialog.exec_()
 
     def ipf_dialog(self):
-        from .ipf import ImodIpfDialog
+        from imodqgis.ipf import ImodIpfDialog
 
         dialog = ImodIpfDialog()
         dialog.show()
         dialog.exec_()
         
     def idf_dialog(self):
-        from .idf import ImodIdfDialog
+        from imodqgis.idf import ImodIdfDialog
 
         dialog = ImodIdfDialog(self.iface)
         dialog.show()
         dialog.exec_()
 
     def nhi_data_dialog(self):
-        from .nhi_data import ImodNhiDataDialog
+        from imodqgis.nhi_data import ImodNhiDataDialog
 
         dialog = ImodNhiDataDialog(self.iface)
         dialog.show()
@@ -154,7 +154,7 @@ class ImodPlugin:
         """
         Import all submodules, required for test bench
         """
-        from . import cross_section, ipf, nhi_data, timeseries, utils, viewer, widgets  # noqa
+        from imodqgis import cross_section, ipf, nhi_data, timeseries, utils, viewer, widgets  # noqa
 
     def unload(self):
         del self.toolbar
