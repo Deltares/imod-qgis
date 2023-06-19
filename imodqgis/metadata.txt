@@ -1,8 +1,8 @@
 [general]
 name=iMOD
-qgisMinimumVersion=3.18
+qgisMinimumVersion=3.28
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
-version=0.2.3
+version=0.3.0
 author=Deltares
 email=imod.support@deltares.nl
 
@@ -27,11 +27,20 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=       <p>0.2.3 - Bug fixes
+changelog=      <p>0.3.0 - New features & usability improvements
+                - IDF Reader: Added reader for iMOD5 .IDF files
+                - GEF Reader: Added reader for .gef files, to read CPTs
+                - Cross-section: Support for drawing CPTs
+                - Cross-section: Automatically set mesh without layer data as line
+                - Cross-section: Raise clear error message if no top or bottom are provided to mesh with layer data
+                <p>0.3.0 - Bug fixes
+                - Timeseries: Fixed bug where error was thrown upon closing.
+                - Cross-section: Fixed bug where no static data was plot when QGIS' Time Manager was active.
+                <p>0.2.3 - Bug fixes
                 - Fixed bug where configdir was not created if it did not exist. This prevented startup of the 3D viewer.
-                 <p>0.2.2 - Bug fixes
+                <p>0.2.2 - Bug fixes
                 - Fixed critical bug where the icons were left as Git LFS pointers, so would not show. This affected the version uploaded in qgis plugin database.
-                 <p>0.2.1 - Bug fixes
+                <p>0.2.1 - Bug fixes
                 - 3D Viewer: Update default location of iMOD 3D Viewer
                 <p>0.2 - New features & usability improvements
                 - Timeseries: Support for non-layered mesh
