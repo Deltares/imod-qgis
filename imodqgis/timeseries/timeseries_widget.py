@@ -42,6 +42,7 @@ import pandas as pd
 from ..dependencies import pyqtgraph_0_12_3 as pg
 from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
 from ..ipf import read_associated_timeseries, IpfType
+from ..arrow import read_arrow
 from ..widgets import (
     ImodUniqueColorWidget,
     MultipleVariablesWidget,
@@ -163,16 +164,19 @@ class UpdatingQgsMapLayerComboBox(QgsMapLayerComboBox):
             if layer.type() == QgsMapLayerType.MeshLayer:
                 if not is_temporal_meshlayer(layer):
                     excepted_layers.append(layer)
+            # Also allow edges...
             elif (layer.type() != QgsMapLayerType.VectorLayer) or (
-                layer.geometryType() != QgsWkbTypes.PointGeometry
+                layer.geometryType()
+                not in (QgsWkbTypes.PointGeometry, QgsWkbTypes.LineGeometry)
             ):
                 excepted_layers.append(layer)
             else:
                 is_ipf_series = (
                     layer.customProperty("ipf_type") == IpfType.TIMESERIES.name
                 )
+                is_arrow = layer.customProperty("arrow_type") == "timeseries"
                 is_temporal = layer.temporalProperties().startField() != ""
-                if not (is_ipf_series or is_temporal):
+                if not (is_ipf_series or is_temporal or is_arrow):
                     excepted_layers.append(layer)
         self.setExceptedLayerList(excepted_layers)
 
@@ -204,7 +208,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.clear_button = QPushButton("Clear")
         self.clear_button.clicked.connect(self.clear)
 
-        self.selection_button = QPushButton("Select points")
+        self.selection_button = QPushButton("Select")
         self.selection_button.clicked.connect(self.start_selection)
 
         self.update_on_select = QCheckBox("Update on selection")
@@ -271,6 +275,7 @@ class ImodTimeSeriesWidget(QWidget):
 
         # Data
         self.dataframes = {}
+        self.stored_dataframes = {}
         # Graphing
         self.names = []
         self.curves = []
@@ -386,6 +391,7 @@ class ImodTimeSeriesWidget(QWidget):
                         pass
             except RuntimeError as e:
                 # The layer has been deleted from qgis
+                print(e.args[0])
                 if e.args[0] == PYQT_DELETED_ERROR:
                     pass
                 else:
@@ -414,8 +420,8 @@ class ImodTimeSeriesWidget(QWidget):
             # (so which are in names after filtering, and not in variables_indexes)
             # to variables_index, with a sentinel layer index of -1
             for name, index in zip(names, indexes):
-                if (not name in self.variables_indexes.keys()) and (
-                    not "_layer_" in name
+                if (name not in self.variables_indexes.keys()) and (
+                    "_layer_" not in name
                 ):
                     self.variables_indexes[name]["-1"] = index
 
@@ -440,6 +446,12 @@ class ImodTimeSeriesWidget(QWidget):
                 self.id_selection_box.insertItem(0, layer.attributeAlias(index))
                 self.id_selection_box.setEnabled(False)
                 variables = layer.customProperty("ipf_assoc_columns").split("␞")
+            elif layer.customProperty("arrow_type") == "timeseries":
+                self.load_arrow_data(layer)
+                sample_df = next(iter(self.stored_dataframes.values()))
+                variables = list(sample_df.columns)
+                self.id_selection_box.insertItem(0, "fid")
+                self.id_selection_box.setEnabled(False)
             else:
                 datetime_column = layer.temporalProperties().startField()
                 variables = [f.name() for f in layer.fields()]
@@ -513,6 +525,41 @@ class ImodTimeSeriesWidget(QWidget):
 
         # Store feature_ids for future comparison
         self.feature_ids = feature_ids
+        return
+
+    def load_arrow_data(self, layer):
+        """Synchronize timeseries data from an Arrow dataset"""
+        arrow_path = layer.customProperty("arrow_path")
+        column = layer.customProperty("arrow_fid_column")
+        df = read_arrow(arrow_path)
+        for key, groupdf in df.groupby(column):
+            self.stored_dataframes[key] = groupdf.set_index("time")
+        return
+
+    def sync_arrow_data(self, layer):
+        feature_ids = layer.selectedFeatureIds()  # Returns a new list
+        # Do not read the data if the selection is the same
+        if self.feature_ids == feature_ids:
+            return
+        if len(feature_ids) == 0:
+            # warn user: no features selected in current layer
+            return
+
+        feature_ids = set(feature_ids).intersection(self.stored_dataframes.keys())
+
+        # Filter names to add and to remove, to prevent loading duplicates
+        names_to_add = set(feature_ids).difference(self.dataframes.keys())
+        names_to_pop = set(self.dataframes.keys()).difference(feature_ids)
+
+        for name in names_to_add:
+            self.dataframes[name] = self.stored_dataframes[name]
+
+        for name in names_to_pop:
+            self.dataframes.pop(name)
+
+        # Store feature_ids for future comparison
+        self.feature_ids = feature_ids
+        return
 
     def sync_table_data(self, layer):
         """Synchronize timeseries data from a QGIS attribute table."""
@@ -565,6 +612,8 @@ class ImodTimeSeriesWidget(QWidget):
             self.load_mesh_data(layer)
         elif layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
             self.sync_ipf_data(layer)
+        elif layer.customProperty("arrow_type") == "timeseries":
+            self.sync_arrow_data(layer)
         else:
             self.sync_table_data(layer)
 
@@ -620,7 +669,6 @@ class ImodTimeSeriesWidget(QWidget):
     def draw_timeseries(self, series, color):
         x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
         y = series.values
-        print(y)
         pen = pg.mkPen(
             color=color,
             width=WIDTH,
