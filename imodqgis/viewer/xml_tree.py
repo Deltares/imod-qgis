@@ -1,10 +1,8 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-import os
-
-from ..dependencies import declxml as xml
-from . import xml_utils as xmu
+from imodqgis import xml_utils as xmu
+from imodqgis.dependencies import declxml as xml
 
 
 def create_legend(rgb_point_data):

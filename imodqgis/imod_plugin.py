@@ -5,12 +5,12 @@
 from pathlib import Path
 
 from qgis.gui import QgsDockWidget
-from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from .dependencies import pyqtgraph_0_12_3 as pg
-from .widgets import ImodDockWidget
+from imodqgis.dependencies import pyqtgraph_0_12_3 as pg
+from imodqgis.widgets import ImodDockWidget
 
 # Set plot background color
 pg.setConfigOption("background", "w")
@@ -114,7 +114,7 @@ class ImodPlugin:
     # simply fully reinitializes the widget.
 
     def toggle_viewer(self):
-        from .viewer import ImodViewerWidget
+        from imodqgis.viewer import ImodViewerWidget
 
         canvas = self.iface.mapCanvas()
         self.viewer_widget = QgsDockWidget("iMOD 3D Viewer")
@@ -124,7 +124,7 @@ class ImodPlugin:
         self.viewer_widget.setWidget(widget)
 
     def toggle_timeseries(self):
-        from .timeseries import ImodTimeSeriesWidget
+        from imodqgis.timeseries import ImodTimeSeriesWidget
 
         self.timeseries_widget = ImodDockWidget("iMOD Time Series Plot")
         self.timeseries_widget.setObjectName("ImodTimeSeriesDock")
@@ -133,7 +133,7 @@ class ImodPlugin:
         self.timeseries_widget.setWidget(widget)
 
     def toggle_cross_section(self):
-        from .cross_section import ImodCrossSectionWidget
+        from imodqgis.cross_section import ImodCrossSectionWidget
 
         self.cross_section_widget = ImodDockWidget("iMOD Cross Section Plot")
         self.cross_section_widget.setObjectName("ImodCrossSectionDock")
@@ -142,7 +142,7 @@ class ImodPlugin:
         self.cross_section_widget.setWidget(widget)
 
     def toggle_netcdf_manager(self):
-        from .netcdf_manager import ImodNetcdfManagerWidget
+        from imodqgis.netcdf_manager import ImodNetcdfManagerWidget
 
         self.netcdf_manager = QgsDockWidget("iMOD NetCDF Manager")
         self.netcdf_manager.setObjectName("ImodNetcdfDock")
@@ -154,7 +154,7 @@ class ImodPlugin:
         """
         Import all submodules, required for test bench
         """
-        from . import cross_section, ipf, nhi_data, timeseries, utils, viewer, widgets
+        from . import cross_section, ipf, nhi_data, timeseries, utils, viewer, widgets  # noqa
 
     def unload(self):
         del self.toolbar

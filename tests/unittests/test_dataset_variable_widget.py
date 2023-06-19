@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import QCheckBox
-
-from qgis.utils import plugins
-from qgis.testing import unittest
 import sys
+
+from PyQt5.QtWidgets import QCheckBox
+from qgis.testing import unittest
+from qgis.utils import plugins
 
 
 class TestVariablesWidget(unittest.TestCase):

@@ -1,8 +1,6 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from typing import List, Tuple
-
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
@@ -31,7 +29,7 @@ from qgis.gui import (
 from ..dependencies import pyqtgraph_0_12_3 as pg
 from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
 from ..gef import GefType
-from ..ipf import IpfType, read_associated_borehole
+from ..ipf import IpfType
 from ..utils.layers import NO_LAYERS, get_group_names, groupby_variable
 from ..widgets import LineGeometryPickerWidget, MultipleVariablesWidget, VariablesWidget
 from .cross_section_data import (

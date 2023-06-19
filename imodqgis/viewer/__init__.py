@@ -2,3 +2,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 from .viewer_widget import ImodViewerWidget
+
+__all__ = ["ImodViewerWidget"]

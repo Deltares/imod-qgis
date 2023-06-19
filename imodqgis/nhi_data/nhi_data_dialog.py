@@ -1,25 +1,25 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from PyQt5.QtWidgets import (
-    QDialog,
-    QPushButton,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLineEdit,
-    QLabel,
-    QTableView,
-    QAbstractItemView,
-    QTextEdit,
-)
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import QSortFilterProxyModel, Qt
-
 import json
 import os
-from pathlib import Path
 import platform
 import textwrap
+from pathlib import Path
+
+from PyQt5.QtCore import QSortFilterProxyModel, Qt
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QTableView,
+    QTextEdit,
+    QVBoxLayout,
+)
 
 from .provider_metadata import fetch_metadata
 

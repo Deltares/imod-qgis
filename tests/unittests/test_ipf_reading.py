@@ -1,11 +1,12 @@
-from qgis.utils import plugins
-from qgis.testing import unittest
-from qgis.core import QgsMeshLayer, QgsProject
-from qgis.gui import QgsMapCanvas, QgsLayerTreeMapCanvasBridge
-from pathlib import Path, PosixPath
-import pandas as pd
-import numpy as np
 import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from qgis.core import QgsProject
+from qgis.gui import QgsLayerTreeMapCanvasBridge, QgsMapCanvas
+from qgis.testing import unittest
+from qgis.utils import plugins
 
 
 class TestCaseIpfBorehole(unittest.TestCase):
@@ -20,6 +21,7 @@ class TestCaseIpfBorehole(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         script_dir = Path(__file__).parent
         self.ipfdir = script_dir / ".." / "testdata" / "ipf-borehole"
@@ -46,15 +48,15 @@ class TestCaseIpfBorehole(unittest.TestCase):
         expected_colnames = np.array(["x", "y", "indexcolumn"], dtype=object)
 
         self.assertEqual(type(df), pd.DataFrame)
-        self.assertTrue(np.all(df.columns.values == expected_colnames))
+        self.assertTrue(np.all(df.columns.to_numpy() == expected_colnames))
         self.assertEqual(ext, "txt")
 
         expected_x = np.array([139354, 146343, 144914, 141419])
         expected_y = np.array([376437, 390891, 386603, 381043])
         expected_indexcolum = np.array(["id_0", "id_1", "id_2", "id_3"])
 
-        self.assertTrue(np.all(df["x"].values == expected_x))
-        self.assertTrue(np.all(df["y"].values == expected_y))
+        self.assertTrue(np.all(df["x"].to_numpy() == expected_x))
+        self.assertTrue(np.all(df["y"].to_numpy() == expected_y))
         self.assertTrue(np.all(df["indexcolumn"] == expected_indexcolum))
 
     def test_read_associated_header(self):
@@ -81,8 +83,8 @@ class TestCaseIpfBorehole(unittest.TestCase):
 
         self.assertEqual(list(df.columns), ["top", "lithology"])
         self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(np.all(np.isclose(df["top"].values, expected_top_values)))
-        self.assertTrue(np.all(df["lithology"].values == expected_lithology))
+        self.assertTrue(np.all(np.isclose(df["top"].to_numpy, expected_top_values)))
+        self.assertTrue(np.all(df["lithology"].to_numpy() == expected_lithology))
 
     def test_read_associated_timeseries(self):
         from imodqgis.ipf.reading import read_associated_timeseries
@@ -103,6 +105,7 @@ class TestCaseIpfTimeseries(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         script_dir = Path(__file__).parent
         self.ipfdir = script_dir / ".." / "testdata" / "ipf-timeseries"
@@ -129,15 +132,15 @@ class TestCaseIpfTimeseries(unittest.TestCase):
         expected_colnames = np.array(["x", "y", "indexcolumn"], dtype=object)
 
         self.assertEqual(type(df), pd.DataFrame)
-        self.assertTrue(np.all(df.columns.values == expected_colnames))
+        self.assertTrue(np.all(df.columns.to_numpy() == expected_colnames))
         self.assertEqual(ext, "txt")
 
         expected_x = np.array([92530, 93100, 92840])
         expected_y = np.array([463930, 464580, 463680])
         expected_indexcolum = np.array(["B30F0059001", "B30F0217001", "B30F0222001"])
 
-        self.assertTrue(np.all(df["x"].values == expected_x))
-        self.assertTrue(np.all(df["y"].values == expected_y))
+        self.assertTrue(np.all(df["x"].to_numpy() == expected_x))
+        self.assertTrue(np.all(df["y"].to_numpy() == expected_y))
         self.assertTrue(np.all(df["indexcolumn"] == expected_indexcolum))
 
     def test_read_associated_header(self):

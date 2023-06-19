@@ -8,13 +8,10 @@ from PyQt5.QtGui import QColor
 
 from ..dependencies.pyqtgraph_0_12_3 import functions as fn
 from ..dependencies.pyqtgraph_0_12_3 import getConfigOption
-from ..dependencies.pyqtgraph_0_12_3.colormap import ColorMap
-from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GradientEditorItem import (
-    Gradients,
-)  # List of colormaps
+
+# List of colormaps
 from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsObject import GraphicsObject
 from ..dependencies.pyqtgraph_0_12_3.Qt import QtCore, QtGui
-from ..dependencies.pyqtgraph_0_12_3.Point import Point
 
 
 class PColorMeshItem(GraphicsObject):

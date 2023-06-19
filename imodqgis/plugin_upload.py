@@ -5,12 +5,12 @@
         git sha              : $TemplateVCSFormat
 """
 
-import sys
 import getpass
+import sys
 import xmlrpc.client
 from optparse import OptionParser
 
-standard_library.install_aliases()
+standard_library.install_aliases()  # noqa
 
 # Configuration
 PROTOCOL = "https"

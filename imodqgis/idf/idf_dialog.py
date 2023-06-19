@@ -2,19 +2,17 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 import shlex
-
 from pathlib import Path
 
 import numpy as np
-
 from PyQt5.QtWidgets import (
     QCheckBox,
     QDialog,
-    QPushButton,
     QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -22,12 +20,12 @@ from PyQt5.QtWidgets import (
 from qgis.core import (
     Qgis,
     QgsMapLayerProxyModel,
-    QgsRasterLayer,
     QgsProject,
+    QgsRasterLayer,
 )
 from qgis.gui import QgsCrsSelectionWidget, QgsMapLayerComboBox
 
-from imodqgis.idf.conversion import convert_idf_to_gdal, convert_gdal_to_idf
+from imodqgis.idf.conversion import convert_gdal_to_idf, convert_idf_to_gdal
 from imodqgis.idf.layer_styling import pseudocolor_renderer
 
 
@@ -77,7 +75,7 @@ class OpenWidget(QWidget):
 
     def add_idfs(self) -> None:
         text = self.line_edit.text()
-        paths = [p for p in reversed(shlex.split(text, posix="/" in text))]
+        paths = list(reversed(shlex.split(text, posix="/" in text)))
 
         if not self.crs_widget.hasValidSelection():
             return

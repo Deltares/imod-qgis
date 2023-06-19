@@ -3,12 +3,11 @@
 #
 import json
 import os
-from pathlib import Path
 import platform
-from typing import Dict, List
 import urllib.request
+from pathlib import Path
+from typing import Dict, List
 from xml.etree import cElementTree as ElementTree
-
 
 PROVIDERS = [
     ("https://data.nhi.nu/geoserver/ows", "wcs", "2.0.1"),

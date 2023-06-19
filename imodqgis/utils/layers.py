@@ -8,12 +8,12 @@ in datasets as individual variables ("group_names").
 When MDAL supports layers for UGRID, these utilities become unnecessary
 """
 
+import re
+from collections import defaultdict
+
 from qgis.core import (
     QgsMeshDatasetIndex,
 )
-
-from collections import defaultdict
-import re
 
 NO_LAYERS = ["0"]
 

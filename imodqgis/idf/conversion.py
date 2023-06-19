@@ -1,12 +1,11 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
+import struct
 from pathlib import Path
 from typing import Any, Dict, Tuple, Union
 
-import struct
 import numpy as np
-
 from osgeo import gdal
 
 

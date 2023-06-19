@@ -1,6 +1,6 @@
-import os, sys
-from pathlib import Path
+import sys
 from glob import glob
+from pathlib import Path
 
 SPDX = """\
 # Copyright © 2021 Deltares
@@ -18,7 +18,7 @@ files = [file for file in files if not file.match("imodqgis/plugin_upload.py")]
 files = [file for file in files if not file.match("imodqgis/resources.py")]
 
 # Filter dependencies, we are not copyrighting those
-files = [file for file in files if not "dependencies" in list(file.parts)]
+files = [file for file in files if "dependencies" not in list(file.parts)]
 
 for file in files:
     with open(file, "r+", encoding="utf-8") as fd:

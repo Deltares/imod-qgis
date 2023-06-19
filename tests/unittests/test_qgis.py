@@ -7,7 +7,9 @@ https://github.com/qgis/QGIS/tree/master/.docker
 """
 
 import sys
+
 from qgis.testing import unittest
+
 
 class TestTest(unittest.TestCase):
 

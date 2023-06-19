@@ -1,26 +1,27 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
+import uuid
+from pathlib import Path
+
+import numpy as np
+import xarray as xr
+from osgeo import gdal
 from PyQt5.QtWidgets import (
-    QWidget,
-    QLineEdit,
-    QHBoxLayout,
-    QVBoxLayout,
-    QPushButton,
-    QFileDialog,
     QComboBox,
+    QFileDialog,
+    QHBoxLayout,
     QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 from qgis.core import QgsMapLayerProxyModel
 from qgis.gui import QgsMapLayerComboBox
 from qgis.utils import iface
-from osgeo import gdal
 
-from pathlib import Path
 from .dimension_handler import DimensionHandler
-import numpy as np
-import xarray as xr
-import uuid
 
 GDT_FLOAT64 = 7
 
@@ -90,7 +91,7 @@ class ImodNetcdfManagerWidget(QWidget):
         with xr.open_dataset(path) as ds:
             da = ds[var]
             dims = da.dims[:-2]  # Skip y, x
-            values = [da[dim].values for dim in dims]
+            values = [da[dim].to_numpy() for dim in dims]
         self.dimension_handler.populate_sliders(dims, values)
 
     def extract_raster(self):
@@ -104,7 +105,7 @@ class ImodNetcdfManagerWidget(QWidget):
         var = self.variables.currentText()
         with xr.open_dataset(path) as ds:
             da = ds[var].astype(np.float64)
-            data = da.isel(indexer).values
+            data = da.isel(indexer).to_numpy()
             xdim = da.dims[-1]
             ncol = da.shape[-1]
             nrow = da.shape[-2]

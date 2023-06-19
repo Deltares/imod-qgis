@@ -10,19 +10,33 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
 from qgis import processing
-from qgis.core import (QgsFeature, QgsGeometry, QgsMeshDatasetIndex,
-                       QgsProject, QgsRaster, QgsVectorLayer)
+from qgis.core import (
+    QgsFeature,
+    QgsGeometry,
+    QgsMeshDatasetIndex,
+    QgsProject,
+    QgsRaster,
+    QgsVectorLayer,
+)
 
 from ..dependencies import pyqtgraph_0_12_3 as pg
 from ..gef import CptGefFile
 from ..ipf import read_associated_borehole
 from ..utils.layers import NO_LAYERS
-from ..widgets import (PSEUDOCOLOR, UNIQUE_COLOR, ColorsDialog,
-                       ImodPseudoColorWidget, ImodUniqueColorWidget)
+from ..widgets import (
+    PSEUDOCOLOR,
+    UNIQUE_COLOR,
+    ColorsDialog,
+    ImodPseudoColorWidget,
+    ImodUniqueColorWidget,
+)
 from .borehole_plot_item import BoreholePlotItem
 from .pcolormesh import PColorMeshItem
-from .plot_util import (cross_section_x_data, cross_section_y_data,
-                        project_points_to_section)
+from .plot_util import (
+    cross_section_x_data,
+    cross_section_y_data,
+    project_points_to_section,
+)
 
 WIDTH = 2
 
@@ -298,7 +312,7 @@ class BoreholeData(PointCrossSectionData):
         styling_entries = []
         for df in self.boreholes_data:
             variable_names.update(df.columns)
-            styling_entries.append(df[self.variable].values)
+            styling_entries.append(df[self.variable].to_numpy())
         self.styling_data = np.concatenate(styling_entries)
         self.set_color_data()
 
@@ -307,10 +321,10 @@ class BoreholeData(PointCrossSectionData):
             return
 
         # First column in IPF associated file indicates vertical coordinates
-        y_plot = [df.iloc[:, 0].values for df in self.boreholes_data]
+        y_plot = [df.iloc[:, 0].to_numpy() for df in self.boreholes_data]
 
         # Collect values in column to plot
-        z_plot = [df[self.variable].values for df in self.boreholes_data]
+        z_plot = [df[self.variable].to_numpy() for df in self.boreholes_data]
 
         self.plot_item = [
             BoreholePlotItem(
@@ -364,9 +378,7 @@ class CptData(PointCrossSectionData):
         self.cpt_id = boreholes_id
         self.cpt_data = [CptGefFile(p).df for p in paths]
 
-        self.styling_data = np.array(
-            [var for var in self.variables]
-        )  # , dtype=np.int32)
+        self.styling_data = np.array(list(self.variables))
         self.set_color_data()
 
     def plot(self, plot_widget):
@@ -374,7 +386,7 @@ class CptData(PointCrossSectionData):
             return
 
         # First column in IPF associated file indicates vertical coordinates
-        y_plot = [df["depth"].values for df in self.cpt_data]
+        y_plot = [df["depth"].to_numpy() for df in self.cpt_data]
         colorshader = self.colorshader()
 
         cpt_width = self.relative_width * (self.x.max() - self.x.min())
@@ -385,7 +397,7 @@ class CptData(PointCrossSectionData):
             pen = pg.mkPen(color=color, width=WIDTH)
 
             z_plot = [
-                df[variable].values if variable in df.columns else None
+                df[variable].to_numpy() if variable in df.columns else None
                 for df in self.cpt_data
             ]
 

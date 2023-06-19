@@ -1,16 +1,15 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
+import numpy as np
 from PyQt5.QtWidgets import (
     QComboBox,
-    QPushButton,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
     QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
 )
-import numpy as np
-
 
 PSEUDOCOLOR = 0
 UNIQUE_COLOR = 1

@@ -11,12 +11,11 @@ Each dataclass inherits from either two abstract base classes, Aggregate or Attr
 The functions at the end of the script process these dataclasses to an xml processor for declxml.
 """
 
-#%%Importing
 import abc
 from dataclasses import dataclass
-from typing import Union, List, Optional
+from typing import List, Optional, Union
 
-from ..dependencies import declxml as xml
+from imodqgis.dependencies import declxml as xml
 
 
 class Aggregate(abc.ABC):
@@ -27,7 +26,7 @@ class Attribute(abc.ABC):
     pass
 
 
-#%% Styling
+# Styling
 @dataclass
 class Legend(Aggregate):
     LegendType: str = "Continuous"
@@ -37,7 +36,7 @@ class Legend(Aggregate):
     NanColor: str = "1 1 1"
 
 
-#%% Borelogs
+# Borelogs
 @dataclass
 class Map(Aggregate):
     Purpose: Union[Attribute, str]
@@ -57,11 +56,11 @@ class TableGeometryModel(Aggregate):
     columnmapping: ColumnMapping
 
 
-#%% Data models
+# Data models
 @dataclass
 class DataSet(Aggregate):
     Name: str
-    legend: Optional[Union[Legend]] = None
+    legend: Optional[Legend] = None
     Time: int = 0
     TargetType: str = "Cell"
     DataType: str = "ScalarDouble"
@@ -113,7 +112,7 @@ class TargetModel(Aggregate):
     guid: Union[Attribute, str]
 
 
-#%% GUI widgets
+# GUI widgets
 @dataclass
 class ExplorerModelList(Aggregate):
     tablegeometrymodel: Optional[List[TableGeometryModel]] = None
@@ -132,7 +131,7 @@ class IMOD6(Aggregate):
     viewer: List[Viewer] = None
 
 
-#%% Fence diagrams
+# Fence diagrams
 @dataclass
 class OutputObject(Aggregate):
     guid: Union[Attribute, str] = ""
@@ -143,7 +142,7 @@ class PolyLines(Aggregate):
     PolyLine: List[str]
 
 
-#%% iMOD command
+# iMOD command
 @dataclass
 class ImodCommand(Aggregate):
     """type: [
@@ -170,7 +169,7 @@ class ImodCommand(Aggregate):
     objectguids: Optional[ObjectGuids] = None
 
 
-#%%Mappings
+#Mappings
 type_mapping = {
     bool: xml.boolean,
     float: xml.floating_point,
@@ -187,7 +186,7 @@ type_mapping = {
 name_mapping = {}
 
 
-#%%Functions
+# Functions
 # Following dataformats are now supported:
 # ("Any" is both Aggregate and Primitive here, where "Primitive" is a placeholder for anything type_mapping)
 # -Optional[List[Any]]
@@ -269,7 +268,7 @@ def make_processor(datacls: type, element_required: bool = True):
     children = []
     for name, vartype in datacls.__annotations__.items():
         required = element_required and is_required(vartype)
-        type_info = [a for a in unpack(vartype)]
+        type_info = list(unpack(vartype))
         if len(type_info) > 0:
             vartype = type_info[-1]
 

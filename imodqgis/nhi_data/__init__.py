@@ -2,3 +2,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 from .nhi_data_dialog import ImodNhiDataDialog
+
+__all__ = ["ImodNhiDataDialog"]

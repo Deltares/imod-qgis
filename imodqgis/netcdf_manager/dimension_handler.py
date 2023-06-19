@@ -1,25 +1,25 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
+from typing import List
+
+import numpy as np
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QWidget,
-    QSlider,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
-    QPushButton,
-    QSpinBox,
     QLineEdit,
+    QPushButton,
+    QSlider,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtCore import Qt
-import numpy as np
-from typing import List
 
 
 class DimensionSlider(QWidget):
     def __init__(self, dim, values, parent=None):
         QWidget.__init__(self, parent)
-        self.values = values
+        self.values = values  # noqa
 
         self.first = QPushButton("|<")
         self.first.clicked.connect(self._first)
@@ -64,7 +64,7 @@ class DimensionSlider(QWidget):
             raise ValueError(f"Value {value} does not occur in dimension {self.dim}")
 
     def set_value(self, i: int):
-        self.label.setText(str(self.values[i]))
+        self.label.setText(str(self.values[i]))  # noqa
 
     def _first(self):
         self.slider.setValue(0)

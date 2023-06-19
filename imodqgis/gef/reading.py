@@ -174,7 +174,7 @@ class CptGefFile:
         ## mandatory gef header attributes
         self.gefid = None
         self.ncolumns = None
-        self.columninfo = dict()
+        self.columninfo = {}
         self.companyid = None
         self.filedate = None
         self.fileowner = None
@@ -184,14 +184,14 @@ class CptGefFile:
             None  # this or procedurecode is mandatory if gefid is 1, 1, 0 or higher
         )
         self.projectid = None
-        self.measurementtext = dict()
+        self.measurementtext = {}
 
         ## Additional gef header attributes
-        self.columnvoid = dict()
+        self.columnvoid = {}
         self.columnminmax = None
         self.columnseparator = sep  # default separator used if not in gef file header
         self.dataformat = None
-        self.measurementvars = dict()
+        self.measurementvars = {}
         self.recordseparator = None
         self.reportdataformat = None
         self.specimenvars = None
@@ -293,7 +293,7 @@ class CptGefFile:
 
         """
         df = pd.DataFrame(self._data, dtype="float64")
-        df.replace(self.columnvoid, np.nan, inplace=True)
+        df = df.replace(self.columnvoid, np.nan)
         df.columns = self.columns
 
         if "rf" not in df.columns:
