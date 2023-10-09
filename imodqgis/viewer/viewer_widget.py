@@ -2,56 +2,48 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 
+import itertools
+import os
+import platform
+import uuid
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import List
+
 from PyQt5.QtWidgets import (
-    QBoxLayout,
+    QDialog,
     QDialogButtonBox,
     QGroupBox,
-    QLabel,
-    QWidget,
-    QDialog,
     QHBoxLayout,
-    QVBoxLayout,
+    QLabel,
     QPushButton,
-    QDialogButtonBox,
-    QToolButton,
     QSizePolicy,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
 )
-
-
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsCoordinateTransform,
+    QgsGeometry,
+    QgsMapLayerType,
+    QgsMeshDatasetIndex,
+    QgsProject,
+)
 from qgis.gui import (
     QgsExtentGroupBox,
-    QgsMapLayerComboBox,
     QgsFileWidget,
+    QgsMapLayerComboBox,
     QgsMessageBar,
 )
 
-from qgis.core import (
-    Qgis,
-    QgsProject,
-    QgsMapLayerProxyModel,
-    QgsMeshDatasetIndex,
-    QgsMapLayerType,
-    QgsCoordinateTransform,
-    QgsGeometry,
-    QgsApplication,
-)
-
-from ..widgets import RectangleMapTool, MultipleLineGeometryPickerWidget
-from . import xml_tree
-from .server import Server
-from ..utils.layers import groupby_variable
-import itertools
-
-from ..ipf import IpfType
-
-import uuid
-
-from typing import List
-from dataclasses import dataclass, asdict
-
-import platform, os
-from ..utils.pathing import get_configdir
-from pathlib import Path
+from imodqgis.ipf import IpfType
+from imodqgis.utils.layers import groupby_variable
+from imodqgis.utils.pathing import get_configdir
+from imodqgis.viewer import xml_tree
+from imodqgis.viewer.server import Server
+from imodqgis.widgets import MultipleLineGeometryPickerWidget, RectangleMapTool
 
 VIEWER_NOT_FOUND_ERROR = (
     "Cannot find the iMOD 3D viewer, please specify by clicking the 'Options' button."

@@ -1,5 +1,5 @@
-from osgeo import ogr
 import pandas as pd
+from osgeo import ogr
 
 
 def read_arrow(path):

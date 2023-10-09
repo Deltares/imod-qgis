@@ -1,9 +1,9 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from pathlib import Path
 import os
 import platform
+from pathlib import Path
 
 
 def get_configdir() -> Path:

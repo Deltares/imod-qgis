@@ -1,38 +1,33 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from PyQt5.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QLineEdit,
-    QSpinBox,
-    QGridLayout,
-    QTableView,
-    QHeaderView,
-    QComboBox,
-    QPushButton,
-    QCheckBox,
-    QAbstractItemView,
-)
-from PyQt5.QtGui import QDoubleValidator, QColor
-from PyQt5.QtCore import Qt
-from qgis.gui import (
-    QgsColorRampButton,
-    QgsColorWidget,
-    QgsColorSwatchDelegate,
-    QgsTreeWidgetItemObject,
-)
-from qgis.core import (
-    QgsGradientColorRamp,
-    QgsColorRampShader,
-)
-from PyQt5.QtWidgets import QTreeWidget, QWidget
-
 from typing import Dict, Union
 
 import numpy as np
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QDoubleValidator
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QCheckBox,
+    QComboBox,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSpinBox,
+    QTreeWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from qgis.core import (
+    QgsColorRampShader,
+)
+from qgis.gui import (
+    QgsColorRampButton,
+    QgsColorSwatchDelegate,
+    QgsTreeWidgetItemObject,
+)
 
 Number = Union[int, float]
 

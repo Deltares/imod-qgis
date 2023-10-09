@@ -7,59 +7,48 @@ Widget for displaying timeseries data.
 In general: plotting with pyqtgraph is fast, collecting data is relatively
 slow.
 """
+import pathlib
+import tempfile
+from itertools import compress
+
+import numpy as np
+import pandas as pd
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QCheckBox,
-    QWidget,
-    QStackedLayout,
-    QHBoxLayout,
-    QVBoxLayout,
-    QPushButton,
-    QGridLayout,
-    QLabel,
-    QDialog,
-    QToolButton,
-    QMenu,
     QComboBox,
+    QDialog,
     QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt5.QtCore import Qt, QEvent
-from PyQt5.QtGui import QColor
-from qgis.gui import QgsMapLayerComboBox, QgsColorButton
 from qgis.core import (
-    QgsMapLayerProxyModel,
-    QgsColorBrewerColorRamp,
-    QgsVectorLayer,
-    QgsPointXY,
-    QgsFeature,
-    QgsGeometry,
-    QgsProject,
-    QgsWkbTypes,
-    QgsVectorFileWriter,
     QgsCoordinateTransformContext,
     QgsMapLayerType,
+    QgsMeshDatasetIndex,
+    QgsProject,
+    QgsVectorFileWriter,
+    QgsWkbTypes,
 )
-import pandas as pd
-from ..dependencies import pyqtgraph_0_12_3 as pg
-from ..dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import ExportDialog
-from ..ipf import read_associated_timeseries, IpfType
-from ..arrow import read_arrow
-from ..widgets import (
+from qgis.gui import QgsColorButton, QgsMapLayerComboBox
+
+from imodqgis.arrow import read_arrow
+from imodqgis.dependencies import pyqtgraph_0_12_3 as pg
+from imodqgis.dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import (
+    ExportDialog,
+)
+from imodqgis.ipf import IpfType, read_associated_timeseries
+from imodqgis.utils.layers import get_group_names, groupby_variable
+from imodqgis.utils.temporal import get_group_is_temporal, is_temporal_meshlayer
+from imodqgis.widgets import (
     ImodUniqueColorWidget,
     MultipleVariablesWidget,
     PointGeometryPickerWidget,
     VariablesWidget,
 )
-from ..utils.layers import get_group_names, groupby_variable
-from ..utils.temporal import is_temporal_meshlayer, get_group_is_temporal
-
-import pathlib
-import tempfile
-
-import numpy as np
-
-from itertools import compress
-
-from qgis.core import QgsMeshDatasetIndex
 
 PYQT_DELETED_ERROR = "wrapped C/C++ object of type QgsVectorLayer has been deleted"
 
@@ -587,9 +576,9 @@ class ImodTimeSeriesWidget(QWidget):
                 index_col=id_column,
             )
 
-        selection = set(
+        selection = {
             layer.getFeature(fid).attribute(id_column) for fid in feature_ids
-        )
+        }
 
         # Filter names to add and to remove, to prevent loading duplicates
         names_to_add = set(selection).difference(self.dataframes.keys())
@@ -667,8 +656,8 @@ class ImodTimeSeriesWidget(QWidget):
         self.update_legend()
 
     def draw_timeseries(self, series, color):
-        x = (series.index - PYQT_REFERENCE_TIME).total_seconds().values
-        y = series.values
+        x = (series.index - PYQT_REFERENCE_TIME).total_seconds().to_numpy()
+        y = series.to_numpy()
         pen = pg.mkPen(
             color=color,
             width=WIDTH,

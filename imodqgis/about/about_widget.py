@@ -1,13 +1,13 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
+import os
+
 from PyQt5.QtWidgets import (
     QDialog,
-    QVBoxLayout,
     QLabel,
+    QVBoxLayout,
 )
-
-import os
 
 path_text = os.path.abspath(os.path.join(os.path.dirname(__file__), "about.md"))
 

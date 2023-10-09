@@ -100,9 +100,9 @@ def project_points_to_section(
     npoint = len(pp)
 
     # This array holds the distance from p to x
-    distances = np.empty((nsegment, npoint), dtype=np.float)
+    distances = np.empty((nsegment, npoint), dtype=float)
     # x is the accumulating distance along the geometry
-    xx = np.empty((nsegment, npoint), dtype=np.float)
+    xx = np.empty((nsegment, npoint), dtype=float)
     x = 0.0
     for i, (a, b) in enumerate(zip(aa, bb)):
         UU = pp - a

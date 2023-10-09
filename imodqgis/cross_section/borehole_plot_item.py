@@ -5,15 +5,15 @@ import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
-from ..dependencies.pyqtgraph_0_12_3 import functions as fn
-from ..dependencies.pyqtgraph_0_12_3 import getConfigOption
-from ..dependencies.pyqtgraph_0_12_3.colormap import ColorMap
-from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GradientEditorItem import (
-    Gradients,
-)  # List of colormaps
-from ..dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsObject import GraphicsObject
-from ..dependencies.pyqtgraph_0_12_3.Qt import QtCore, QtGui
-from ..dependencies.pyqtgraph_0_12_3.Point import Point
+from imodqgis.dependencies.pyqtgraph_0_12_3 import functions as fn
+from imodqgis.dependencies.pyqtgraph_0_12_3 import getConfigOption
+
+# List of colormaps
+from imodqgis.dependencies.pyqtgraph_0_12_3.graphicsItems.GraphicsObject import (
+    GraphicsObject,
+)
+from imodqgis.dependencies.pyqtgraph_0_12_3.Qt import QtCore, QtGui
+
 
 class BoreholePlotItem(GraphicsObject):
     def __init__(self, *args, **kwargs):

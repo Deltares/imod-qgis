@@ -10,14 +10,12 @@ https://gitlab.com/deltares/imod/qgis-tim/-/blob/master/plugin/qgistim/server_ha
 """
 import json
 import os
-import platform
 import signal
 import socket
 import subprocess
 from contextlib import closing
-from pathlib import Path
 
-from ..utils.pathing import get_configdir
+from imodqgis.utils.pathing import get_configdir
 
 
 class Server:

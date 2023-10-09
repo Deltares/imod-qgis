@@ -1,18 +1,16 @@
-from qgis.utils import plugins
-from qgis.testing import unittest
-from qgis.core import (
-    QgsVectorLayer,
-    QgsProject,
-    QgsVectorLayerTemporalProperties,
-    QgsExpression,
-    QgsLayerTreeUtils,
-)
-from qgis.gui import QgsMapCanvas, QgsLayerTreeMapCanvasBridge
-from pathlib import Path, PosixPath
-import pandas as pd
-import numpy as np
-import sys
 import os
+import sys
+from pathlib import Path
+
+from qgis.core import (
+    QgsExpression,
+    QgsProject,
+    QgsVectorLayer,
+    QgsVectorLayerTemporalProperties,
+)
+from qgis.gui import QgsLayerTreeMapCanvasBridge, QgsMapCanvas
+from qgis.testing import unittest
+from qgis.utils import plugins
 
 
 class TestCaseIpfTimeseries(unittest.TestCase):

@@ -1,9 +1,10 @@
-from qgis.utils import plugins
-from qgis.testing import unittest
-from qgis.core import QgsMeshLayer, QgsProject
-from qgis.gui import QgsMapCanvas, QgsLayerTreeMapCanvasBridge
-from pathlib import Path, PosixPath
 import sys
+from pathlib import Path, PosixPath
+
+from qgis.core import QgsMeshLayer, QgsProject
+from qgis.gui import QgsLayerTreeMapCanvasBridge, QgsMapCanvas
+from qgis.testing import unittest
+from qgis.utils import plugins
 
 
 class TestCaseMesh(unittest.TestCase):
@@ -18,6 +19,7 @@ class TestCaseMesh(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         script_dir = Path(__file__).parent
         meshfile = (script_dir / ".." / "testdata" / "tri-time-test.nc").resolve()
@@ -34,7 +36,7 @@ class TestUtilsLayer(TestCaseMesh):
     def setUp(self):
         super().setUp()
 
-        self.expected_indexes = [i for i in range(22)]
+        self.expected_indexes = list(range(22))
         self.expected_group_names = [
             "bottom_layer_1",
             "bottom_layer_2",

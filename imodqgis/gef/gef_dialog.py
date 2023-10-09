@@ -16,8 +16,8 @@ from PyQt5.QtWidgets import (
 )
 from qgis.core import QgsProject, QgsVectorLayer
 
-from ..utils.pathing import get_configdir
-from .reading import CptGefFile, GefType
+from imodqgis.gef.reading import CptGefFile, GefType
+from imodqgis.utils.pathing import get_configdir
 
 
 def read_gef(paths) -> QgsVectorLayer:

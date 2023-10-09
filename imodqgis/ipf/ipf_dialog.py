@@ -4,30 +4,27 @@
 import csv
 import pathlib
 import shlex
-from typing import List
 
+from PyQt5.QtCore import QDateTime, QVariant
 from PyQt5.QtWidgets import (
     QDialog,
-    QPushButton,
     QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QVBoxLayout,
 )
-from PyQt5.QtCore import QDateTime, QVariant
 from qgis.core import (
-    QgsVectorLayer,
-    QgsProject,
+    QgsExpression,
     QgsField,
+    QgsProject,
+    QgsVectorLayer,
     QgsVectorLayerTemporalProperties,
     qgsfunction,
-    QgsExpression,
 )
-import numpy as np
-import pandas as pd
 
-from .reading import read_ipf_header, read_associated_header, IpfType
+from imodqgis.ipf.reading import IpfType, read_associated_header, read_ipf_header
 
 
 @qgsfunction(args="auto", group="Custom", usesGeometry=False)

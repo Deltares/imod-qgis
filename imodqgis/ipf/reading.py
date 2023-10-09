@@ -1,14 +1,14 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from enum import IntEnum
+import csv
+import io
 import pathlib
-from typing import List, Tuple, Union, TextIO, Any
+from enum import IntEnum
+from typing import Any, List, TextIO, Tuple
 
 import numpy as np
 import pandas as pd
-import csv
-import io
 
 
 class IpfType(IntEnum):
@@ -93,12 +93,12 @@ def read_associated_header(
     )
 
     # header description possibly includes nodata
-    usecols = np.arange(ncol)[pd.notnull(metadata[0])]
+    usecols = np.arange(ncol)[pd.notna(metadata[0])]
     metadata = metadata.iloc[usecols, :]
     # Collect column names and nodata values
     colnames = []
     na_values = {}
-    for colname, nodata in metadata.values:
+    for colname, nodata in metadata.to_numpy():
         na_values[colname] = [nodata, "-"]  # "-" seems common enough to ignore
         if isinstance(colname, str):
             colnames.append(colname.strip())

@@ -2,23 +2,21 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QPushButton,
-)
 from PyQt5.QtGui import QColor
-
+from PyQt5.QtWidgets import (
+    QHBoxLayout,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 from qgis.core import (
-    QgsPointXY,
-    QgsPoint,
+    QgsGeometry,
     QgsLineString,
     QgsMultiLineString,
+    QgsPoint,
+    QgsPointXY,
     QgsRectangle,
     QgsWkbTypes,
-    QgsGeometry,
-    QgsMesh,
 )
 from qgis.gui import QgsMapTool, QgsMapToolEmitPoint, QgsRubberBand, QgsVertexMarker
 

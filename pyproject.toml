@@ -1,3 +1,6 @@
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.ruff]
+select = ["E", "F", "NPY", "PD", "C4", "I"]
+ignore = ["E501", "PD901"]
+fixable = ["I"]
+ignore-init-module-imports = true
+exclude = ["imodqgis/dependencies/*.py"]

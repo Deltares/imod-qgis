@@ -1,32 +1,29 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from PyQt5.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QLabel,
-    QPushButton,
-    QAbstractItemView,
-)
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt
-from qgis.gui import (
-    QgsColorRampButton,
-    QgsColorWidget,
-    QgsColorSwatchDelegate,
-    QgsTreeWidgetItemObject,
-)
-from qgis.core import (
-    QgsColorBrewerColorRamp,
-    QgsGradientColorRamp,
-    QgsColorRampShader,
-)
-from PyQt5.QtWidgets import QTreeWidget, QWidget
+from typing import Dict
 
 import numpy as np
 import pandas as pd
-from typing import Dict
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTreeWidget,
+    QVBoxLayout,
+    QWidget,
+)
+from qgis.core import (
+    QgsColorBrewerColorRamp,
+)
+from qgis.gui import (
+    QgsColorRampButton,
+    QgsColorSwatchDelegate,
+    QgsTreeWidgetItemObject,
+)
 
 
 class ImodUniqueColorShader:

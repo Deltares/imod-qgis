@@ -1,14 +1,12 @@
-from qgis.utils import plugins
-from qgis.testing import unittest
-from qgis.core import QgsMeshLayer, QgsProject, QgsPointXY
-from PyQt5.QtGui import QColor, QPicture, QPainter
+import sys
+from pathlib import Path
 
 import numpy as np
-
-from pathlib import Path
 import pandas as pd
-
-import sys
+from PyQt5.QtGui import QColor, QPainter, QPicture
+from qgis.core import QgsMeshLayer, QgsPointXY, QgsProject
+from qgis.testing import unittest
+from qgis.utils import plugins
 
 # TODO: Create TestTimeseriesIpf
 

@@ -1,24 +1,24 @@
-from qgis.utils import plugins
-from qgis.testing import unittest
+import sys
+
+from PyQt5.QtCore import QPoint, Qt
+from PyQt5.QtGui import QColor
+from PyQt5.QtTest import QSignalSpy, QTest
 from qgis.core import (
-    QgsProject,
-    QgsPointXY,
     QgsGeometry,
+    QgsLineString,
     QgsMultiLineString,
     QgsPoint,
-    QgsLineString,
+    QgsPointXY,
+    QgsProject,
 )
 from qgis.gui import (
-    QgsMapCanvas,
     QgsLayerTreeMapCanvasBridge,
+    QgsMapCanvas,
     QgsRubberBand,
     QgsVertexMarker,
 )
-import sys
-
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtTest import QTest, QSignalSpy
-from PyQt5.QtGui import QColor
+from qgis.testing import unittest
+from qgis.utils import plugins
 
 
 class TestPickGeometryTool(unittest.TestCase):
@@ -35,6 +35,7 @@ class TestPickGeometryTool(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         self.tool = PickGeometryTool(self.canvas)
 
@@ -86,6 +87,7 @@ class TestLineGeometryPickerWidget(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         self.widget = LineGeometryPickerWidget(self.canvas)
         self.tooltype = PickGeometryTool
@@ -193,6 +195,7 @@ class TestMultipleLineGeometryPickerWidget(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         self.widget = MultipleLineGeometryPickerWidget(self.canvas)
         self.tooltype = PickGeometryTool
@@ -340,6 +343,7 @@ class TestPickPointGeometryTool(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         self.tool = PickPointGeometryTool(self.canvas)
         self.signalspy = QSignalSpy(self.tool.picked)
@@ -425,8 +429,8 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         imodplugin._import_all_submodules()
 
         from imodqgis.widgets.maptools import (
-            PointGeometryPickerWidget,
             PickPointGeometryTool,
+            PointGeometryPickerWidget,
         )
 
         self.project = QgsProject.instance()
@@ -435,6 +439,7 @@ class TestPointGeometryPickerWidget(unittest.TestCase):
         # a layer is added in the project, it is displayed in the map canvas.
         # https://gis.stackexchange.com/a/340563
         bridge = QgsLayerTreeMapCanvasBridge(self.project.layerTreeRoot(), self.canvas)
+        assert bridge is not None  # TODO
 
         self.widget = PointGeometryPickerWidget(self.canvas)
         self.tooltype = PickPointGeometryTool
