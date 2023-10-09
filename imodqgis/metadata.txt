@@ -27,7 +27,12 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>0.3.0 - New features & usability improvements
+changelog=      <p>0.4.0 - New features & usability improvements
+                - Timeseries: Supports plotting Arrow data. See https://gdal.org/drivers/vector/arrow.html
+                <p>0.4.0 - Bug fixes
+                - Timeseries: Fixed bug where selecting a point, plotting it, clearing plot, then selecting same point, and trying to plot that would not result in a plot.
+                - NHI: Updated URL to new geoserver. The new server is at https://geoserver.data.nhi.nu/geoserver.
+                <p>0.3.0 - New features & usability improvements
                 - IDF Reader: Added reader for iMOD5 .IDF files
                 - GEF Reader: Added reader for .gef files, to read CPTs
                 - Cross-section: Support for drawing CPTs
