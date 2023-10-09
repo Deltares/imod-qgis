@@ -10,9 +10,9 @@ from typing import Dict, List
 from xml.etree import cElementTree as ElementTree
 
 PROVIDERS = [
-    ("https://data.nhi.nu/geoserver/ows", "wcs", "2.0.1"),
-    ("https://data.nhi.nu/geoserver/ows", "wfs", "2.0.0"),
-    ("https://data.nhi.nu/geoserver/ows", "wms", "1.3.0"),
+    ("https://geoserver.data.nhi.nu/geoserver/ows", "wcs", "2.0.1"),
+    ("https://geoserver.data.nhi.nu/geoserver/ows", "wfs", "2.0.0"),
+    ("https://geoserver.data.nhi.nu/geoserver/ows", "wms", "1.3.0"),
     ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wcs", "2.0.1"),
     ("https://modeldata-nhi-data.deltares.nl/geoserver/ows", "wms", "1.3.0"),
 ]
@@ -38,14 +38,14 @@ def wcs_metadata(url: str, version: str) -> List[Dict]:
     metadata = []
     for layer_xml in contents_xml:
         d = {
-            "abstract": layer_xml.find("ows:Abstract", NAMESPACES).text,
+            "abstract": layer_xml.findtext("ows:Abstract", "", NAMESPACES),
             "crs": "EPSG:28992",
             "format": "GeoTIFF",
-            "identifier": layer_xml.find("wcs:CoverageId", NAMESPACES).text.replace(
+            "identifier": layer_xml.findtext("wcs:CoverageId", "", NAMESPACES).replace(
                 "__", ":"
             ),
             "service": "wcs",
-            "title": layer_xml.find("ows:Title", NAMESPACES).text,
+            "title": layer_xml.findtext("ows:Title", "", NAMESPACES),
             "url": url,
             "version": version,
         }
@@ -60,12 +60,12 @@ def wfs_metadata(url: str, version: str) -> List[Dict]:
     root = ElementTree.XML(response)
     metadata = []
     for xml_layer in root.find("wfs:FeatureTypeList", NAMESPACES):
-        crs = xml_layer.find("wfs:DefaultCRS", NAMESPACES).text.split("::")[1]
+        crs = xml_layer.findtext("wfs:DefaultCRS", "", NAMESPACES).split("::")[1]
         d = {
-            "abstract": xml_layer.find("wfs:Abstract", NAMESPACES).text,
+            "abstract": xml_layer.findtext("wfs:Abstract", "", NAMESPACES),
             "crs": f"EPSG:{crs}",
-            "title": xml_layer.find("wfs:Title", NAMESPACES).text,
-            "typename": xml_layer.find("wfs:Name", NAMESPACES).text,
+            "title": xml_layer.findtext("wfs:Title", "", NAMESPACES),
+            "typename": xml_layer.findtext("wfs:Name", "", NAMESPACES),
             "service": "wfs",
             "url": url,
             "version": version,
@@ -93,13 +93,13 @@ def wms_metadata(url: str, version: str) -> List[Dict]:
             # This is the default that QGIS chooses, seems to work alright
             imgformat = "image/png"
         d = {
-            "abstract": xml_layer.find("wms:Abstract", NAMESPACES).text,
+            "abstract": xml_layer.findtext("wms:Abstract", "", NAMESPACES),
             "crs": "EPSG:28992",
             "format": imgformat,
-            "layers": xml_layer.find("wms:Name", NAMESPACES).text,
+            "layers": xml_layer.findtext("wms:Name", "", NAMESPACES),
             "service": "wms",
             "styles": "",
-            "title": xml_layer.find("wms:Title", NAMESPACES).text,
+            "title": xml_layer.findtext("wms:Title", "", NAMESPACES),
             "url": url,
             "version": version,
         }
