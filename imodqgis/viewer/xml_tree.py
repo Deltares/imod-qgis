@@ -1,7 +1,7 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from imodqgis import xml_utils as xmu
+from imodqgis.viewer import xml_utils as xmu
 from imodqgis.dependencies import declxml as xml
 
 
