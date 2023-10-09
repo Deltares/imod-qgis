@@ -263,6 +263,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.setLayout(layout)
 
         # Data
+        self.feature_ids = None
         self.dataframes = {}
         self.stored_dataframes = {}
         # Graphing
@@ -276,7 +277,6 @@ class ImodTimeSeriesWidget(QWidget):
         self.previous_layer = None
 
         # Run a single time initialize the combo boxes
-        self.feature_ids = None
         self.layer_selection.update_layers()
         # Set default state of checkbox
         self.update_on_select.setChecked(True)
@@ -314,16 +314,23 @@ class ImodTimeSeriesWidget(QWidget):
         self.names = []
         self.curves = []
         self.pens = []
+        self.selected = (None, None, None)
 
     def clear(self):
+        self.feature_ids = None
         self.dataframes = {}
+        self.stored_dataframes = {}
         self.point_picker.clear_geometries()
         # NOTE: self.point_picker.clear_geometries emits
         # a signal to self.point_picker.geometries_changed
         # which is connected to self.on_select,
         # which also calls self.clear_plot
-        # TODO: Check whether two calls to self.clear_plot are necessary
+        layer = self.layer_selection.currentLayer()
+        if layer is not None and layer.type() != QgsMapLayerType.MeshLayer:
+            layer.removeSelection()
+
         self.clear_plot()
+        return
 
     def start_selection(self):
         layer = self.layer_selection.currentLayer()
@@ -333,6 +340,7 @@ class ImodTimeSeriesWidget(QWidget):
             self.point_picker.picker_clicked()
         else:
             self.iface.actionSelectRectangle().trigger()
+        return
 
     def toggle_update(self):
         """
