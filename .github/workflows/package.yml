@@ -34,14 +34,14 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v3
       with:
-        path: imodqgis
+        path: imodqgis_packaged
         name: imodqgis_${{ github.sha }}
 
     - name: Upload imodqgis to release
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: imodqgis
+        file: imodqgis_packaged
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
