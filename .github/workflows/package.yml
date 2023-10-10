@@ -22,25 +22,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Build 
-      run: |        
-        rm -f imodqgis.zip
-        cd imodqgis
-        git archive --prefix=imodqgis/ -o ../imodqgis.zip HEAD
-      shell: bash
-
     - name: Upload imodqgis to Github artifact
       if: always()
       uses: actions/upload-artifact@v3
       with:
-        path: imodqgis.zip
-        name: imodqgis_${{ github.sha }}.zip
+        path: imodqgis
+        name: imodqgis_${{ github.sha }}
 
     - name: Upload imodqgis to release
       uses: svenstaro/upload-release-action@v2
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: imodqgis.zip
+        file: imodqgis
         tag: ${{ github.ref }}
         overwrite: true
         file_glob: true
