@@ -83,7 +83,7 @@ class TestCaseIpfBorehole(unittest.TestCase):
 
         self.assertEqual(list(df.columns), ["top", "lithology"])
         self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(np.all(np.isclose(df["top"].to_numpy, expected_top_values)))
+        self.assertTrue(np.all(np.isclose(df["top"].to_numpy(), expected_top_values)))
         self.assertTrue(np.all(df["lithology"].to_numpy() == expected_lithology))
 
     def test_read_associated_timeseries(self):
