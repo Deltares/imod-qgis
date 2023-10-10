@@ -1,0 +1,47 @@
+# Modified from https://github.com/GispoCoding/qaava-qgis-plugin/blob/master/.github/workflows/tests.yml
+# workflow name
+name: Package
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the wanted branches
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  package:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+  
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build 
+      run: |        
+        rm -f imodqgis.zip
+        cd imodqgis
+        git archive --prefix=imodqgis/ -o ../imodqgis.zip HEAD
+      shell: bash
+
+    - name: Upload imodqgis to Github artifact
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        path: imodqgis.zip
+        name: imodqgis_${{ github.sha }}.zip
+
+    - name: Upload imodqgis to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: imodqgis.zip
+        tag: ${{ github.ref }}
+        overwrite: true
+        file_glob: true
+      if: startsWith(github.ref, 'refs/tags/')
