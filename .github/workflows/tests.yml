@@ -35,15 +35,15 @@ jobs:
             echo "GITHUB_REF: ${GITHUB_REF}"
 
       - name: Pull qgis image
-        run: docker pull qgis/qgis:release-3_22
+        run: docker pull qgis/qgis:release-3_30
 
       # Runs all tests
         # When running locally on Windows, use the second docker run line in this step. Windows docker with WSL2 requires the absolute path.
       - name: Install qgis image
-        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run on Github
-        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_22 #Run locally
+        run: docker run -d --name qgis-testing-environment -v ${GITHUB_WORKSPACE}:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_30 #Run on Github
+        #run: docker run -d --name qgis-testing-environment -v c:/src/imod-qgis:/tests_directory -e DISPLAY=:99 qgis/qgis:release-3_30 #Run locally
       - run: sleep 10 # This is required to allow xvfb to start
-      - run: docker exec -t qgis-testing-environment sh -c "qgis_setup.sh imodqgis"    # Setup qgis and enables the plugin
+      - run: docker exec -t qgis-testing-environment sh -c "cd /tests_directory && qgis_setup.sh imodqgis"    # Setup qgis and enables the plugin
 
         # Additional steps (for example make or paver setup) here
         # Fix the symlink created by qgis_setup.sh
