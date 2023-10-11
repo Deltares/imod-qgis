@@ -1,7 +1,7 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from typing import Dict, Union
+from typing import Dict, Union, List
 
 import numpy as np
 from PyQt5.QtCore import Qt
@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
     QGridLayout,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -22,12 +23,14 @@ from PyQt5.QtWidgets import (
 )
 from qgis.core import (
     QgsColorRampShader,
+    QgsRasterRendererUtils
 )
 from qgis.gui import (
     QgsColorRampButton,
     QgsColorSwatchDelegate,
     QgsTreeWidgetItemObject,
 )
+
 
 Number = Union[int, float]
 
@@ -172,8 +175,20 @@ class ImodPseudoColorWidget(QWidget):
         else:
             return np.nanmax(self.data)
 
-    def classify(self) -> None:
+    def set_color_items_in_table(self, boundaries: List, colors: List):
         self.table.clear()
+        for boundary, color in zip(boundaries, colors):
+            new_item = QgsTreeWidgetItemObject(self.table)
+            new_item.setData(0, Qt.ItemDataRole.DisplayRole, float(boundary))
+            new_item.setData(1, Qt.ItemDataRole.EditRole, color)
+            new_item.setText(2, "")
+            new_item.setFlags(
+                Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+            )
+            new_item.itemEdited.connect(self.item_edited)
+        self.format_labels()
+
+    def classify(self) -> None:
         shader_mode = CLASSIFICATION_MODE[self.classification_box.currentText()]
         shader_type = SHADER_TYPES[self.interpolation_box.currentText()]
 
@@ -196,16 +211,7 @@ class ImodPseudoColorWidget(QWidget):
                 boundaries = np.linspace(self.minimum(), self.maximum(), n_class)
 
         colors = [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
-        for boundary, color in zip(boundaries, colors):
-            new_item = QgsTreeWidgetItemObject(self.table)
-            new_item.setData(0, Qt.ItemDataRole.DisplayRole, float(boundary))
-            new_item.setData(1, Qt.ItemDataRole.EditRole, color)
-            new_item.setText(2, "")
-            new_item.setFlags(
-                Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
-            )
-            new_item.itemEdited.connect(self.item_edited)
-        self.format_labels()
+        self.set_color_items_in_table(boundaries, colors)
 
     def format_labels(self):
         shader_type = SHADER_TYPES[self.interpolation_box.currentText()]
@@ -253,10 +259,24 @@ class ImodPseudoColorWidget(QWidget):
             self.table.takeTopLevelItem(self.table.indexOfTopLevelItem(item))
 
     def load_classes(self):
-        pass
+        path, _ = QFileDialog.getOpenFileName(self, "Load colormap", "", "*.txt")
+        load_succeeded, color_ramp_items, shader_type, load_errors = QgsRasterRendererUtils.parseColorMapFile(path)
+        if not load_succeeded:
+            raise ValueError(f"Encountered the following errors while parsing color map file: {load_errors}")
+        boundaries = [color_ramp_item.value for color_ramp_item in color_ramp_items]
+        colors = [color_ramp_item.color for color_ramp_item in color_ramp_items]
+        self.set_color_items_in_table(boundaries, colors)
+        return
 
     def save_classes(self):
-        pass
+        path, _ = QFileDialog.getSaveFileName(self, "Save colormap", "", "*.txt")
+        shader = self.shader()
+        shader_type = SHADER_TYPES[self.interpolation_box.currentText()]
+        color_ramp_items = shader.colorRampItemList()
+        save_succeeded = QgsRasterRendererUtils.saveColorMapFile(path, color_ramp_items, shader_type)
+        if not save_succeeded:
+            raise ValueError(f"Error saving color map file {path}")
+        return
 
     def labels(self) -> Dict[str, str]:
         label_dict = {}
