@@ -266,6 +266,9 @@ class ImodPseudoColorWidget(QWidget):
         boundaries = [color_ramp_item.value for color_ramp_item in color_ramp_items]
         colors = [color_ramp_item.color for color_ramp_item in color_ramp_items]
         self.set_color_items_in_table(boundaries, colors)
+
+        colorramp = self.shader().createColorRamp()
+        self.color_ramp_button.setColorRamp(colorramp)
         return
 
     def save_classes(self):
