@@ -23,6 +23,8 @@ from PyQt5.QtWidgets import (
 )
 from qgis.core import (
     QgsColorRampShader,
+    QgsGradientColorRamp,
+    QgsGradientStop,
     QgsRasterRendererUtils
 )
 from qgis.gui import (
@@ -258,6 +260,18 @@ class ImodPseudoColorWidget(QWidget):
         for item in self.table.selectedItems():
             self.table.takeTopLevelItem(self.table.indexOfTopLevelItem(item))
 
+    def _create_colorramp(self, boundaries, colors):
+        # Manually construct colorramp from colorrampshader. The stops
+        # determined by the createColorRamp method appear to be broken.
+        bound_arr = np.array(boundaries)
+        boundaries_norm = (bound_arr-bound_arr[0])/(bound_arr[-1]-bound_arr[0])
+        stops = [
+            QgsGradientStop(stop, color) for stop, color in zip(
+                boundaries_norm[1:-1], colors[1:-1]
+            )
+        ]
+        return QgsGradientColorRamp(colors[0], colors[-1], False, stops)      
+
     def load_classes(self):
         path, _ = QFileDialog.getOpenFileName(self, "Load colormap", "", "*.txt")
         load_succeeded, color_ramp_items, shader_type, load_errors = QgsRasterRendererUtils.parseColorMapFile(path)
@@ -266,8 +280,7 @@ class ImodPseudoColorWidget(QWidget):
         boundaries = [color_ramp_item.value for color_ramp_item in color_ramp_items]
         colors = [color_ramp_item.color for color_ramp_item in color_ramp_items]
         self.set_color_items_in_table(boundaries, colors)
-
-        colorramp = self.shader().createColorRamp()
+        colorramp = self._create_colorramp(boundaries, colors)
         self.color_ramp_button.setColorRamp(colorramp)
         return
 
