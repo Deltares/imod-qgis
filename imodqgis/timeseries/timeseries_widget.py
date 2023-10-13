@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PyQt5.QtTest import QSignalSpy
 from qgis.core import (
     QgsCoordinateTransformContext,
     QgsMapLayerType,
@@ -304,7 +305,15 @@ class ImodTimeSeriesWidget(QWidget):
         # Explicitly disconnect signal
         layer = self.layer_selection.currentLayer()
         if (layer is not None) and (layer.type() == QgsMapLayerType.VectorLayer):
-            layer.selectionChanged.disconnect(self.on_select)
+            # Check if selectionChanged is connected to anything then disconnect
+            # self.on_select. PyQt5 does not have a simple signal isConnected
+            # method. The receivers layer.receivers(layer.layerChanged()) can
+            # also return values > 0, despite having no connections, so the
+            # solution here also doesn't work:
+            # https://stackoverflow.com/questions/8166571/how-to-find-if-a-signal-is-connected-to-anything
+            signalspy = QSignalSpy(layer.selectionChanged)
+            if len(list(signalspy)) > 0:
+                layer.selectionChanged.disconnect(self.on_select)
 
         QWidget.hideEvent(self, e)
 
