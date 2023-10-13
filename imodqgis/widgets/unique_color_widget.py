@@ -5,11 +5,13 @@ from typing import Dict
 
 import numpy as np
 import pandas as pd
+import json
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
+    QFileDialog,
     QLabel,
     QPushButton,
     QTreeWidget,
@@ -83,9 +85,12 @@ class ImodUniqueColorWidget(QWidget):
         layout.addLayout(second_row)
         self.setLayout(layout)
 
-    def set_data(self, data: np.ndarray):
+    def set_data(self, data: np.ndarray) -> None:
         self.data = data
         self.classify()
+
+    def set_legend(self) -> None:
+
 
     def classify(self) -> None:
         self.table.clear()
@@ -143,10 +148,23 @@ class ImodUniqueColorWidget(QWidget):
             self.table.takeTopLevelItem(self.table.indexOfTopLevelItem(item))
 
     def load_classes(self) -> None:
-        pass
+        path, _ = QFileDialog.getOpenFileName(self, "Load colors", "", "*.txt")
+        with open(path, "r") as file:
+            rgb_values = json.load(file)
+        colors = [QColor(*rgb) for rgb in rgb_values]
+        table_iter = range(self.table.topLevelItemCount())
+
+        for i, color in zip(table_iter, colors):
+            item = self.table.topLevelItem(i)
+            item.setData(1, Qt.ItemDataRole.EditRole, color)
 
     def save_classes(self) -> None:
-        pass
+        path, _ = QFileDialog.getSaveFileName(self, "Save colors", "", "*.txt")
+        colors = self.colors().values()
+        rgb_values = [c.getRgb() for c in colors]
+
+        with open(path, "w") as file:
+            file.write(json.dumps(rgb_values))
 
     def shader(self) -> ImodUniqueColorShader:
         values = []
