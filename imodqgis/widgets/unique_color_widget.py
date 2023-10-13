@@ -1,7 +1,7 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -85,19 +85,21 @@ class ImodUniqueColorWidget(QWidget):
         layout.addLayout(second_row)
         self.setLayout(layout)
 
-    def set_data(self, data: np.ndarray) -> None:
+    def set_data(self, data: np.ndarray):
         self.data = data
-        self.classify()
+        # Extend list of colors if more data points available than before with
+        # colors from colorramp button.
+        previous_colors = list(self.colors().values())
+        ramp_colors = self.get_colors_from_ramp_button()
+        start = len(previous_colors)
+        if len(previous_colors) < len(ramp_colors):
+            colors = previous_colors + ramp_colors[start:]
+        else:
+            colors = previous_colors
+        self.set_legend(colors)
 
-    def set_legend(self) -> None:
-
-
-    def classify(self) -> None:
-        self.table.clear()
+    def set_legend(self, colors) -> None:
         uniques = pd.Series(self.data).dropna().unique()
-        n_class = uniques.size
-        ramp = self.color_ramp_button.colorRamp()
-        colors = [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
         for value, color in zip(uniques, colors):
             new_item = QgsTreeWidgetItemObject(self.table)
             # Make sure to convert from numpy type to Python type with .item()
@@ -111,6 +113,17 @@ class ImodUniqueColorWidget(QWidget):
             new_item.setFlags(
                 Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
             )
+
+    def get_colors_from_ramp_button(self) -> List[QColor]:
+        uniques = pd.Series(self.data).dropna().unique()
+        n_class = uniques.size
+        ramp = self.color_ramp_button.colorRamp()
+        return [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
+
+    def classify(self) -> None:
+        self.table.clear()
+        colors = self.get_colors_from_ramp_button()
+        self.set_legend(colors)
 
     def add_class(self) -> None:
         new_item = QgsTreeWidgetItemObject(self.table)
