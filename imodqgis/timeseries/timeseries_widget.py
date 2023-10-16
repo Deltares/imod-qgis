@@ -319,6 +319,12 @@ class ImodTimeSeriesWidget(QWidget):
                     pass
         QWidget.hideEvent(self, e)
 
+    def showEvent(self, e):
+        layer = self.layer_selection.currentLayer()
+        if (layer is not None) and (layer.type() == QgsMapLayerType.VectorLayer):
+            layer.selectionChanged.connect(self.on_select)
+        QWidget.showEvent(self, e)
+
     def clear_plot(self):
         self.plot_widget.clear()
         self.legend.clear()
