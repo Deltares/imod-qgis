@@ -305,16 +305,18 @@ class ImodTimeSeriesWidget(QWidget):
         # Explicitly disconnect signal
         layer = self.layer_selection.currentLayer()
         if (layer is not None) and (layer.type() == QgsMapLayerType.VectorLayer):
-            # Check if selectionChanged is connected to anything then disconnect
-            # self.on_select. PyQt5 does not have a simple signal isConnected
-            # method. The receivers layer.receivers(layer.layerChanged()) can
-            # also return values > 0, despite having no connections, so the
-            # solution here also doesn't work:
-            # https://stackoverflow.com/questions/8166571/how-to-find-if-a-signal-is-connected-to-anything
-            signalspy = QSignalSpy(layer.selectionChanged)
-            if len(list(signalspy)) > 0:
-                layer.selectionChanged.disconnect(self.on_select)
-
+            n_receivers = layer.receivers(layer.selectionChanged)
+            # Methods can be connected multiple times to a signal, therefore
+            # loop over n_receivers to ensure the signal is fully disconnected.
+            # If we require more fine-grained control on finding signals:
+            # https://stackoverflow.com/questions/8166571/how-to-find-if-a-signal-is-connected-to-anything/68621792#68621792
+            for _ in range(n_receivers):
+                # Try except to deal with the case where other method than
+                # on_select is connected to selectionChanged.
+                try:
+                    layer.selectionChanged.disconnect(self.on_select)
+                except TypeError:
+                    pass
         QWidget.hideEvent(self, e)
 
     def clear_plot(self):
