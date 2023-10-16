@@ -132,6 +132,10 @@ class ImodUniqueColorWidget(QWidget):
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
         n_colors = ramp.count()
+        # Cap n_colors at max 12, as for example some gradient colormaps have
+        # 255 stops. Too high values for n_colors create too subtle color
+        # shifts.
+        n_colors = np.min([n_colors, 12])
 
         values_colors = self._get_tiled_normalized_midpoints(n_class, n_colors)
         return [ramp.color(f) for f in values_colors]
