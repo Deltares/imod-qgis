@@ -43,6 +43,7 @@ class ImodUniqueColorWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         self.data = None
+        self.loaded_colors = []
 
         self.color_ramp_button = QgsColorRampButton()
         self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
@@ -87,19 +88,19 @@ class ImodUniqueColorWidget(QWidget):
 
     def set_data(self, data: np.ndarray):
         self.data = data
-        # Extend list of colors if more data points available than before with
-        # colors from colorramp button.
-        previous_colors = list(self.colors().values())
+        # Extend list of colors with colors from colorramp button if more data
+        # points available than in loaded file.
         ramp_colors = self.get_colors_from_ramp_button()
-        start = len(previous_colors)
-        if len(previous_colors) < len(ramp_colors):
-            colors = previous_colors + ramp_colors[start:]
+        n_loaded_colors = len(self.loaded_colors)
+        if n_loaded_colors < len(ramp_colors):
+            colors = self.loaded_colors + ramp_colors[n_loaded_colors:]
         else:
-            colors = previous_colors
+            colors = self.loaded_colors
         self.set_legend(colors)
 
     def set_legend(self, colors) -> None:
         uniques = pd.Series(self.data).dropna().unique()
+        self.table.clear()
         for value, color in zip(uniques, colors):
             new_item = QgsTreeWidgetItemObject(self.table)
             # Make sure to convert from numpy type to Python type with .item()
@@ -114,16 +115,32 @@ class ImodUniqueColorWidget(QWidget):
                 Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
             )
 
+    def _get_tiled_normalized_midpoints(self, n_elements, tilesize):
+        """
+        Create array with length n_class of rolling normalized midpoint values
+        which can be used to to fetch values on unique colors colormap.
+
+        Example
+        -------
+        >>> self._get_tiled_normalized_midpoints(n_elements=6, tilesize=4)
+        array([0.125, 0.375, 0.625, 0.875, 0.125, 0.375)]
+        """
+        return ((np.arange(n_elements) % tilesize) + 0.5) / tilesize
+
     def get_colors_from_ramp_button(self) -> List[QColor]:
         uniques = pd.Series(self.data).dropna().unique()
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
-        return [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
+        n_colors = ramp.count()
+
+        values_colors = self._get_tiled_normalized_midpoints(n_class, n_colors)
+        return [ramp.color(f) for f in values_colors]
 
     def classify(self) -> None:
         self.table.clear()
         colors = self.get_colors_from_ramp_button()
         self.set_legend(colors)
+        self.loaded_colors = []
 
     def add_class(self) -> None:
         new_item = QgsTreeWidgetItemObject(self.table)
@@ -164,10 +181,10 @@ class ImodUniqueColorWidget(QWidget):
         path, _ = QFileDialog.getOpenFileName(self, "Load colors", "", "*.txt")
         with open(path, "r") as file:
             rgb_values = json.load(file)
-        colors = [QColor(*rgb) for rgb in rgb_values]
+        self.loaded_colors = [QColor(*rgb) for rgb in rgb_values]
         table_iter = range(self.table.topLevelItemCount())
 
-        for i, color in zip(table_iter, colors):
+        for i, color in zip(table_iter, self.loaded_colors):
             item = self.table.topLevelItem(i)
             item.setData(1, Qt.ItemDataRole.EditRole, color)
 
