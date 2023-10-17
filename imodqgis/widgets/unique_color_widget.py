@@ -182,7 +182,7 @@ class ImodUniqueColorWidget(QWidget):
             self.table.takeTopLevelItem(self.table.indexOfTopLevelItem(item))
 
     def load_classes(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(self, "Load colors", "", "*.txt")
+        path, _ = QFileDialog.getOpenFileName(self, "Load colors", "", "*.json")
         with open(path, "r") as file:
             rgb_values = json.load(file)
         self.loaded_colors = [QColor(*rgb) for rgb in rgb_values]
@@ -193,12 +193,19 @@ class ImodUniqueColorWidget(QWidget):
             item.setData(1, Qt.ItemDataRole.EditRole, color)
 
     def save_classes(self) -> None:
-        path, _ = QFileDialog.getSaveFileName(self, "Save colors", "", "*.txt")
+        """
+        Save colors to a .json file. The unique color widget saves only colors
+        without corresponding values, as values are usually too unique (e.g.
+        name of borehole) to be used for different datasets. QGIS has no
+        standard functionality for writing purely colors to file, hence we save
+        to a json.
+        """
+        path, _ = QFileDialog.getSaveFileName(self, "Save colors", "", "*.json")
         colors = self.colors().values()
         rgb_values = [c.getRgb() for c in colors]
 
         with open(path, "w") as file:
-            file.write(json.dumps(rgb_values))
+            json.dump(rgb_values, file)
 
     def shader(self) -> ImodUniqueColorShader:
         values = []
