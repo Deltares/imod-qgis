@@ -115,17 +115,17 @@ class ImodUniqueColorWidget(QWidget):
                 Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
             )
 
-    def _get_tiled_normalized_midpoints(self, n_elements, tilesize):
+    def _get_cyclic_normalized_midpoints(self, n_elements, cycle_size):
         """
-        Create array with length n_class of rolling normalized midpoint values
-        which can be used to to fetch values on unique colors colormap.
+        Create array with length n_elements which cycles through normalized
+        midpoint values, used to fetch values on unique colors colormap.
 
         Example
         -------
-        >>> self._get_tiled_normalized_midpoints(n_elements=6, tilesize=4)
+        >>> self._get_cyclic_normalized_midpoints(n_elements=6, cycle_size=4)
         array([0.125, 0.375, 0.625, 0.875, 0.125, 0.375)]
         """
-        return ((np.arange(n_elements) % tilesize) + 0.5) / tilesize
+        return ((np.arange(n_elements) % cycle_size) + 0.5) / cycle_size
 
     def get_colors_from_ramp_button(self) -> List[QColor]:
         uniques = pd.Series(self.data).dropna().unique()
@@ -137,7 +137,7 @@ class ImodUniqueColorWidget(QWidget):
         # shifts.
         n_colors = np.min([n_colors, 12])
 
-        values_colors = self._get_tiled_normalized_midpoints(n_class, n_colors)
+        values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
         return [ramp.color(f) for f in values_colors]
 
     def classify(self) -> None:
