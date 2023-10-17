@@ -177,7 +177,7 @@ class ImodPseudoColorWidget(QWidget):
         else:
             return np.nanmax(self.data)
 
-    def set_color_items_in_table(self, boundaries: List, colors: List):
+    def _set_color_items_in_table(self, boundaries: List, colors: List):
         self.table.clear()
         for boundary, color in zip(boundaries, colors):
             new_item = QgsTreeWidgetItemObject(self.table)
@@ -213,7 +213,7 @@ class ImodPseudoColorWidget(QWidget):
                 boundaries = np.linspace(self.minimum(), self.maximum(), n_class)
 
         colors = [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
-        self.set_color_items_in_table(boundaries, colors)
+        self._set_color_items_in_table(boundaries, colors)
 
     def format_labels(self):
         shader_type = SHADER_TYPES[self.interpolation_box.currentText()]
@@ -279,7 +279,7 @@ class ImodPseudoColorWidget(QWidget):
             raise ValueError(f"Encountered the following errors while parsing color map file: {load_errors}")
         boundaries = [color_ramp_item.value for color_ramp_item in color_ramp_items]
         colors = [color_ramp_item.color for color_ramp_item in color_ramp_items]
-        self.set_color_items_in_table(boundaries, colors)
+        self._set_color_items_in_table(boundaries, colors)
         colorramp = self._create_colorramp(boundaries, colors)
         self.color_ramp_button.setColorRamp(colorramp)
         return
