@@ -131,13 +131,11 @@ class ImodUniqueColorWidget(QWidget):
         uniques = pd.Series(self.data).dropna().unique()
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
-        n_colors = ramp.count()
-        # Cap n_colors at max 12, as for example some gradient colormaps have
-        # 255 stops. Too high values for n_colors create too subtle color
-        # shifts.
-        n_colors = np.min([n_colors, 12])
-
-        values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
+        if ramp.type in ["colorbrewer", "random"]:
+            n_colors = ramp.count()
+            values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
+        else:
+            values_colors = np.linspace(0.0, 1.0, n_class)
         return [ramp.color(f) for f in values_colors]
 
     def classify(self) -> None:
