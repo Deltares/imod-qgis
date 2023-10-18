@@ -263,12 +263,15 @@ class ImodPseudoColorWidget(QWidget):
 
     def load_classes(self):
         path, _ = QFileDialog.getOpenFileName(self, "Load colormap", "", "*.txt")
-        load_succeeded, color_ramp_items, shader_type, load_errors = QgsRasterRendererUtils.parseColorMapFile(path)
+        # Load colorsmap
+        load_succeeded, color_ramp_items, _, load_errors = QgsRasterRendererUtils.parseColorMapFile(path)
         if not load_succeeded:
             raise ValueError(f"Encountered the following errors while parsing color map file: {load_errors}")
-        boundaries = [color_ramp_item.value for color_ramp_item in color_ramp_items]
-        colors = [color_ramp_item.color for color_ramp_item in color_ramp_items]
+        # Unpack values
+        boundaries, colors = zip(*[(c_ramp_item.value, c_ramp_item.color) for c_ramp_item in color_ramp_items])
+        # Set color items in table
         self._set_color_items_in_table(boundaries, colors)
+        # Set color ramp
         colorramp = create_colorramp(boundaries, colors, discrete=False)
         self.color_ramp_button.setColorRamp(colorramp)
         return
