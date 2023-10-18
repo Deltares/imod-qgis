@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PyQt5.QtTest import QSignalSpy
 from qgis.core import (
     QgsCoordinateTransformContext,
     QgsMapLayerType,
@@ -304,9 +305,25 @@ class ImodTimeSeriesWidget(QWidget):
         # Explicitly disconnect signal
         layer = self.layer_selection.currentLayer()
         if (layer is not None) and (layer.type() == QgsMapLayerType.VectorLayer):
-            layer.selectionChanged.disconnect(self.on_select)
-
+            n_receivers = layer.receivers(layer.selectionChanged)
+            # Methods can be connected multiple times to a signal, therefore
+            # loop over n_receivers to ensure the signal is fully disconnected.
+            # If we require more fine-grained control on finding signals:
+            # https://stackoverflow.com/questions/8166571/how-to-find-if-a-signal-is-connected-to-anything/68621792#68621792
+            for _ in range(n_receivers):
+                # Try except to deal with the case where other method than
+                # on_select is connected to selectionChanged.
+                try:
+                    layer.selectionChanged.disconnect(self.on_select)
+                except TypeError:
+                    pass
         QWidget.hideEvent(self, e)
+
+    def showEvent(self, e):
+        layer = self.layer_selection.currentLayer()
+        if (layer is not None) and (layer.type() == QgsMapLayerType.VectorLayer):
+            layer.selectionChanged.connect(self.on_select)
+        QWidget.showEvent(self, e)
 
     def clear_plot(self):
         self.plot_widget.clear()
