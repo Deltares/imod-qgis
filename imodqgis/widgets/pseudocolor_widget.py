@@ -277,6 +277,10 @@ class ImodPseudoColorWidget(QWidget):
         return
 
     def save_classes(self):
+        """
+        Save colors to a QGIS colormap textfile. This stores colors and
+        corresponding values.
+        """
         path, _ = QFileDialog.getSaveFileName(self, "Save colormap", "", "*.txt")
         shader = self.shader()
         shader_type = SHADER_TYPES[self.interpolation_box.currentText()]
