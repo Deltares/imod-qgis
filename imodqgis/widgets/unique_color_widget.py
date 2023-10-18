@@ -131,7 +131,7 @@ class ImodUniqueColorWidget(QWidget):
         uniques = pd.Series(self.data).dropna().unique()
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
-        if ramp.type in ["colorbrewer", "random"]:
+        if ramp.type() in ["colorbrewer", "random"]:
             n_colors = ramp.count()
             values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
         else:
