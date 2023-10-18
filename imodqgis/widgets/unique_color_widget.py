@@ -122,7 +122,7 @@ class ImodUniqueColorWidget(QWidget):
         """
         return ((np.arange(n_elements) % cycle_size) + 0.5) / cycle_size
 
-    def needs_cyclic_colorramp(self):
+    def _needs_cyclic_colorramp(self):
         ramp = self.color_ramp_button.colorRamp()
         if ramp.type() in ["colorbrewer", "random"]:
             return True
@@ -131,9 +131,11 @@ class ImodUniqueColorWidget(QWidget):
         else:
             return False
 
-    def count_discrete_colors(self):
-        """The discrete gradient has one stop more than colors, whereas the
-        colorbrewer colorramp has as many stops as colors"""
+    def _count_discrete_colors(self):
+        """
+        The discrete gradient has one stop more than colors, whereas the
+        colorbrewer colorramp has as many stops as colors
+        """
         ramp = self.color_ramp_button.colorRamp()
         if ramp.type() in ["gradient"]:
             return ramp.count() - 1
@@ -144,8 +146,8 @@ class ImodUniqueColorWidget(QWidget):
         uniques = pd.Series(self.data).dropna().unique()
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
-        if self.needs_cyclic_colorramp():
-            n_colors = self.count_discrete_colors()
+        if self._needs_cyclic_colorramp():
+            n_colors = self._count_discrete_colors()
             values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
         else:
             values_colors = np.linspace(0.0, 1.0, n_class)
