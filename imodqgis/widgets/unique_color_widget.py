@@ -26,6 +26,7 @@ from qgis.gui import (
     QgsColorSwatchDelegate,
     QgsTreeWidgetItemObject,
 )
+from imodqgis.utils.color import create_colorramp
 
 
 class ImodUniqueColorShader:
@@ -43,7 +44,6 @@ class ImodUniqueColorWidget(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
         self.data = None
-        self.loaded_colors = []
 
         self.color_ramp_button = QgsColorRampButton()
         self.color_ramp_button.setColorRamp(QgsColorBrewerColorRamp("Set1", colors=9))
@@ -90,12 +90,7 @@ class ImodUniqueColorWidget(QWidget):
         self.data = data
         # Extend list of colors with colors from colorramp button if more data
         # points available than in loaded file.
-        ramp_colors = self.get_colors_from_ramp_button()
-        n_loaded_colors = len(self.loaded_colors)
-        if n_loaded_colors < len(ramp_colors):
-            colors = self.loaded_colors + ramp_colors[n_loaded_colors:]
-        else:
-            colors = self.loaded_colors
+        colors = self.get_colors_from_ramp_button()
         self.set_legend(colors)
 
     def set_legend(self, colors) -> None:
@@ -127,12 +122,30 @@ class ImodUniqueColorWidget(QWidget):
         """
         return ((np.arange(n_elements) % cycle_size) + 0.5) / cycle_size
 
+    def needs_cyclic_colorramp(self):
+        ramp = self.color_ramp_button.colorRamp()
+        if ramp.type() in ["colorbrewer", "random"]:
+            return True
+        elif hasattr(ramp, "isDiscrete") and ramp.isDiscrete():
+            return True
+        else:
+            return False
+
+    def count_discrete_colors(self):
+        """The discrete gradient has one stop more than colors, whereas the
+        colorbrewer colorramp has as many stops as colors"""
+        ramp = self.color_ramp_button.colorRamp()
+        if ramp.type() in ["gradient"]:
+            return ramp.count() - 1
+        else:
+            return ramp.count()
+
     def get_colors_from_ramp_button(self) -> List[QColor]:
         uniques = pd.Series(self.data).dropna().unique()
         n_class = uniques.size
         ramp = self.color_ramp_button.colorRamp()
-        if ramp.type() in ["colorbrewer", "random"]:
-            n_colors = ramp.count()
+        if self.needs_cyclic_colorramp():
+            n_colors = self.count_discrete_colors()
             values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
         else:
             values_colors = np.linspace(0.0, 1.0, n_class)
@@ -142,7 +155,6 @@ class ImodUniqueColorWidget(QWidget):
         self.table.clear()
         colors = self.get_colors_from_ramp_button()
         self.set_legend(colors)
-        self.loaded_colors = []
 
     def add_class(self) -> None:
         new_item = QgsTreeWidgetItemObject(self.table)
@@ -181,12 +193,17 @@ class ImodUniqueColorWidget(QWidget):
 
     def load_classes(self) -> None:
         path, _ = QFileDialog.getOpenFileName(self, "Load colors", "", "*.json")
+        # Load colors
         with open(path, "r") as file:
             rgb_values = json.load(file)
-        self.loaded_colors = [QColor(*rgb) for rgb in rgb_values]
+        colors = [QColor(*rgb) for rgb in rgb_values]
+        # Set colorramp button
+        boundaries = np.linspace(0.0, 1.0, len(colors)+1)
+        color_ramp = create_colorramp(boundaries, colors, discrete=True)
+        self.color_ramp_button.setColorRamp(color_ramp)
+        # Set colors in table
         table_iter = range(self.table.topLevelItemCount())
-
-        for i, color in zip(table_iter, self.loaded_colors):
+        for i, color in zip(table_iter, colors):
             item = self.table.topLevelItem(i)
             item.setData(1, Qt.ItemDataRole.EditRole, color)
 
