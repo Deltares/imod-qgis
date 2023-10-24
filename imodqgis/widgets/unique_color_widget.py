@@ -1,15 +1,17 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+import json
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
+    QFileDialog,
     QLabel,
     QPushButton,
     QTreeWidget,
@@ -24,6 +26,7 @@ from qgis.gui import (
     QgsColorSwatchDelegate,
     QgsTreeWidgetItemObject,
 )
+from imodqgis.utils.color import create_colorramp
 
 
 class ImodUniqueColorShader:
@@ -85,14 +88,14 @@ class ImodUniqueColorWidget(QWidget):
 
     def set_data(self, data: np.ndarray):
         self.data = data
-        self.classify()
+        # Extend list of colors with colors from colorramp button if more data
+        # points available than in loaded file.
+        colors = self.get_colors_from_ramp_button()
+        self.set_legend(colors)
 
-    def classify(self) -> None:
-        self.table.clear()
+    def set_legend(self, colors) -> None:
         uniques = pd.Series(self.data).dropna().unique()
-        n_class = uniques.size
-        ramp = self.color_ramp_button.colorRamp()
-        colors = [ramp.color(f) for f in np.linspace(0.0, 1.0, n_class)]
+        self.table.clear()
         for value, color in zip(uniques, colors):
             new_item = QgsTreeWidgetItemObject(self.table)
             # Make sure to convert from numpy type to Python type with .item()
@@ -106,6 +109,54 @@ class ImodUniqueColorWidget(QWidget):
             new_item.setFlags(
                 Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
             )
+
+    def _get_cyclic_normalized_midpoints(self, n_elements, cycle_size):
+        """
+        Create array with length n_elements which cycles through normalized
+        midpoint values, used to fetch values on unique colors colormap.
+
+        Example
+        -------
+        >>> self._get_cyclic_normalized_midpoints(n_elements=6, cycle_size=4)
+        array([0.125, 0.375, 0.625, 0.875, 0.125, 0.375)]
+        """
+        return ((np.arange(n_elements) % cycle_size) + 0.5) / cycle_size
+
+    def _needs_cyclic_colorramp(self):
+        ramp = self.color_ramp_button.colorRamp()
+        if ramp.type() in ["colorbrewer", "random"]:
+            return True
+        elif hasattr(ramp, "isDiscrete") and ramp.isDiscrete():
+            return True
+        else:
+            return False
+
+    def _count_discrete_colors(self):
+        """
+        The discrete gradient has one stop more than colors, whereas the
+        colorbrewer colorramp has as many stops as colors
+        """
+        ramp = self.color_ramp_button.colorRamp()
+        if ramp.type() in ["gradient"]:
+            return ramp.count() - 1
+        else:
+            return ramp.count()
+
+    def get_colors_from_ramp_button(self) -> List[QColor]:
+        uniques = pd.Series(self.data).dropna().unique()
+        n_class = uniques.size
+        ramp = self.color_ramp_button.colorRamp()
+        if self._needs_cyclic_colorramp():
+            n_colors = self._count_discrete_colors()
+            values_colors = self._get_cyclic_normalized_midpoints(n_class, n_colors)
+        else:
+            values_colors = np.linspace(0.0, 1.0, n_class)
+        return [ramp.color(f) for f in values_colors]
+
+    def classify(self) -> None:
+        self.table.clear()
+        colors = self.get_colors_from_ramp_button()
+        self.set_legend(colors)
 
     def add_class(self) -> None:
         new_item = QgsTreeWidgetItemObject(self.table)
@@ -143,10 +194,35 @@ class ImodUniqueColorWidget(QWidget):
             self.table.takeTopLevelItem(self.table.indexOfTopLevelItem(item))
 
     def load_classes(self) -> None:
-        pass
+        path, _ = QFileDialog.getOpenFileName(self, "Load colors", "", "*.json")
+        # Load colors
+        with open(path, "r") as file:
+            rgb_values = json.load(file)
+        colors = [QColor(*rgb) for rgb in rgb_values]
+        # Set colorramp button
+        boundaries = np.linspace(0.0, 1.0, len(colors)+1)
+        color_ramp = create_colorramp(boundaries, colors, discrete=True)
+        self.color_ramp_button.setColorRamp(color_ramp)
+        # Set colors in table
+        table_iter = range(self.table.topLevelItemCount())
+        for i, color in zip(table_iter, colors):
+            item = self.table.topLevelItem(i)
+            item.setData(1, Qt.ItemDataRole.EditRole, color)
 
     def save_classes(self) -> None:
-        pass
+        """
+        Save colors to a .json file. The unique color widget saves only colors
+        without corresponding values, as values are usually too unique (e.g.
+        name of borehole) to be used for different datasets. QGIS has no
+        standard functionality for writing purely colors to file, hence we save
+        to a json.
+        """
+        path, _ = QFileDialog.getSaveFileName(self, "Save colors", "", "*.json")
+        colors = self.colors().values()
+        rgb_values = [c.getRgb() for c in colors]
+
+        with open(path, "w") as file:
+            json.dump(rgb_values, file)
 
     def shader(self) -> ImodUniqueColorShader:
         values = []
