@@ -2,7 +2,7 @@
 name=iMOD
 qgisMinimumVersion=3.28
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
-version=0.4.0
+version=0.5.0
 author=Deltares
 email=imod.support@deltares.nl
 
@@ -27,7 +27,12 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>0.4.0 - New features & usability improvements
+changelog=      <p>0.5.0 - New features & usability improvements
+                - Timeseries: Added support to save and load color legends
+                - Cross-section: Added support to save and load color legends
+                <p>0.5.0 - Bug fixes
+                - Timeseries: Fixed bug where error was thrown when selecting vector as data and minimizing and maximizing QGIS twice.
+                <p>0.4.0 - New features & usability improvements
                 - Timeseries: Supports plotting Arrow data. See https://gdal.org/drivers/vector/arrow.html
                 <p>0.4.0 - Bug fixes
                 - Timeseries: Fixed bug where selecting a point, plotting it, clearing plot, then selecting same point, and trying to plot that would not result in a plot.
