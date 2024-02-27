@@ -466,7 +466,7 @@ class ImodTimeSeriesWidget(QWidget):
                     sample_df = next(iter(self.stored_dataframes.values()))
                 else:
                     sample_df = pd.DataFrame()
-                variables = list(sample_df.columns)
+                variables = sample_df.select_dtypes(include=["float"]).columns.tolist()
                 self.id_selection_box.insertItem(0, "fid")
                 self.id_selection_box.setEnabled(False)
             else:
