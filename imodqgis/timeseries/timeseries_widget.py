@@ -550,8 +550,9 @@ class ImodTimeSeriesWidget(QWidget):
         column = layer.customProperty("arrow_fid_column")
         if Path(arrow_path).is_file():
             df = read_arrow(arrow_path)
-            for key, groupdf in df.groupby(column):
-                self.stored_dataframes[key] = groupdf.set_index("time")
+            if not df.empty:
+                for key, groupdf in df.groupby(column):
+                    self.stored_dataframes[key] = groupdf.set_index("time")
         return
 
     def sync_arrow_data(self, layer):
