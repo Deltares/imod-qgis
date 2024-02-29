@@ -548,8 +548,10 @@ class ImodTimeSeriesWidget(QWidget):
         """Synchronize timeseries data from an Arrow dataset"""
         arrow_path = layer.customProperty("arrow_path")
         column = layer.customProperty("arrow_fid_column")
+        # Don't crash if Ribasim did not yet run
         if Path(arrow_path).is_file():
             df = read_arrow(arrow_path)
+            # Don't crash if the dataframe is empty
             if not df.empty:
                 for key, groupdf in df.groupby(column):
                     self.stored_dataframes[key] = groupdf.set_index("time")
