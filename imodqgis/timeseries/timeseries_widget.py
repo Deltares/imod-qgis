@@ -7,7 +7,7 @@ Widget for displaying timeseries data.
 In general: plotting with pyqtgraph is fast, collecting data is relatively
 slow.
 """
-import pathlib
+from pathlib import Path
 import tempfile
 from itertools import compress
 
@@ -462,8 +462,11 @@ class ImodTimeSeriesWidget(QWidget):
                 variables = layer.customProperty("ipf_assoc_columns").split("␞")
             elif layer.customProperty("arrow_type") == "timeseries":
                 self.load_arrow_data(layer)
-                sample_df = next(iter(self.stored_dataframes.values()))
-                variables = list(sample_df.columns)
+                if self.stored_dataframes:
+                    sample_df = next(iter(self.stored_dataframes.values()))
+                else:
+                    sample_df = pd.DataFrame()
+                variables = sample_df.select_dtypes(include=["float"]).columns.tolist()
                 self.id_selection_box.insertItem(0, "fid")
                 self.id_selection_box.setEnabled(False)
             else:
@@ -521,7 +524,7 @@ class ImodTimeSeriesWidget(QWidget):
         index = int(layer.customProperty("ipf_indexcolumn"))
         ext = layer.customProperty("ipf_assoc_ext")
         ipf_path = layer.customProperty("ipf_path")
-        parent = pathlib.Path(ipf_path).parent
+        parent = Path(ipf_path).parent
         names = sorted(
             [str(layer.getFeature(fid).attribute(index)) for fid in feature_ids]
         )
@@ -545,9 +548,13 @@ class ImodTimeSeriesWidget(QWidget):
         """Synchronize timeseries data from an Arrow dataset"""
         arrow_path = layer.customProperty("arrow_path")
         column = layer.customProperty("arrow_fid_column")
-        df = read_arrow(arrow_path)
-        for key, groupdf in df.groupby(column):
-            self.stored_dataframes[key] = groupdf.set_index("time")
+        # Don't crash if Ribasim did not yet run
+        if Path(arrow_path).is_file():
+            df = read_arrow(arrow_path)
+            # Don't crash if the dataframe is empty
+            if not df.empty:
+                for key, groupdf in df.groupby(column):
+                    self.stored_dataframes[key] = groupdf.set_index("time")
         return
 
     def sync_arrow_data(self, layer):
@@ -592,7 +599,7 @@ class ImodTimeSeriesWidget(QWidget):
             return
 
         with tempfile.TemporaryDirectory() as parent:
-            path = pathlib.Path(parent) / "temp-table.csv"
+            path = Path(parent) / "temp-table.csv"
             write_csv(layer, path)
             df = pd.read_csv(
                 path,
