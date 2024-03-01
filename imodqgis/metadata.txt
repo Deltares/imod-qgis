@@ -2,7 +2,7 @@
 name=iMOD
 qgisMinimumVersion=3.28
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
-version=0.5.0
+version=0.5.1
 author=Deltares
 email=imod.support@deltares.nl
 
@@ -27,7 +27,11 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>0.5.0 - New features & usability improvements
+changelog=      <p>0.5.1 - Bug fixes
+                - Timeseries: Don't crash when Arrow file doesn't exist
+                - Timeseries: Don't crash when Arrow data table is empty
+                - Timeseries: Only list float variables in Arrow data
+                <p>0.5.0 - New features & usability improvements
                 - Timeseries: Added support to save and load color legends
                 - Cross-section: Added support to save and load color legends
                 <p>0.5.0 - Bug fixes
