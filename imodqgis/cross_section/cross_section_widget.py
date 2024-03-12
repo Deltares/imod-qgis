@@ -472,6 +472,9 @@ class ImodCrossSectionWidget(QWidget):
         if layers == NO_LAYERS:
             self.as_line_checkbox.setChecked(True)
             self.as_line_checkbox.setEnabled(False)
+        else:
+            self.as_line_checkbox.setChecked(False)
+            self.as_line_checkbox.setEnabled(True)
 
     def on_geometries_changed(self):
         self.iface.mapCanvas().scene().removeItem(self.rubber_band)
