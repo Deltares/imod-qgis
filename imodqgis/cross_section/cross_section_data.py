@@ -11,6 +11,7 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QWidget
 from qgis import processing
 from qgis.core import (
+    QgsDateTimeRange,
     QgsFeature,
     QgsGeometry,
     QgsMeshDatasetIndex,
@@ -73,9 +74,6 @@ class AbstractCrossSectionData(abc.ABC):
     def clear(self):
         pass
 
-    def requires_loading(self, **kwargs):
-        return self.x is None
-
     def add_to_legend(self, legend):
         for color, name in zip(self.colors().values(), self.labels().values()):
             item = pg.BarGraphItem(x=0, y=0, brush=color)
@@ -97,7 +95,7 @@ class AbstractCrossSectionData(abc.ABC):
     def color_ramp(self):
         return self.color_widget.color_ramp_button.colorRamp()
 
-    def requires_static_index(self, datetime_range):
+    def requires_static_index(self, datetime_range: QgsDateTimeRange):
         """
         Check if data requires static indexing, meaning temporal manager inactive
         (datetime_range is None) or layer has not time data.
@@ -134,6 +132,43 @@ class AbstractCrossSectionData(abc.ABC):
             self.colors_changed.emit()
 
 
+class StaticOnlyMixin():
+    def requires_loading(self, **kwargs) -> bool:
+        return self.x is None
+
+class SupportsTemporalMixin():
+    def requires_loading(self, datetime_range: QgsDateTimeRange) -> bool:
+        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
+            sample_index = (0, group_index)
+        else:
+            index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+            sample_index = (index.dataset(), index.group())
+
+        if sample_index == self.sample_index:
+            return False
+        else:
+            return True
+
+    def get_sample_index(self, datetime_range: QgsDateTimeRange) -> Tuple[int, QgsDateTimeRange]:
+        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
+            sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
+            plot_datetime_range = (
+                None  # Fix datetime_range of cross_section_y_data to None
+            )
+        else:
+            sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+            plot_datetime_range = datetime_range
+        index = (sample_index.dataset(), sample_index.group())
+
+        return index, plot_datetime_range
+
+
 class AbstractLineData(AbstractCrossSectionData):
     def plot(self, plot_widget):
         if self.x is None:
@@ -159,7 +194,7 @@ class AbstractLineData(AbstractCrossSectionData):
             legend.addItem(item, name)
 
 
-class MeshLineData(AbstractLineData):
+class MeshLineData(AbstractLineData, SupportsTemporalMixin):
     def __init__(self, layer, variables_indexes, variable, layer_numbers):
         self.layer = layer
         self.variables_indexes = variables_indexes
@@ -184,35 +219,9 @@ class MeshLineData(AbstractLineData):
         self.sample_index = (None, None)
         self.dummy_widget = DummyWidget()
 
-    def requires_loading(self, datetime_range):
-        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if self.requires_static_index(
-            datetime_range
-        ):  # Just take the first one in such a case
-            sample_index = (0, group_index)
-        else:
-            index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            sample_index = (index.dataset(), index.group())
 
-        if sample_index == self.sample_index:
-            return False
-        else:
-            return True
-
-
-    def load(self, geometry, resolution, datetime_range, **_):
-        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if self.requires_static_index(
-            datetime_range
-        ):  # Just take the first one in such a case
-            sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
-            plot_datetime_range = (
-                None  # Fix datetime_range of cross_section_y_data to None
-            )
-        else:
-            sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            plot_datetime_range = datetime_range
-        index = (sample_index.dataset(), sample_index.group())
+    def load(self, geometry, resolution, datetime_range: QgsDateTimeRange, **_):
+        index, plot_datetime_range = self.get_sample_index(datetime_range)
 
         result = self.cache.get(index, None)
         if result is not None:
@@ -235,7 +244,7 @@ class MeshLineData(AbstractLineData):
         self.set_color_data()
 
 
-class RasterLineData(AbstractLineData):
+class RasterLineData(AbstractLineData, StaticOnlyMixin):
     def __init__(self, layer, variables, variables_indexes):
         self.layer = layer
         self.variables = variables
@@ -268,7 +277,7 @@ class RasterLineData(AbstractLineData):
         self.set_color_data()
 
 
-class PointCrossSectionData(AbstractCrossSectionData):
+class PointCrossSectionData(AbstractCrossSectionData, StaticOnlyMixin):
     def select_geometry(self, geometry: QgsGeometry, buffer_distance: float):
         buffered = geometry.buffer(buffer_distance, 4)
         tmp_layer = QgsVectorLayer("Polygon", "temp", "memory")
@@ -449,7 +458,7 @@ class CptData(PointCrossSectionData):
         self.plot_item = None
 
 
-class MeshData(AbstractCrossSectionData):
+class MeshData(AbstractCrossSectionData, SupportsTemporalMixin):
     def __init__(self, layer, variables_indexes, variable, layer_numbers):
         self.layer = layer
         self.variables_indexes = variables_indexes
@@ -470,35 +479,10 @@ class MeshData(AbstractCrossSectionData):
         self.sample_index = (None, None)
         self.dummy_widget = DummyWidget()
 
-    def requires_loading(self, datetime_range):
-        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if self.requires_static_index(
-            datetime_range
-        ):  # Just take the first one in such a case
-            sample_index = (0, group_index)
-        else:
-            index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            sample_index = (index.dataset(), index.group())
-
-        if sample_index == self.sample_index:
-            return False
-        else:
-            return True
-
-    def load(self, geometry, resolution, datetime_range, **_):
+    def load(self, geometry, resolution, datetime_range: QgsDateTimeRange, **_):
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
 
-        if self.requires_static_index(
-            datetime_range
-        ):  # Just take the first one in such a case
-            sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
-            plot_datetime_range = (
-                None  # Fix datetime_range of cross_section_y_data to None
-            )
-        else:
-            sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            plot_datetime_range = datetime_range
-        index = (sample_index.dataset(), sample_index.group())
+        index, plot_datetime_range = self.get_sample_index(datetime_range)
 
         # Get result from cache if available.
         result = self.cache.get(index, None)
