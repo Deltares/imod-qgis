@@ -20,8 +20,11 @@ we require a mesh dataset with the following variables:
 * `top_layer_{nr}`
 * `bottom_layer_{nr}` 
 
-An example of preparing such a dataset in python is found 
-[here](https://deltares.github.io/iMOD-Documentation/workflow_wq.html#convert-output-data). 
+To prepare your datasets for the iMOD QGIS plugin, [we advice using this utility
+function in iMOD
+Python](https://deltares.github.io/imod-python/api/generated/util/imod.util.mdal_compliant_ugrid2d.html#imod.util.mdal_compliant_ugrid2d).
+If you'd like to prepare data yourself for the plugin, [follow this
+example.](https://deltares.github.io/iMOD-Documentation/tutorial_wq.html#convert-output-data).
 We expect to make this less specific in the future.
 
 ## Further reading
