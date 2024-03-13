@@ -151,6 +151,7 @@ class AbstractLineData(AbstractCrossSectionData):
     def clear(self):
         self.x = None
         self.y = None
+        self.cache = {}
         self.plot_item = None
 
     def add_to_legend(self, legend):
@@ -179,26 +180,56 @@ class MeshLineData(AbstractLineData):
         self.color_widget = self.unique_color_widget
         self.legend_items = []
         self.styling_data = np.array(self.variables)
+        self.cache = {}
+        self.sample_index = (None, None)
         self.dummy_widget = DummyWidget()
 
-    def load(self, geometry, resolution, datetime_range, **_):
+    def requires_loading(self, datetime_range):
+        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
         if self.requires_static_index(
             datetime_range
         ):  # Just take the first one in such a case
+            sample_index = (0, group_index)
+        else:
+            index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+            sample_index = (index.dataset(), index.group())
+
+        if sample_index == self.sample_index:
+            return False
+        else:
+            return True
+
+
+    def load(self, geometry, resolution, datetime_range, **_):
+        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
+        if self.requires_static_index(
+            datetime_range
+        ):  # Just take the first one in such a case
+            sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
             plot_datetime_range = (
                 None  # Fix datetime_range of cross_section_y_data to None
             )
         else:
+            sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
             plot_datetime_range = datetime_range
+        index = (sample_index.dataset(), sample_index.group())
 
-        n_lines = len(self.layer_numbers)
-        x = cross_section_x_data(self.layer, geometry, resolution)
-        y = np.empty((n_lines, x.size))
-        for i, k in enumerate(self.layer_numbers):
-            dataset_index = self.variables_indexes[self.variable][k]
-            y[i, :] = cross_section_y_data(
-                self.layer, geometry, dataset_index, x, plot_datetime_range
-            )
+        result = self.cache.get(index, None)
+        if result is not None:
+            x, y = result
+        else:
+            n_lines = len(self.layer_numbers)
+            x = cross_section_x_data(self.layer, geometry, resolution)
+            y = np.empty((n_lines, x.size))
+            for i, k in enumerate(self.layer_numbers):
+                dataset_index = self.variables_indexes[self.variable][k]
+                y[i, :] = cross_section_y_data(
+                    self.layer, geometry, dataset_index, x, plot_datetime_range
+                )
+            # Store in cache
+            self.cache[index] = (x, y)
+            self.sample_index = index
+
         self.x = x
         self.y = y
         self.set_color_data()
@@ -217,6 +248,7 @@ class RasterLineData(AbstractLineData):
         self.color_widget = self.unique_color_widget
         self.legend_items = []
         self.styling_data = np.array(variables)
+        self.cache = {}
         self.dummy_widget = DummyWidget()
 
     def load(self, geometry, resolution, **_):
@@ -443,10 +475,10 @@ class MeshData(AbstractCrossSectionData):
         if self.requires_static_index(
             datetime_range
         ):  # Just take the first one in such a case
-            sample_index = (group_index, 0)
+            sample_index = (0, group_index)
         else:
             index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            sample_index = (index.group(), index.dataset())
+            sample_index = (index.dataset(), index.group())
 
         if sample_index == self.sample_index:
             return False
