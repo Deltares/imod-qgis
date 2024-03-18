@@ -3,7 +3,7 @@
 #
 import abc
 import pathlib
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 from PyQt5.QtCore import pyqtSignal
@@ -131,42 +131,37 @@ class AbstractCrossSectionData(abc.ABC):
                 raise ValueError("Invalid render style")
             self.colors_changed.emit()
 
+def _is_undefined(x: Any) -> bool:
+    return x is None
 
 class StaticOnlyMixin():
     def requires_loading(self, **kwargs) -> bool:
-        return self.x is None
+        return _is_undefined(self.x)
 
 class SupportsTemporalMixin():
     def requires_loading(self, datetime_range: QgsDateTimeRange) -> bool:
-        group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if self.requires_static_index(
-            datetime_range
-        ):  # Just take the first one in such a case
-            sample_index = (0, group_index)
-        else:
-            index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            sample_index = (index.dataset(), index.group())
-
-        if sample_index == self.sample_index:
-            return False
+        time_and_group_index = self.get_time_and_group_index(datetime_range)
+        if time_and_group_index == self.time_and_group_index:
+            return _is_undefined(self.x)
         else:
             return True
 
-    def get_sample_index(self, datetime_range: QgsDateTimeRange) -> Tuple[int, QgsDateTimeRange]:
+    def get_time_and_group_index(self, datetime_range: QgsDateTimeRange) -> Tuple[int, int]:
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
-        if self.requires_static_index(
-            datetime_range
-        ):  # Just take the first one in such a case
-            sample_index = QgsMeshDatasetIndex(group=group_index, dataset=0)
-            plot_datetime_range = (
-                None  # Fix datetime_range of cross_section_y_data to None
-            )
+        if self.requires_static_index(datetime_range):  
+            # Just take the first one in such a case
+            time_index = QgsMeshDatasetIndex(dataset=0, group=group_index)
         else:
-            sample_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
-            plot_datetime_range = datetime_range
-        index = (sample_index.dataset(), sample_index.group())
+            time_index = self.layer.datasetIndexAtTime(datetime_range, group_index)
+        return time_index.dataset(), time_index.group()
 
-        return index, plot_datetime_range
+    def get_plot_datetime_range(self, datetime_range: QgsDateTimeRange) -> QgsDateTimeRange:
+        if self.requires_static_index(datetime_range):
+            # Fix datetime_range of cross_section_y_data to None
+            return None
+        else:
+            return datetime_range
+            
 
 
 class AbstractLineData(AbstractCrossSectionData):
@@ -190,8 +185,10 @@ class AbstractLineData(AbstractCrossSectionData):
         self.plot_item = None
 
     def add_to_legend(self, legend):
-        for item, name in zip(self.plot_item, self.labels()):
-            legend.addItem(item, name)
+        # self.plot_item can be None after clearing
+        if self.plot_item:
+            for item, name in zip(self.plot_item, self.labels()):
+                legend.addItem(item, name)
 
 
 class MeshLineData(AbstractLineData, SupportsTemporalMixin):
@@ -216,12 +213,13 @@ class MeshLineData(AbstractLineData, SupportsTemporalMixin):
         self.legend_items = []
         self.styling_data = np.array(self.variables)
         self.cache = {}
-        self.sample_index = (None, None)
+        self.time_and_group_index = (None, None)
         self.dummy_widget = DummyWidget()
 
 
     def load(self, geometry, resolution, datetime_range: QgsDateTimeRange, **_):
-        index, plot_datetime_range = self.get_sample_index(datetime_range)
+        index = self.get_time_and_group_index(datetime_range)
+        plot_datetime_range = self.get_plot_datetime_range(datetime_range)
 
         result = self.cache.get(index, None)
         if result is not None:
@@ -237,7 +235,7 @@ class MeshLineData(AbstractLineData, SupportsTemporalMixin):
                 )
             # Store in cache
             self.cache[index] = (x, y)
-            self.sample_index = index
+            self.time_and_group_index = index
 
         self.x = x
         self.y = y
@@ -476,13 +474,14 @@ class MeshData(AbstractCrossSectionData, SupportsTemporalMixin):
         self.legend_items = []
         self.styling_data = None
         self.cache = {}
-        self.sample_index = (None, None)
+        self.time_and_group_index = (None, None)
         self.dummy_widget = DummyWidget()
 
     def load(self, geometry, resolution, datetime_range: QgsDateTimeRange, **_):
         group_index = self.variables_indexes[self.variable][self.layer_numbers[0]]
 
-        index, plot_datetime_range = self.get_sample_index(datetime_range)
+        index = self.get_time_and_group_index(datetime_range)
+        plot_datetime_range = self.get_plot_datetime_range(datetime_range)
 
         # Get result from cache if available.
         result = self.cache.get(index, None)
@@ -513,7 +512,7 @@ class MeshData(AbstractCrossSectionData, SupportsTemporalMixin):
                     )
             # Store in cache
             self.cache[index] = (x, top, bottom, z)
-            self.sample_index = index
+            self.time_and_group_index = index
 
         self.x = x
         self.y_top = top
