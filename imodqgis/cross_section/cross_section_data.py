@@ -98,7 +98,7 @@ class AbstractCrossSectionData(abc.ABC):
     def requires_static_index(self, datetime_range: QgsDateTimeRange):
         """
         Check if data requires static indexing, meaning temporal manager inactive
-        (datetime_range is None) or layer has not time data.
+        (datetime_range is None) or layer has no time data.
         """
 
         # This works for Raster, Mesh and Vector data, as they all have this
