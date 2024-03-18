@@ -212,6 +212,9 @@ class MeshLineData(AbstractLineData, SupportsTemporalMixin):
         self.color_widget = self.unique_color_widget
         self.legend_items = []
         self.styling_data = np.array(self.variables)
+        # Cache cross-section lines drawn by storing their x,y values based on
+        # dataset and group index. Cache is cleared upon calling ``clear()``
+        # method.
         self.cache = {}
         self.time_and_group_index = (None, None)
         self.dummy_widget = DummyWidget()
@@ -473,6 +476,9 @@ class MeshData(AbstractCrossSectionData, SupportsTemporalMixin):
         self.color_widget = self.pseudocolor_widget
         self.legend_items = []
         self.styling_data = None
+        # Cache cross-sections drawn by storing their x,top,bottom,and z values
+        # based on dataset and group index. Cache is cleared upon calling
+        # ``clear()`` method.
         self.cache = {}
         self.time_and_group_index = (None, None)
         self.dummy_widget = DummyWidget()
