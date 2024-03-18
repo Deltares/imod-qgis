@@ -30,7 +30,11 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>0.5.1 - Bug fixes
+changelog=      <p>Unreleased - Bug fixes
+                - Cross-section: "As line(s)" button reactivated again after deactivation
+                - Cross-section: Don't crash when drawing linedata for different location on the same timestep
+                - Cross-section: Redraw mesh line data when time changes in temporal controller
+                <p>0.5.1 - Bug fixes
                 - Timeseries: Don't crash when Arrow file doesn't exist
                 - Timeseries: Don't crash when Arrow data table is empty
                 - Timeseries: Only list float variables in Arrow data
