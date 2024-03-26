@@ -7,6 +7,7 @@ Widget for displaying timeseries data.
 In general: plotting with pyqtgraph is fast, collecting data is relatively
 slow.
 """
+
 from pathlib import Path
 import tempfile
 from itertools import compress
@@ -507,9 +508,9 @@ class ImodTimeSeriesWidget(QWidget):
                 columns[number] = timeseries_y_data(
                     layer, geometry, group_index, n_times
                 )
-            self.dataframes[
-                f"{name} point {i + 1} {variable}"
-            ] = pd.DataFrame.from_dict(columns).set_index("time")
+            self.dataframes[f"{name} point {i + 1} {variable}"] = (
+                pd.DataFrame.from_dict(columns).set_index("time")
+            )
 
     def sync_ipf_data(self, layer):
         """Synchronize (load & unload) timeseries data from an IPF dataset"""
@@ -550,6 +551,7 @@ class ImodTimeSeriesWidget(QWidget):
         column = layer.customProperty("arrow_fid_column")
         # Don't crash if Ribasim did not yet run
         if Path(arrow_path).is_file():
+            self.stored_dataframes = {}
             df = read_arrow(arrow_path)
             # Don't crash if the dataframe is empty
             if not df.empty:
@@ -559,14 +561,20 @@ class ImodTimeSeriesWidget(QWidget):
 
     def sync_arrow_data(self, layer):
         feature_ids = layer.selectedFeatureIds()  # Returns a new list
-        # Do not read the data if the selection is the same
-        if self.feature_ids == feature_ids:
-            return
         if len(feature_ids) == 0:
             # warn user: no features selected in current layer
             return
 
+        # FUTURE: maybe we can think of less special casing
+        column = layer.customProperty("arrow_fid_column")
+        if column == "node_id":
+            features = layer.selectedFeatures()
+            feature_ids = [feature.attributeMap()[column] for feature in features]
+
         feature_ids = set(feature_ids).intersection(self.stored_dataframes.keys())
+        # Do not read the data if the selection is the same
+        if self.feature_ids == feature_ids:
+            return
 
         # Filter names to add and to remove, to prevent loading duplicates
         names_to_add = set(feature_ids).difference(self.dataframes.keys())
@@ -608,9 +616,7 @@ class ImodTimeSeriesWidget(QWidget):
                 index_col=id_column,
             )
 
-        selection = {
-            layer.getFeature(fid).attribute(id_column) for fid in feature_ids
-        }
+        selection = {layer.getFeature(fid).attribute(id_column) for fid in feature_ids}
 
         # Filter names to add and to remove, to prevent loading duplicates
         names_to_add = set(selection).difference(self.dataframes.keys())
