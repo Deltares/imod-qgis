@@ -7,6 +7,7 @@ Widget for displaying timeseries data.
 In general: plotting with pyqtgraph is fast, collecting data is relatively
 slow.
 """
+
 from PyQt5.QtWidgets import (
     QCheckBox,
     QWidget,
@@ -398,6 +399,7 @@ class ImodTimeSeriesWidget(QWidget):
                     raise e
 
         layer = self.layer_selection.currentLayer()
+        print(layer)
         if layer is None:
             return
         # Reset state
@@ -490,9 +492,9 @@ class ImodTimeSeriesWidget(QWidget):
                 columns[number] = timeseries_y_data(
                     layer, geometry, group_index, n_times
                 )
-            self.dataframes[
-                f"{name} point {i + 1} {variable}"
-            ] = pd.DataFrame.from_dict(columns).set_index("time")
+            self.dataframes[f"{name} point {i + 1} {variable}"] = (
+                pd.DataFrame.from_dict(columns).set_index("time")
+            )
 
     def sync_ipf_data(self, layer):
         """Synchronize (load & unload) timeseries data from an IPF dataset"""
@@ -529,6 +531,7 @@ class ImodTimeSeriesWidget(QWidget):
 
     def load_arrow_data(self, layer):
         """Synchronize timeseries data from an Arrow dataset"""
+        self.stored_dataframes = {}
         arrow_path = layer.customProperty("arrow_path")
         column = layer.customProperty("arrow_fid_column")
         df = read_arrow(arrow_path)
@@ -538,14 +541,20 @@ class ImodTimeSeriesWidget(QWidget):
 
     def sync_arrow_data(self, layer):
         feature_ids = layer.selectedFeatureIds()  # Returns a new list
-        # Do not read the data if the selection is the same
-        if self.feature_ids == feature_ids:
-            return
         if len(feature_ids) == 0:
             # warn user: no features selected in current layer
             return
 
+        # FUTURE: maybe we can think of a less special cased form
+        column = layer.customProperty("arrow_fid_column")
+        if column == "node_id":
+            selection = layer.selectedFeatures()
+            feature_ids = [feature.attributeMap()[column] for feature in selection]
+
         feature_ids = set(feature_ids).intersection(self.stored_dataframes.keys())
+        # Do not read the data if the selection is the same
+        if self.feature_ids == feature_ids:
+            return
 
         # Filter names to add and to remove, to prevent loading duplicates
         names_to_add = set(feature_ids).difference(self.dataframes.keys())
