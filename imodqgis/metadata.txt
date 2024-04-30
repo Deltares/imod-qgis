@@ -2,7 +2,7 @@
 name=iMOD
 qgisMinimumVersion=3.28
 description=A plugin to visualize 4D geospatial data, to aid groundwater modellers 
-version=0.5.1
+version=0.5.2
 author=Deltares
 email=imod.support@deltares.nl
 
@@ -30,7 +30,7 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>Unreleased - Bug fixes
+changelog=      <p>0.5.2 - Bug fixes
                 - Timeseries: Make sure Arrow variables are refreshed when
                   switching layers. Support for node_id != basin feature id
                 - Cross-section: "As line(s)" button reactivated again after deactivation
