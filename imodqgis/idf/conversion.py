@@ -124,8 +124,6 @@ def read_idf(path: str) -> Tuple[Dict[str, Any], np.ndarray]:
         # equidistant IDFs
         ieq = not struct.unpack("?", f.read(1))[0]
         itb = struct.unpack("?", f.read(1))[0]
-        if not ieq:
-            raise ValueError(f"Non-equidistant IDF are not supported: {path}\n")
 
         f.read(2)  # not used
         if doubleprecision:
@@ -133,12 +131,17 @@ def read_idf(path: str) -> Tuple[Dict[str, Any], np.ndarray]:
 
         # dx and dy are stored positively in the IDF
         # dy is made negative here to be consistent with the nonequidistant case
-        attrs["dx"] = struct.unpack(floatformat, f.read(floatsize))[0]
-        attrs["dy"] = -struct.unpack(floatformat, f.read(floatsize))[0]
+        if ieq:
+            attrs["dx"] = struct.unpack(floatformat, f.read(floatsize))[0]
+            attrs["dy"] = -struct.unpack(floatformat, f.read(floatsize))[0]
 
         if itb:
             attrs["top"] = struct.unpack(floatformat, f.read(floatsize))[0]
             attrs["bot"] = struct.unpack(floatformat, f.read(floatsize))[0]
+
+        if not ieq:
+            attrs["dx"] = np.fromfile(f, dtype, ncol)
+            attrs["dy"] = -np.fromfile(f, dtype, nrow)
 
         # These are derived, remove after using them downstream
         attrs["ncol"] = ncol
@@ -225,7 +228,124 @@ def write(path, a, spatial_reference, nodata=1.0e20, dtype=np.float32):
     return
 
 
-def convert_idf_to_gdal(path: str, crs_wkt: str) -> Path:
+def _check_for_equidistance(dx: np.ndarray) -> Tuple[bool, float, float]:
+    # Check if equidistant, even if the ieq flag says otherwise:
+    # Allow 0.1% deviation in cell size.
+    absdx = abs(dx)
+    dxmax = absdx.max()
+    dxmin = absdx.min()
+    if not np.allclose(dxmin, absdx, atol=abs(1.0e-4 * dxmin)):
+        return False, dxmin, dxmax
+    return True, dxmin, dxmax
+
+
+def _resample(
+    attrs: Dict[str, Any], values: np.ndarray, new_dx: float, new_dy: float
+) -> Tuple[Dict[str, Any], np.ndarray]:
+    """
+    Resample a non-equidistant grid to equidistant form.
+
+    We keep the lower-left (xmin, ymin) corner and work from there.
+
+    Parameters
+    ----------
+    attrs: dict
+        Contains IDF header information.
+    values: np.ndarray
+        Data values of the non-equidistant grid.
+    new_dx: float
+        New (equidistant) cell size along x.
+    new_dy: float
+        New (equidistant) cell size along y.
+
+    Returns
+    -------
+    resampled_attrs: dict
+    resampled_values: np.ndarray
+    """
+
+    def _inbounds_searchsorted(a: np.ndarray, v: np.ndarray):
+        # np.searchsorted may give indexes larger than what array `a` allows.
+        return np.clip(np.searchsorted(a, v), a_min=0, a_max=a.size - 1)
+
+    xmin = attrs["xmin"]
+    ymin = attrs["ymin"]
+    # Make all cell sizes positive for simplicity.
+    dx = abs(attrs["dx"])
+    dy = abs(attrs["dy"])
+    new_dx = abs(new_dx)
+    new_dy = abs(new_dy)
+    # Note: iMOD stores dy from low to high!
+
+    # Compute the end location of each old cell
+    # Note: y is INCREASING here since searchsorted requires sorted numbers!
+    xend = xmin + dx.cumsum()
+    yend = ymin + dy.cumsum()
+    midx = np.arange(xmin, attrs["xmax"], new_dx) + 0.5 * new_dx
+    midy = np.arange(ymin, attrs["ymax"], new_dy) + 0.5 * new_dy
+    new_nrow = midy.size
+    new_ncol = midx.size
+
+    # Compute how to index into the old array.
+    # Search before which end the new midpoint lies.
+    column = _inbounds_searchsorted(xend, midx)
+    row = _inbounds_searchsorted(yend, midy)
+    iy, ix = (a.ravel() for a in np.meshgrid(row, column, indexing="ij"))
+
+    # Take into account that y is actually DECREASING in spatial rasters:
+    # index 0 becomes nrow - 1.
+    # index nrow - 1 becomes 0.
+    row = (attrs["nrow"] - 1) - row
+    resampled_values = values[iy, ix].reshape((new_nrow, new_ncol))
+
+    # Updated attrs
+    resampled_attrs = {
+        "dx": new_dx,
+        "dy": -new_dy,
+        "ncol": new_ncol,
+        "nrow": new_nrow,
+        "xmin": xmin,
+        "xmax": midx[-1] + 0.5 * new_dx,
+        "ymin": ymin,
+        "ymax": midy[-1] + 0.5 * new_dy,
+        "nodata": attrs["nodata"],
+    }
+    return resampled_attrs, resampled_values
+
+
+def _maybe_resample(path: str, resample: bool) -> Tuple[Dict[str, Any], np.ndarray]:
+    attrs, values = read_idf(path)
+
+    dx = attrs["dx"]
+    dy = attrs["dy"]
+    if isinstance(dx, float) and isinstance(dy, float):
+        # Exactly equidistant, nothing to do.
+        return attrs, values
+
+    # Check if approximately equidistant: allow 0.1% deviation)
+    dx = np.atleast_1d(attrs["dx"])
+    dy = np.atleast_1d(attrs["dy"])
+    fixed_dx, dxmin, dxmax = _check_for_equidistance(dx)
+    fixed_dy, dymin, dymax = _check_for_equidistance(dy)
+
+    if fixed_dx and fixed_dy:
+        # Approximately equidistant. Just modify dx and dy.
+        attrs["dx"] = dxmin
+        attrs["dy"] = -dymin
+        return attrs, values
+    else:
+        # Resample if allowed.
+        if resample:
+            return _resample(attrs, values, dxmin, dymin)
+        else:
+            raise ValueError(
+                f"IDF file is not equidistant along x or y.\n"
+                f"Cell sizes in x vary from {dxmin} to {dxmax}.\n"
+                f"Cell sizes in y vary from {dymin} to {dymax}.\n"
+            )
+
+
+def convert_idf_to_gdal(path: str, crs_wkt: str, resample: bool) -> Path:
     """
     Read the contents of an iMOD IDF file and write it to a GeoTIFF, next to
     the IDF. This is similar to how iMOD treats ASCII files.
@@ -237,13 +357,15 @@ def convert_idf_to_gdal(path: str, crs_wkt: str) -> Path:
     crs_wkt: str
         Desired CRS to write in the created GeoTIFF. IDFs do not have a CRS on
         their own, one must be provided.
+    resample: bool
+        Whether to allow nearest-neigbhor resampling for non-equidistant grids.
 
     Returns
     -------
     tiff_path: pathlib.Path
         Path to the newly created GeoTIFF file.
     """
-    attrs, values = read_idf(path)
+    attrs, values = _maybe_resample(path, resample)
 
     path = Path(path)
     tiff_path = (path.parent / (path.stem)).with_suffix(".tif")
