@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
@@ -86,12 +87,21 @@ class OpenWidget(QWidget):
         crs_wkt = self.crs_widget.crs().toWkt()
         resample = self.resample_checkbox.isChecked()
 
-        for path in paths:
-            tiff_path = convert_idf_to_gdal(path, crs_wkt, resample)
-            layer = QgsRasterLayer(str(tiff_path), tiff_path.stem)
-            renderer = pseudocolor_renderer(layer, band=1, colormap="Turbo", nclass=10)
-            layer.setRenderer(renderer)
-            QgsProject.instance().addMapLayer(layer)
+        try:
+            for path in paths:
+                tiff_path = convert_idf_to_gdal(path, crs_wkt, resample)
+                layer = QgsRasterLayer(str(tiff_path), tiff_path.stem)
+                renderer = pseudocolor_renderer(
+                    layer, band=1, colormap="Turbo", nclass=10
+                )
+                layer.setRenderer(renderer)
+                QgsProject.instance().addMapLayer(layer)
+        except ValueError as e:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setWindowTitle("Error converting IDF files")
+            msg.setText(str(e))
+            msg.exec()
 
         return
 

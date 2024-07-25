@@ -313,7 +313,9 @@ def _resample(
     return resampled_attrs, resampled_values
 
 
-def _maybe_resample(path: str, resample: bool) -> Tuple[Dict[str, Any], np.ndarray]:
+def _maybe_resample(
+    path: str, resample: bool
+) -> Tuple[Dict[str, Any], np.ndarray]:
     attrs, values = read_idf(path)
 
     dx = attrs["dx"]
@@ -339,9 +341,11 @@ def _maybe_resample(path: str, resample: bool) -> Tuple[Dict[str, Any], np.ndarr
             return _resample(attrs, values, dxmin, dymin)
         else:
             raise ValueError(
-                f"IDF file is not equidistant along x or y.\n"
+                f"IDF file is not equidistant: {path}.\n"
                 f"Cell sizes in x vary from {dxmin} to {dxmax}.\n"
                 f"Cell sizes in y vary from {dymin} to {dymax}.\n"
+                "To proceed, enable resampling of non-equidistant IDFs via the "
+                "checkbox."
             )
 
 
