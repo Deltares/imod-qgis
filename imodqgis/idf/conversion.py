@@ -291,11 +291,6 @@ def _resample(
     column = _inbounds_searchsorted(xend, midx)
     row = _inbounds_searchsorted(yend, midy)
     iy, ix = (a.ravel() for a in np.meshgrid(row, column, indexing="ij"))
-
-    # Take into account that y is actually DECREASING in spatial rasters:
-    # index 0 becomes nrow - 1.
-    # index nrow - 1 becomes 0.
-    row = (attrs["nrow"] - 1) - row
     resampled_values = values[iy, ix].reshape((new_nrow, new_ncol))
 
     # Updated attrs
