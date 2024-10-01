@@ -206,11 +206,16 @@ class CptGefFile:
         return f"{self.__class__.__name__}(nr={self.nr})"
 
     def __open_file(self, path):
-        with open(path, "r") as f:
-            text = f.read()
-            end_header = re.search(r"(?P<eoh>#EOH[=\s+]+)", text).group("eoh")
+        try:
+            with open(path, "r") as f:
+                text = f.read()
+        except UnicodeDecodeError:
+            with open(path, "r", encoding='cp1252') as f:
+                text = f.read()
+            
+        end_header = re.search(r"(?P<eoh>#EOH[=\s+]+)", text).group("eoh")
 
-            self._header, self._data = text.split(end_header)
+        self._header, self._data = text.split(end_header)
 
         self.parse_header()
         self.parse_data()
