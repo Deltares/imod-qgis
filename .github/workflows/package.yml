@@ -35,7 +35,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       run: |
         cd imodqgis_packaged
-        zip -r ../imodqgis.zip .
+        zip -r ../imodqgis_${{ github.ref_name }}.zip .
         cd ..
 
     - name: Upload imodqgis to Github artifact
@@ -50,4 +50,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh release upload ${{ github.ref_name }} imodqgis.zip --clobber
+        gh release upload ${{ github.ref_name }} imodqgis_${{ github.ref_name }}.zip --clobber
