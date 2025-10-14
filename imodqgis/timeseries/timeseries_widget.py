@@ -83,13 +83,7 @@ def timeseries_y_data(layer, geometry, group_index, n_times):
     return y
 
 
-# Set rendering backend and set pen widths
-# NOTE: DO NOT USE PEN WIDTHS > 1 WITHOUT OPENGL, THIS IS EXTREMELY SLOW
-# This is due to an upstream issue with the Qt raster painting system:
-# https://www.qcustomplot.com/index.php/support/forum/1008
-# Setting useOpenGL will presumably use OpenGL's raster painting instead, which
-# has good performance, but does not seem to support anti-aliasing.
-pg.setConfigOptions(useOpenGL=True)
+# Set pen widths
 WIDTH = 2
 SELECTED_WIDTH = 3
 # pyqtgraph expects datetimes expressed as seconds from 1970-01-01
