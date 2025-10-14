@@ -32,7 +32,7 @@ jobs:
 
     - name: Upload imodqgis to Github artifact
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: imodqgis_packaged
         name: imodqgis_${{ github.sha }}
