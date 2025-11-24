@@ -348,6 +348,8 @@ class ImodTimeSeriesWidget(QWidget):
         layer = self.layer_selection.currentLayer()
         if layer is None:
             return
+        # Set active layer so the selection will target the expected layer
+        self.iface.setActiveLayer(layer)
         if layer.type() == QgsMapLayerType.MeshLayer:
             self.point_picker.picker_clicked()
         else:
