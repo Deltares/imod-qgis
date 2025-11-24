@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
@@ -36,6 +37,7 @@ class OpenWidget(QWidget):
         self.label = QLabel("iMOD IDF File(s)")
         self.line_edit = QLineEdit()
         self.line_edit.setMinimumWidth(250)
+        self.resample_checkbox = QCheckBox("Resample non-equidistant IDFs")
         self.dialog_button = QPushButton("...")
         self.dialog_button.clicked.connect(self.file_dialog)
         self.close_button = QPushButton("Close")
@@ -48,19 +50,22 @@ class OpenWidget(QWidget):
         self.crs_widget = QgsCrsSelectionWidget(self)
         self.crs_widget.setCrs(iface.mapCanvas().mapSettings().destinationCrs())
         first_row = QHBoxLayout()
-        first_row.addWidget(self.label)
-        first_row.addWidget(self.line_edit)
-        first_row.addWidget(self.dialog_button)
+        first_row.addWidget(self.resample_checkbox)
         second_row = QHBoxLayout()
-        second_row.addWidget(self.crs_widget)
+        second_row.addWidget(self.label)
+        second_row.addWidget(self.line_edit)
+        second_row.addWidget(self.dialog_button)
         third_row = QHBoxLayout()
-        third_row.addStretch()
-        third_row.addWidget(self.close_button)
-        third_row.addWidget(self.add_button)
+        third_row.addWidget(self.crs_widget)
+        fourth_row = QHBoxLayout()
+        fourth_row.addStretch()
+        fourth_row.addWidget(self.close_button)
+        fourth_row.addWidget(self.add_button)
         layout = QVBoxLayout()
         layout.addLayout(first_row)
         layout.addLayout(second_row)
         layout.addLayout(third_row)
+        layout.addLayout(fourth_row)
         self.setLayout(layout)
 
     def file_dialog(self) -> None:
@@ -80,13 +85,23 @@ class OpenWidget(QWidget):
         if not self.crs_widget.hasValidSelection():
             return
         crs_wkt = self.crs_widget.crs().toWkt()
+        resample = self.resample_checkbox.isChecked()
 
-        for path in paths:
-            tiff_path = convert_idf_to_gdal(path, crs_wkt)
-            layer = QgsRasterLayer(str(tiff_path), tiff_path.stem)
-            renderer = pseudocolor_renderer(layer, band=1, colormap="Turbo", nclass=10)
-            layer.setRenderer(renderer)
-            QgsProject.instance().addMapLayer(layer)
+        try:
+            for path in paths:
+                tiff_path = convert_idf_to_gdal(path, crs_wkt, resample)
+                layer = QgsRasterLayer(str(tiff_path), tiff_path.stem)
+                renderer = pseudocolor_renderer(
+                    layer, band=1, colormap="Turbo", nclass=10
+                )
+                layer.setRenderer(renderer)
+                QgsProject.instance().addMapLayer(layer)
+        except ValueError as e:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Critical)
+            msg.setWindowTitle("Error converting IDF files")
+            msg.setText(str(e))
+            msg.exec()
 
         return
 
