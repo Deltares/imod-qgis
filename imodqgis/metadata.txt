@@ -30,7 +30,13 @@ repository=https://github.com/Deltares/imod-qgis
 hasProcessingProvider=no
 
 # Uncomment the following line and add your changelog:
-changelog=      <p>0.5.3 - Bug fixes
+changelog=      <p>Unreleased - Usability improvements
+                - Timeseries: Selecting a a layer in the listing box will now
+                  also select it in the QGIS Layers panel, irregardless of type.
+                  Before this only worked for vectors.
+                - Timeseries: Clicking the "Select" button will now also select the
+                  layer that is shown in the listing box in the QGIS Layers panel.
+                <p>0.5.3 - Bug fixes
                 - Added secondary encoding (cp1252) to GEF reader.
                 - Don't force useOpenGL = True for pyqtgraph. In general openGL is poorly supported with Qt+GraphicsView. 
                 <p>0.5.2 - Bug fixes
