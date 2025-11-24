@@ -417,6 +417,9 @@ class ImodTimeSeriesWidget(QWidget):
         self.variables_indexes = None
         self.variable_selection.setVisible(False)
         self.id_selection_box.clear()
+        # Set active layer so the Selection Toolbar will work as expected (since
+        # it works on the currently active layer for vectors). 
+        self.iface.setActiveLayer(layer)
         if layer.type() == QgsMapLayerType.MeshLayer:
             indexes, names = get_group_names(layer)
             is_temporal = get_group_is_temporal(layer)
@@ -449,9 +452,6 @@ class ImodTimeSeriesWidget(QWidget):
         elif layer.type() == QgsMapLayerType.VectorLayer:
             # Connect to QGIS signal that selection changed
             layer.selectionChanged.connect(self.on_select)
-            # Set active layer so the Selection Toolbar will work as expected
-            # (since it works on the currently active layer)
-            self.iface.setActiveLayer(layer)
             if layer.customProperty("ipf_type") == IpfType.TIMESERIES.name:
                 index = int(layer.customProperty("ipf_indexcolumn"))
                 self.id_selection_box.insertItem(0, layer.attributeAlias(index))
