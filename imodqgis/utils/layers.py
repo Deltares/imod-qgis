@@ -69,7 +69,7 @@ def groupby_layer(group_names):
     prog = re.compile("(.+)_(layer_\d+)")
     groups = [prog.match(group_name) for group_name in group_names]
     # Filter None from list, as to filter variables without "layer" in name, e.g. 'faces_x'
-    groups = list(filter(None.__ne__, groups))
+    groups = [g for g in groups if g is not None]
     # Convert to list of tuples: [('layer_1', 'bottom_layer_1'), ...]
     # the .group confusingly is a regex method here.
     groups = [(g.group(2), g.group(0)) for g in groups]
@@ -93,3 +93,27 @@ def get_layer_idx(layer_key):
     int
     """
     return int(re.match("layer_(\d+)", layer_key).group(1))
+
+
+def connect_layer_changed(combobox, slot):
+    """
+    Call ``slot()`` whenever the current layer of a QgsMapLayerComboBox changes.
+
+    Connecting to ``layerChanged`` alone is not enough: when the first layer is
+    added to an empty project, QGIS 4 emits ``layerChanged(None)`` before the
+    current index is set, and only ``currentIndexChanged`` follows with the
+    actual layer. QGIS 3 emits both signals (in the other order). We listen to
+    both and skip calls where the current layer did not change.
+    """
+    last_layer_id = [None]
+
+    def on_change(*_):
+        layer = combobox.currentLayer()
+        layer_id = layer.id() if layer is not None else None
+        if layer_id == last_layer_id[0]:
+            return
+        last_layer_id[0] = layer_id
+        slot()
+
+    combobox.layerChanged.connect(on_change)
+    combobox.currentIndexChanged.connect(on_change)

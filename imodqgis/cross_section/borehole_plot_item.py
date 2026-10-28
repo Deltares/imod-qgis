@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QColor
 
 from imodqgis.dependencies.pyqtgraph_0_12_3 import functions as fn
 from imodqgis.dependencies.pyqtgraph_0_12_3 import getConfigOption
@@ -34,7 +34,7 @@ class BoreholePlotItem(GraphicsObject):
         GraphicsObject.__init__(self)
         self.qpicture = None
         self.axisOrder = getConfigOption("imageAxisOrder")
-        self.edgecolors = kwargs.pop("edgecolors", QColor(Qt.black))
+        self.edgecolors = kwargs.pop("edgecolors", QColor(Qt.GlobalColor.black))
         self.colorshader = kwargs.pop("colorshader")
         if len(args) > 0:
             self.setData(*args)

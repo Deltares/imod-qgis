@@ -19,3 +19,8 @@ docs/_build/
 
 # Locally packaged plugin
 imodqgis.zip
+
+# pixi environments
+.pixi/
+# QGIS profile created by pytest-qgis
+.qgis-settings/

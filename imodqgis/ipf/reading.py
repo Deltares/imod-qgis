@@ -51,7 +51,6 @@ def read_ipf(path: str, **kwargs) -> Tuple[pd.DataFrame, str]:
         f.seek(position)
 
         ipf_kwargs = {
-            "delim_whitespace": False,
             "header": None,
             "names": colnames,
             "nrows": nrow,
@@ -86,7 +85,6 @@ def read_associated_header(
     lines = "".join([f.readline() for _ in range(ncol)])
     metadata = pd.read_csv(
         io.StringIO(lines),
-        delim_whitespace=False,
         header=None,
         nrows=ncol,
         skipinitialspace=True,
@@ -118,7 +116,7 @@ def read_associated_timeseries(path: str, **kwargs) -> pd.DataFrame:
         Path to associated file.
     kwargs : dict
         Dictionary containing the ``pandas.read_csv()`` keyword arguments for the
-        associated (TXT) file (e.g. `{"delim_whitespace": True}`).
+        associated (TXT) file (e.g. `{"sep": r"\s+"}`).
 
     Returns
     -------
@@ -134,7 +132,6 @@ def read_associated_timeseries(path: str, **kwargs) -> pd.DataFrame:
             raise ValueError(f"{path.name}: has itype {itype} and is not a timeseries")
 
         itype_kwargs = {
-            "delim_whitespace": False,
             "header": None,
             "names": colnames,
             "usecols": usecols,
@@ -170,7 +167,7 @@ def read_associated_borehole(path: str, **kwargs) -> pd.DataFrame:
         Path to associated file.
     kwargs : dict
         Dictionary containing the ``pandas.read_csv()`` keyword arguments for the
-        associated (TXT) file (e.g. `{"delim_whitespace": True}`).
+        associated (TXT) file (e.g. `{"sep": r"\s+"}`).
 
     Returns
     -------
@@ -186,7 +183,6 @@ def read_associated_borehole(path: str, **kwargs) -> pd.DataFrame:
             raise ValueError(f"{path.name}: has itype {itype} and is not a borehole")
 
         itype_kwargs = {
-            "delim_whitespace": False,
             "header": None,
             "names": colnames,
             "usecols": usecols,

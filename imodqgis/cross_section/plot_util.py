@@ -7,7 +7,7 @@ import math
 from typing import List
 
 import numpy as np
-from PyQt5.Qt import PYQT_VERSION_STR
+from qgis.PyQt.QtCore import PYQT_VERSION_STR
 from qgis.core import QgsGeometry, QgsMeshDatasetIndex, QgsPoint
 
 

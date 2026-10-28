@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QColor
+from qgis.PyQt.QtGui import QColor
 
 from qgis.core import (
     QgsGradientStop,

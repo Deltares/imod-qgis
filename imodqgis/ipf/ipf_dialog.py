@@ -5,8 +5,8 @@ import csv
 import pathlib
 import shlex
 
-from PyQt5.QtCore import QDateTime, QVariant
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QDateTime, QVariant
+from qgis.PyQt.QtWidgets import (
     QDialog,
     QFileDialog,
     QHBoxLayout,

@@ -170,11 +170,11 @@ class TestCaseIpfTimeseries(unittest.TestCase):
 
         # There is a column named "time", with time as strings, and the index is
         # called "time" as well.
-        self.assertEqual(df["time"][0], "19520814000000")
-        self.assertEqual(df["time"][-1], "19771214000000")
+        self.assertEqual(df["time"].iloc[0], "19520814000000")
+        self.assertEqual(df["time"].iloc[-1], "19771214000000")
 
-        self.assertEqual(df["head"][0], -2.1)
-        self.assertEqual(df["head"][-1], -1.25)
+        self.assertEqual(df["head"].iloc[0], -2.1)
+        self.assertEqual(df["head"].iloc[-1], -1.25)
 
     def test_read_associated_borehole(self):
         from imodqgis.ipf.reading import read_associated_borehole
@@ -188,6 +188,6 @@ def run_all():
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestCaseIpfBorehole))
-    suite.addTests(unittest.makeSuite(TestCaseIpfTimeseries))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestCaseIpfBorehole))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestCaseIpfTimeseries))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)
