@@ -3,7 +3,8 @@
 #
 import os
 
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (
     QDialog,
     QLabel,
     QVBoxLayout,
@@ -28,7 +29,7 @@ class ImodAboutDialog(QDialog):
 
         # Set MarkdownText as TextFormat
         # https://doc.qt.io/qt-5/qt.html#TextFormat-enum
-        self.text.setTextFormat(3)
+        self.text.setTextFormat(Qt.TextFormat.MarkdownText)
 
         # Allow hyperlinks to open a browser tab
         self.text.setOpenExternalLinks(True)

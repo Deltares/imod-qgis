@@ -5,7 +5,7 @@ import pathlib
 import shlex
 
 import pandas as pd
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QDialog,
     QFileDialog,
     QHBoxLayout,

@@ -4,8 +4,8 @@
 from typing import List
 
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -34,7 +34,7 @@ class DimensionSlider(QWidget):
         self.maximum = values.size - 1
         self.label = QLineEdit()
         self.label.textEdited.connect(self.validate)
-        self.slider = QSlider(Qt.Horizontal)
+        self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setMinimum(0)
         self.slider.setMaximum(self.maximum)
 

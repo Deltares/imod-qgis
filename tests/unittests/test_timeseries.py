@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from PyQt5.QtGui import QColor, QPainter, QPicture
+from qgis.PyQt.QtGui import QColor, QPainter, QPicture
 from qgis.core import QgsMeshLayer, QgsPointXY, QgsProject
 from qgis.testing import unittest
 from qgis.utils import plugins
@@ -261,5 +261,5 @@ def run_all():
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestTimeseriesMesh))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestTimeseriesMesh))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)

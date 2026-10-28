@@ -1,8 +1,8 @@
 import sys
 
-from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtGui import QColor
-from PyQt5.QtTest import QSignalSpy, QTest
+from qgis.PyQt.QtCore import QPoint, Qt
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtTest import QSignalSpy, QTest
 from qgis.core import (
     QgsGeometry,
     QgsLineString,
@@ -47,10 +47,10 @@ class TestPickGeometryTool(unittest.TestCase):
 
         # Source of this solution:
         # https://gis.stackexchange.com/questions/250234/qtest-interactions-with-the-qgis-map-canvas
-        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(200, 200))
+        QTest.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
         capturing_first_click = self.tool.capturing
-        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(300, 300), delay=200)
-        QTest.mouseClick(viewport, Qt.RightButton, pos=QPoint(400, 400), delay=400)
+        QTest.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(300, 300), delay=200)
+        QTest.mouseClick(viewport, Qt.MouseButton.RightButton, pos=QPoint(400, 400), delay=400)
         capturing_last_click = self.tool.capturing
 
         self.assertTrue(capturing_first_click)
@@ -279,7 +279,7 @@ class TestMultipleLineGeometryPickerWidget(unittest.TestCase):
             self.widget.last_rubber_band.asGeometry(), self.expected_geometry
         )
         self.assertEqual(self.widget.last_rubber_band.width(), 2)
-        self.assertEqual(self.widget.last_rubber_band.fillColor(), QColor(Qt.red))
+        self.assertEqual(self.widget.last_rubber_band.fillColor(), QColor(Qt.GlobalColor.red))
 
     def test_draw_geometry_list(self):
         self.widget.geometries = [self.expected_geometry, self.expected_geometry2]
@@ -298,7 +298,7 @@ class TestMultipleLineGeometryPickerWidget(unittest.TestCase):
             self.widget.rubber_bands.asGeometry(), expected_geometry
         )
         self.assertEqual(self.widget.rubber_bands.width(), 2)
-        self.assertEqual(self.widget.rubber_bands.fillColor(), QColor(Qt.red))
+        self.assertEqual(self.widget.rubber_bands.fillColor(), QColor(Qt.GlobalColor.red))
 
     def test_clear_multilines(self):
         self.widget.geometries = [self.expected_geometry, self.expected_geometry2]
@@ -355,9 +355,9 @@ class TestPickPointGeometryTool(unittest.TestCase):
 
         # Source of this solution:
         # https://gis.stackexchange.com/questions/250234/qtest-interactions-with-the-qgis-map-canvas
-        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(200, 200))
-        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(300, 300), delay=200)
-        QTest.mouseClick(viewport, Qt.RightButton, pos=QPoint(400, 400), delay=400)
+        QTest.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
+        QTest.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(300, 300), delay=200)
+        QTest.mouseClick(viewport, Qt.MouseButton.RightButton, pos=QPoint(400, 400), delay=400)
 
         signals = list(self.signalspy)
 
@@ -383,18 +383,18 @@ class TestPickPointGeometryTool(unittest.TestCase):
 
         # Source of this solution:
         # https://gis.stackexchange.com/questions/250234/qtest-interactions-with-the-qgis-map-canvas
-        QTest.mouseClick(viewport, Qt.LeftButton, pos=QPoint(200, 200))
+        QTest.mouseClick(viewport, Qt.MouseButton.LeftButton, pos=QPoint(200, 200))
         QTest.mouseClick(
             viewport,
-            Qt.LeftButton,
-            modifier=Qt.ControlModifier,
+            Qt.MouseButton.LeftButton,
+            modifier=Qt.KeyboardModifier.ControlModifier,
             pos=QPoint(300, 300),
             delay=200,
         )
         QTest.mouseClick(
             viewport,
-            Qt.RightButton,
-            modifier=Qt.ControlModifier,
+            Qt.MouseButton.RightButton,
+            modifier=Qt.KeyboardModifier.ControlModifier,
             pos=QPoint(400, 400),
             delay=400,
         )
@@ -600,9 +600,9 @@ def run_all():
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestPickGeometryTool))
-    suite.addTests(unittest.makeSuite(TestLineGeometryPickerWidget))
-    suite.addTests(unittest.makeSuite(TestMultipleLineGeometryPickerWidget))
-    suite.addTests(unittest.makeSuite(TestPickPointGeometryTool))
-    suite.addTests(unittest.makeSuite(TestPointGeometryPickerWidget))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestPickGeometryTool))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestLineGeometryPickerWidget))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestMultipleLineGeometryPickerWidget))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestPickPointGeometryTool))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestPointGeometryPickerWidget))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)

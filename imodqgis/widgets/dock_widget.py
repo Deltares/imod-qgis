@@ -5,11 +5,11 @@ from qgis.gui import QgsDockWidget
 from qgis.PyQt.QtCore import Qt
 
 FLAGS = (
-    Qt.CustomizeWindowHint
-    | Qt.Window
-    | Qt.WindowMinimizeButtonHint
-    | Qt.WindowMaximizeButtonHint
-    | Qt.WindowCloseButtonHint
+    Qt.WindowType.CustomizeWindowHint
+    | Qt.WindowType.Window
+    | Qt.WindowType.WindowMinimizeButtonHint
+    | Qt.WindowType.WindowMaximizeButtonHint
+    | Qt.WindowType.WindowCloseButtonHint
 )
 
 
