@@ -8,7 +8,7 @@ echo "Installing plugin dependencies"
 apt-get update -qq
 # expect provides unbuffer, which qgis_testrunner.sh needs but the image lacks
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-    python3-pandas python3-xarray python3-netcdf4 expect > /dev/null
+    python3-pandas expect > /dev/null
 
 echo "Setting up QGIS profile with the imodqgis plugin enabled"
 qgis_setup.sh imodqgis
