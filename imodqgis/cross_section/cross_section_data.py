@@ -6,9 +6,9 @@ import pathlib
 from typing import Any, List, Tuple
 
 import numpy as np
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QWidget
+from qgis.PyQt.QtCore import pyqtSignal
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import QWidget
 from qgis import processing
 from qgis.core import (
     QgsDateTimeRange,
@@ -120,7 +120,7 @@ class AbstractCrossSectionData(abc.ABC):
             self.dummy_widget,
         )
         dialog.show()
-        ok = dialog.exec_()
+        ok = dialog.exec()
         if ok:
             self.render_style = dialog.render_type_box.currentIndex()
             if self.render_style == UNIQUE_COLOR:

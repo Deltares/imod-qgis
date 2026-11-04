@@ -4,8 +4,8 @@
 """Modified from https://github.com/lutraconsulting/qgis-crayfish-plugin/blob/master/crayfish/gui/plot_dataset_groups_widget.py
 """
 
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QMenu, QToolButton, QWidgetAction
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtWidgets import QCheckBox, QMenu, QToolButton, QWidgetAction
 
 
 class DatasetVariableMenu(QMenu):
@@ -65,9 +65,9 @@ class VariablesWidget(QToolButton):
 
     def __init__(self, parent=None, datasetType=None):
         QToolButton.__init__(self, parent)
-        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.menu_datasets = DatasetVariableMenu(datasetType=datasetType)
-        self.setPopupMode(QToolButton.InstantPopup)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.setMenu(self.menu_datasets)
         self.menu_datasets.dataset_variable_changed.connect(
             self.on_dataset_variable_changed
@@ -137,9 +137,9 @@ class MultipleVariablesWidget(QToolButton):
 
     def __init__(self, parent=None):
         QToolButton.__init__(self, parent)
-        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.menu_datasets = MultipleVariablesMenu()
-        self.setPopupMode(QToolButton.InstantPopup)
+        self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.setMenu(self.menu_datasets)
         self.setText("Selection: ")
 

@@ -1,9 +1,9 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QVBoxLayout,
@@ -20,7 +20,7 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapTool, QgsMapToolEmitPoint, QgsRubberBand, QgsVertexMarker
 
-RUBBER_BAND_COLOR = QColor(Qt.red)
+RUBBER_BAND_COLOR = QColor(Qt.GlobalColor.red)
 
 
 class RectangleMapTool(QgsMapToolEmitPoint):
@@ -45,13 +45,13 @@ class RectangleMapTool(QgsMapToolEmitPoint):
         self.rubberBand.reset(QgsWkbTypes.PolygonGeometry)
 
     def canvasPressEvent(self, e):
-        if e.button() == Qt.LeftButton:
+        if e.button() == Qt.MouseButton.LeftButton:
             self.startPoint = self.toMapCoordinates(e.pos())
             self.endPoint = self.startPoint
             self.isEmittingPoint = True
             self.showRect(self.startPoint, self.endPoint)
 
-        if e.button() == Qt.RightButton:
+        if e.button() == Qt.MouseButton.RightButton:
             self.reset()
             self.deactivate()
 
@@ -129,11 +129,11 @@ class PickGeometryTool(QgsMapTool):
         self.picked.emit(self.points + [e.mapPoint()], False)
 
     def canvasPressEvent(self, e):
-        if e.button() == Qt.LeftButton:
+        if e.button() == Qt.MouseButton.LeftButton:
             self.capturing = True
             self.points.append(e.mapPoint())
             self.picked.emit(self.points, False)
-        if e.button() == Qt.RightButton:
+        if e.button() == Qt.MouseButton.RightButton:
             self.picked.emit(self.points, True)
             self.capturing = False
             self.points = []
@@ -329,10 +329,10 @@ class PickPointGeometryTool(QgsMapTool):
         self.picked.emit([e.mapPoint()], False, False, False)
 
     def canvasPressEvent(self, e):
-        if e.button() == Qt.LeftButton:
-            is_ctrl_clicked = e.modifiers() & Qt.ControlModifier
+        if e.button() == Qt.MouseButton.LeftButton:
+            is_ctrl_clicked = bool(e.modifiers() & Qt.KeyboardModifier.ControlModifier)
             self.picked.emit([e.mapPoint()], True, is_ctrl_clicked, False)
-        elif e.button() == Qt.RightButton:
+        elif e.button() == Qt.MouseButton.RightButton:
             self.picked.emit([e.mapPoint()], True, False, True)
 
     def canvasReleaseEvent(self, e):

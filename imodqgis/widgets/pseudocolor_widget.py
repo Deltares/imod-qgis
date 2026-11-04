@@ -4,9 +4,9 @@
 from typing import Dict, Union, List
 
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QDoubleValidator
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QColor, QDoubleValidator
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QComboBox,
@@ -93,7 +93,7 @@ class ImodPseudoColorWidget(QWidget):
         grid.addWidget(QLabel("Interpolation"), 0, 0)
         grid.addWidget(self.interpolation_box, 0, 1)
         grid.addWidget(QLabel("Color ramp"), 1, 0)
-        grid.addWidget(self.color_ramp_button, 1, 1, Qt.AlignRight)
+        grid.addWidget(self.color_ramp_button, 1, 1, Qt.AlignmentFlag.AlignRight)
         grid.addWidget(QLabel("Label unit suffix"), 2, 0)
         grid.addWidget(self.suffix_edit, 2, 1)
         grid.addWidget(QLabel("Label precision"), 3, 0)
@@ -103,7 +103,7 @@ class ImodPseudoColorWidget(QWidget):
         self.table.setColumnCount(3)
         self.table.setHeaderLabels(["Value", "Color", "Label"])
         self.table.setItemDelegateForColumn(1, QgsColorSwatchDelegate())
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
         # Create widgets
         self.classification_box = QComboBox()
@@ -186,7 +186,7 @@ class ImodPseudoColorWidget(QWidget):
             new_item.setData(1, Qt.ItemDataRole.EditRole, color)
             new_item.setText(2, "")
             new_item.setFlags(
-                Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+                Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsSelectable
             )
             new_item.itemEdited.connect(self.item_edited)
         self.format_labels()
@@ -251,9 +251,9 @@ class ImodPseudoColorWidget(QWidget):
     def add_class(self):
         new_item = QgsTreeWidgetItemObject(self.table)
         new_item.setData(0, Qt.ItemDataRole.DisplayRole, 0.0)
-        new_item.setData(1, Qt.ItemDataRole.EditRole, QColor(Qt.magenta))
+        new_item.setData(1, Qt.ItemDataRole.EditRole, QColor(Qt.GlobalColor.magenta))
         new_item.setText(2, "")
-        new_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable)
+        new_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsSelectable)
         new_item.itemEdited.connect(self.item_edited)
         self.table.sortItems(0, Qt.SortOrder.AscendingOrder)
 

@@ -4,3 +4,48 @@ ignore = ["E501", "PD901"]
 fixable = ["I"]
 ignore-init-module-imports = true
 exclude = ["imodqgis/dependencies/*.py"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.pixi.workspace]
+name = "imod-qgis"
+channels = ["conda-forge"]
+platforms = [
+  "win-64",
+  "linux-64",
+  # conda-forge QGIS 4 (via qt6-main) requires macOS >= 14
+  { platform = "osx-arm64", macos = "14.0" },
+]
+requires-pixi = ">=0.83"
+
+[tool.pixi.dependencies]
+pandas = "*"
+xarray = "*"
+netcdf4 = "*"
+pytest = "*"
+
+[tool.pixi.pypi-dependencies]
+pytest-qgis = ">=4.0.1,<5"
+
+[tool.pixi.feature.qgis3.dependencies]
+qgis = ">=3.44,<4"
+
+[tool.pixi.feature.qgis4.dependencies]
+qgis = ">=4.2,<5"
+
+[tool.pixi.environments]
+default = ["qgis4"]
+qgis3 = ["qgis3"]
+qgis4 = ["qgis4"]
+
+[tool.pixi.tasks]
+# Run the test suite with conda-forge QGIS: `pixi run test` (QGIS 4) or
+# `pixi run -e qgis3 test` (QGIS 3).
+test = { cmd = "pytest tests", env = { QT_QPA_PLATFORM = "offscreen" } }
+# Run the tests inside the official QGIS docker images, like CI does.
+test-docker-qgis3 = "bash scripts/test_docker.sh qgis/qgis:3.44"
+test-docker-qgis4 = "bash scripts/test_docker.sh qgis/qgis:4.2"
+# Create imodqgis.zip for "Install from ZIP" in QGIS.
+package = "python scripts/package_plugin.py"

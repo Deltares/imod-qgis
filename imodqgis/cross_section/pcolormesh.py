@@ -4,7 +4,7 @@
 from __future__ import division
 
 import numpy as np
-from PyQt5.QtGui import QColor
+from qgis.PyQt.QtGui import QColor
 
 from imodqgis.dependencies.pyqtgraph_0_12_3 import functions as fn
 from imodqgis.dependencies.pyqtgraph_0_12_3 import getConfigOption
@@ -140,7 +140,7 @@ class PColorMeshItem(GraphicsObject):
         else:
             painter.setPen(fn.mkPen(self.edgecolors))
             if self.antialiasing:
-                painter.setRenderHint(QtGui.QPainter.Antialiasing)
+                painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
         # Go through all the data and draw the polygons accordingly
         for yi in range(self.z.shape[0]):

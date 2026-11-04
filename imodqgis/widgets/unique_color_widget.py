@@ -6,9 +6,9 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 import json
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QHBoxLayout,
     QFileDialog,
@@ -51,13 +51,13 @@ class ImodUniqueColorWidget(QWidget):
         self.color_ramp_button.setMinimumWidth(400)
         first_row = QHBoxLayout()
         first_row.addWidget(QLabel("Color ramp"))
-        first_row.addWidget(self.color_ramp_button, Qt.AlignRight)
+        first_row.addWidget(self.color_ramp_button, Qt.AlignmentFlag.AlignRight)
 
         self.table = QTreeWidget()
         self.table.setColumnCount(3)
         self.table.setHeaderLabels(["Value", "Color", "Label"])
         self.table.setItemDelegateForColumn(1, QgsColorSwatchDelegate())
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.table.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
         # Create widgets
         self.classify_button = QPushButton("Classify")
@@ -107,7 +107,7 @@ class ImodUniqueColorWidget(QWidget):
             new_item.setData(1, Qt.ItemDataRole.EditRole, color)
             new_item.setText(2, str(value))
             new_item.setFlags(
-                Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+                Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsSelectable
             )
 
     def _get_cyclic_normalized_midpoints(self, n_elements, cycle_size):
@@ -161,9 +161,9 @@ class ImodUniqueColorWidget(QWidget):
     def add_class(self) -> None:
         new_item = QgsTreeWidgetItemObject(self.table)
         new_item.setData(0, Qt.ItemDataRole.DisplayRole, 0)
-        new_item.setData(1, Qt.ItemDataRole.EditRole, QColor(Qt.magenta))
+        new_item.setData(1, Qt.ItemDataRole.EditRole, QColor(Qt.GlobalColor.magenta))
         new_item.setText(2, "")
-        new_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable)
+        new_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsSelectable)
 
     def labels(self) -> Dict[str, str]:
         label_dict = {}

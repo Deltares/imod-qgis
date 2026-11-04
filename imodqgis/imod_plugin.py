@@ -77,35 +77,35 @@ class ImodPlugin:
 
         dialog = ImodAboutDialog(self.iface)
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
 
     def gef_dialog(self):
         from imodqgis.gef import ImodGefDialog
 
         dialog = ImodGefDialog()
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
 
     def ipf_dialog(self):
         from imodqgis.ipf import ImodIpfDialog
 
         dialog = ImodIpfDialog()
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
         
     def idf_dialog(self):
         from imodqgis.idf import ImodIdfDialog
 
         dialog = ImodIdfDialog(self.iface)
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
 
     def nhi_data_dialog(self):
         from imodqgis.nhi_data import ImodNhiDataDialog
 
         dialog = ImodNhiDataDialog(self.iface)
         dialog.show()
-        dialog.exec_()
+        dialog.exec()
 
     # Note, normally one would be able to simply hide a widget, and make it
     # visible again. However, due to a Qt Bug:
@@ -119,7 +119,7 @@ class ImodPlugin:
         canvas = self.iface.mapCanvas()
         self.viewer_widget = QgsDockWidget("iMOD 3D Viewer")
         self.viewer_widget.setObjectName("ImodViewerDock")
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.viewer_widget)
+        self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.viewer_widget)
         widget = ImodViewerWidget(canvas, parent=self.viewer_widget)
         self.viewer_widget.setWidget(widget)
 
@@ -128,7 +128,7 @@ class ImodPlugin:
 
         self.timeseries_widget = ImodDockWidget("iMOD Time Series Plot")
         self.timeseries_widget.setObjectName("ImodTimeSeriesDock")
-        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.timeseries_widget)
+        self.iface.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.timeseries_widget)
         widget = ImodTimeSeriesWidget(self.timeseries_widget, self.iface)
         self.timeseries_widget.setWidget(widget)
 
@@ -137,7 +137,7 @@ class ImodPlugin:
 
         self.cross_section_widget = ImodDockWidget("iMOD Cross Section Plot")
         self.cross_section_widget.setObjectName("ImodCrossSectionDock")
-        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.cross_section_widget)
+        self.iface.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.cross_section_widget)
         widget = ImodCrossSectionWidget(self.cross_section_widget, self.iface)
         self.cross_section_widget.setWidget(widget)
 
@@ -146,7 +146,7 @@ class ImodPlugin:
 
         self.netcdf_manager = QgsDockWidget("iMOD NetCDF Manager")
         self.netcdf_manager.setObjectName("ImodNetcdfDock")
-        self.iface.addDockWidget(Qt.RightDockWidgetArea, self.netcdf_manager)
+        self.iface.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.netcdf_manager)
         widget = ImodNetcdfManagerWidget(self.netcdf_manager)
         self.netcdf_manager.setWidget(widget)
 

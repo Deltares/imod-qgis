@@ -12,7 +12,7 @@ The functions at the end of the script process these dataclasses to an xml proce
 """
 
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
 from imodqgis.dependencies import declxml as xml
@@ -90,7 +90,7 @@ class GridModel(Aggregate):
     LayerIndex: int
     Uri: str
     datasetlist: DataSetList
-    boundingbox: BoundingBox = BoundingBox()
+    boundingbox: BoundingBox = field(default_factory=BoundingBox)
     Type: str = "Layered Ugrid"
     GridIndex: int = 0
 

@@ -1,6 +1,6 @@
 import sys
 
-from PyQt5.QtWidgets import QCheckBox
+from qgis.PyQt.QtWidgets import QCheckBox
 from qgis.testing import unittest
 from qgis.utils import plugins
 
@@ -160,6 +160,6 @@ def run_all():
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestVariablesWidget))
-    suite.addTests(unittest.makeSuite(TestMultipleVariablesWidget))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestVariablesWidget))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestMultipleVariablesWidget))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)

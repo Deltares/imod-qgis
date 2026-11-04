@@ -7,9 +7,9 @@ import platform
 import textwrap
 from pathlib import Path
 
-from PyQt5.QtCore import QSortFilterProxyModel, Qt
-from PyQt5.QtGui import QStandardItem, QStandardItemModel
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import QSortFilterProxyModel, Qt
+from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QDialog,
     QHBoxLayout,
@@ -37,16 +37,16 @@ class ImodNhiDataDialog(QDialog):
         self.proxy_model = QSortFilterProxyModel()
         self.proxy_model.setSourceModel(self.data_model)
         self.proxy_model.setFilterKeyColumn(2)
-        self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.proxy_model.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         # Table view
         self.table_view = QTableView()
         self.table_view.setModel(self.proxy_model)
-        self.table_view.setSelectionMode(self.table_view.SingleSelection)
-        self.table_view.setSelectionBehavior(self.table_view.SelectRows)
-        self.table_view.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table_view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table_view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table_view.setColumnWidth(0, 300)
         self.table_view.horizontalHeader().setStretchLastSection(True)
-        self.table_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_view.setAutoScroll(False)
         self.table_view.setSortingEnabled(True)
         # Abstract text box
@@ -83,10 +83,10 @@ class ImodNhiDataDialog(QDialog):
         column.addLayout(fourth_row)
         self.load_services()
         # Gotta set titles and hide after adding the data, not before it:
-        self.data_model.setHeaderData(0, Qt.Horizontal, "Service")
-        self.data_model.setHeaderData(1, Qt.Horizontal, "Layer name")
-        self.data_model.horizontalHeaderItem(0).setTextAlignment(Qt.AlignLeft)
-        self.data_model.horizontalHeaderItem(1).setTextAlignment(Qt.AlignLeft)
+        self.data_model.setHeaderData(0, Qt.Orientation.Horizontal, "Service")
+        self.data_model.setHeaderData(1, Qt.Orientation.Horizontal, "Layer name")
+        self.data_model.horizontalHeaderItem(0).setTextAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.data_model.horizontalHeaderItem(1).setTextAlignment(Qt.AlignmentFlag.AlignLeft)
         self.table_view.hideColumn(2)
         self.setLayout(column)
         self.setMinimumWidth(500)
@@ -94,7 +94,7 @@ class ImodNhiDataDialog(QDialog):
         self.add_button.setEnabled(False)
 
     def add_layer(self):
-        layer = self.table_view.selectedIndexes()[0].data(Qt.UserRole)
+        layer = self.table_view.selectedIndexes()[0].data(Qt.ItemDataRole.UserRole)
         if layer is None:
             return
 
@@ -133,7 +133,7 @@ class ImodNhiDataDialog(QDialog):
         layername = layer["title"]
         item_filter = QStandardItem(f"{service} {layername}")
         service = QStandardItem(service.upper())
-        service.setData(layer, Qt.UserRole)
+        service.setData(layer, Qt.ItemDataRole.UserRole)
         layername = QStandardItem(layername)
         self.data_model.appendRow([service, layername, item_filter])
 
@@ -155,7 +155,7 @@ class ImodNhiDataDialog(QDialog):
 
     def on_selection(self):
         self.add_button.setEnabled(True)
-        layer = self.table_view.selectedIndexes()[0].data(Qt.UserRole)
+        layer = self.table_view.selectedIndexes()[0].data(Qt.ItemDataRole.UserRole)
         if layer is None:
             return
         self.abstract_text.setText(

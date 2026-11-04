@@ -137,8 +137,8 @@ class TestUtilsConfigDir(unittest.TestCase):
         configdir = get_configdir()
 
         # We are testing on Linux
-        self.assertEquals(type(configdir), PosixPath)
-        self.assertEquals(configdir.stem, ".imod-qgis")
+        self.assertEqual(type(configdir), PosixPath)
+        self.assertEqual(configdir.stem, ".imod-qgis")
 
 
 def run_all():
@@ -146,7 +146,7 @@ def run_all():
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestUtilsLayer))
-    suite.addTests(unittest.makeSuite(TestUtilsTemporal))
-    suite.addTests(unittest.makeSuite(TestUtilsConfigDir))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestUtilsLayer))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestUtilsTemporal))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestUtilsConfigDir))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)

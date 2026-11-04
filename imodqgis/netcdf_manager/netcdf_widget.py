@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 from osgeo import gdal
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QComboBox,
     QFileDialog,
     QHBoxLayout,

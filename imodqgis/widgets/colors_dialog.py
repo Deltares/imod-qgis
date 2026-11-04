@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 import numpy as np
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QComboBox,
     QDialog,
     QHBoxLayout,

@@ -1,9 +1,9 @@
 # Copyright © 2021 Deltares
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
     QDoubleSpinBox,
@@ -39,15 +39,20 @@ from imodqgis.dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import (
 )
 from imodqgis.gef import GefType
 from imodqgis.ipf import IpfType
-from imodqgis.utils.layers import NO_LAYERS, get_group_names, groupby_variable
+from imodqgis.utils.layers import (
+    NO_LAYERS,
+    connect_layer_changed,
+    get_group_names,
+    groupby_variable,
+)
 from imodqgis.widgets import (
     LineGeometryPickerWidget,
     MultipleVariablesWidget,
     VariablesWidget,
 )
 
-RUBBER_BAND_COLOR = QColor(Qt.black)
-BUFFER_RUBBER_BAND_COLOR = QColor(Qt.yellow)
+RUBBER_BAND_COLOR = QColor(Qt.GlobalColor.black)
+BUFFER_RUBBER_BAND_COLOR = QColor(Qt.GlobalColor.yellow)
 BUFFER_RUBBER_BAND_COLOR.setAlphaF(0.2)
 
 
@@ -105,14 +110,19 @@ class StyleTree(QTreeWidget):
 
     def __init__(self, parent=None):
         super(StyleTree, self).__init__(parent)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.setDragEnabled(True)
 
     def dropEvent(self, event):
         # Get the currently selected item and copy it
         item = self.selectedItems()[0]
         new = StyleTreeItem.copy(item)
-        destination = self.indexOfTopLevelItem(self.itemAt(event.pos()))
+        # Qt6 replaced QDropEvent.pos() by position(); Qt5 lacks position().
+        if hasattr(event, "position"):
+            pos = event.position().toPoint()
+        else:
+            pos = event.pos()
+        destination = self.indexOfTopLevelItem(self.itemAt(pos))
         # Remove the item
         self.takeTopLevelItem(self.indexOfTopLevelItem(item))
         if destination == -1:
@@ -149,7 +159,7 @@ class StyleTreeItem(QTreeWidgetItem):
         self.legend_checkbox.setChecked(True)
         self.colors_view.setEnabled(False)
         # Do not allow inserting items into these child items
-        self.setFlags(self.flags() ^ Qt.ItemIsDropEnabled)
+        self.setFlags(self.flags() ^ Qt.ItemFlag.ItemIsDropEnabled)
         self.section_data = section_data
         self.update_ramp()
         self.section_data.colors_changed.connect(self.update_ramp)
@@ -195,7 +205,7 @@ class ImodCrossSectionWidget(QWidget):
         self.temporal_frame = None
 
         self.layer_selection = UpdatingQgsMapLayerComboBox()
-        self.layer_selection.layerChanged.connect(self.on_layer_changed)
+        connect_layer_changed(self.layer_selection, self.on_layer_changed)
         self.layer_selection.setMinimumWidth(200)
 
         self.variable_selection = VariablesWidget()
@@ -245,14 +255,14 @@ class ImodCrossSectionWidget(QWidget):
         self.buffer_spinbox.valueChanged.connect(self.refresh_buffer)
 
         self.style_tree = StyleTree()
-        self.style_tree.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.style_tree.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
         self.style_tree.setColumnCount(5)
         self.style_tree.setHeaderLabels(["", "name", "type", "legend", "symbology"])
 
         self.remove_button = QPushButton("Remove")
         self.remove_button.clicked.connect(self.remove)
 
-        self.style_tree.setDragDropMode(QAbstractItemView.InternalMove)
+        self.style_tree.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.style_tree.setDragEnabled(True)
 
         # Selection geometry

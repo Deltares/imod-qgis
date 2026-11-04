@@ -14,8 +14,8 @@ from itertools import compress
 
 import numpy as np
 import pandas as pd
-from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt5.QtTest import QSignalSpy
+from qgis.PyQt.QtTest import QSignalSpy
 from qgis.core import (
     QgsCoordinateTransformContext,
     QgsMapLayerType,
@@ -43,7 +43,11 @@ from imodqgis.dependencies.pyqtgraph_0_12_3.GraphicsScene.exportDialog import (
     ExportDialog,
 )
 from imodqgis.ipf import IpfType, read_associated_timeseries
-from imodqgis.utils.layers import get_group_names, groupby_variable
+from imodqgis.utils.layers import (
+    connect_layer_changed,
+    get_group_names,
+    groupby_variable,
+)
 from imodqgis.utils.temporal import get_group_is_temporal, is_temporal_meshlayer
 from imodqgis.widgets import (
     ImodUniqueColorWidget,
@@ -172,7 +176,7 @@ class ImodTimeSeriesWidget(QWidget):
         self.iface = iface
 
         self.layer_selection = UpdatingQgsMapLayerComboBox()
-        self.layer_selection.layerChanged.connect(self.on_layer_changed)
+        connect_layer_changed(self.layer_selection, self.on_layer_changed)
         self.layer_selection.setMinimumWidth(200)
 
         self.id_label = QLabel("ID column:")
@@ -728,7 +732,7 @@ class ImodTimeSeriesWidget(QWidget):
         if self.color_widget is not None:
             dialog = SymbologyDialog(self.color_widget, self)
             dialog.show()
-            ok = dialog.exec_()
+            ok = dialog.exec()
             if ok and len(self.names) > 0:
                 shader = self.color_widget.shader()
                 labels = self.color_widget.labels()

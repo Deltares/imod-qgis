@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import List
 
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QGroupBox,
@@ -169,7 +169,7 @@ class ImodViewerExeSelectionWidget(QDialog):
 
         # Create message bar
         self.messagebar = QgsMessageBar()
-        self.messagebar.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.messagebar.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         exe_selection_label = QLabel("3D viewer .exe")
 
@@ -186,7 +186,7 @@ class ImodViewerExeSelectionWidget(QDialog):
             self.exe_selection_widget.setFilePath(str(initial_path))
 
         # Create simple OK/Cancel button box
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
 

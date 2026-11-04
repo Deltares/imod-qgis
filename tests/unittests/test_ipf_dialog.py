@@ -286,6 +286,6 @@ def run_all():
     Default function that is called by the runner if nothing else is specified
     """
     suite = unittest.TestSuite()
-    suite.addTests(unittest.makeSuite(TestCaseIpfBorehole))
-    suite.addTests(unittest.makeSuite(TestCaseIpfTimeseries))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestCaseIpfBorehole))
+    suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(TestCaseIpfTimeseries))
     unittest.TextTestRunner(verbosity=3, stream=sys.stdout).run(suite)

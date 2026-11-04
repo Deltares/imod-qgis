@@ -5,7 +5,7 @@ import shlex
 from pathlib import Path
 
 import numpy as np
-from PyQt5.QtWidgets import (
+from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QDialog,
     QFileDialog,
@@ -27,6 +27,7 @@ from qgis.gui import QgsCrsSelectionWidget, QgsMapLayerComboBox
 
 from imodqgis.idf.conversion import convert_gdal_to_idf, convert_idf_to_gdal
 from imodqgis.idf.layer_styling import pseudocolor_renderer
+from imodqgis.utils.layers import connect_layer_changed
 
 
 class OpenWidget(QWidget):
@@ -97,7 +98,7 @@ class ExportWidget(QWidget):
         self.parent = parent
         self.raster_layer = QgsMapLayerComboBox()
         self.raster_layer.setFilters(QgsMapLayerProxyModel.RasterLayer)
-        self.raster_layer.layerChanged.connect(self.on_layer_changed)
+        connect_layer_changed(self.raster_layer, self.on_layer_changed)
         self.label = QLabel("Export to IDF file")
         self.line_edit = QLineEdit()
         self.line_edit.setMinimumWidth(250)
